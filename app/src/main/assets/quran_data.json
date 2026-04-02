@@ -1,0 +1,86 @@
+[
+  {
+    "name": "Al-Fatihah",
+    "name_arabic": "الفاتحة",
+    "revelation": "Makkah",
+    "meaning": "Pembukaan",
+    "ayats": [
+      {
+        "text": "بِسۡمِ اللَّهِ الرَّحۡمَٰنِ الرَّحِيمِ",
+        "translation": "Dengan nama Allah Yang Maha Pemurah lagi Maha Penyayang.",
+        "transliteration": "Bismillahi ar-rahmani ar-rahim"
+      },
+      {
+        "text": "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+        "translation": "Segala puji bagi Allah, Tuhan seluruh alam,",
+        "transliteration": "Al-hamdu lillahi rabbi al-alameen"
+      },
+      {
+        "text": "الرَّحۡمَٰنِ الرَّحِيمِ",
+        "translation": "Yang Maha Pemurah lagi Maha Penyayang,",
+        "transliteration": "Ar-rahmani ar-rahim"
+      },
+      {
+        "text": "مَالِكِ يَوۡمِ الدِّينِ",
+        "translation": "Pemilik hari pembalasan.",
+        "transliteration": "Maliki yawmi ad-deen"
+      },
+      {
+        "text": "إِيَّاكَ نَعۡبُدُ وَإِيَّاكَ نَسۡتَعِينُ",
+        "translation": "Hanya kepada Engkaulah kami menyembah, dan hanya kepada Engkaulah kami meminta pertolongan.",
+        "transliteration": "Iyyaka na'budu wa iyyaka nasta'een"
+      },
+      {
+        "text": "اهۡدِنَا الصِّرَاطَ الۡمُسۡتَقِيمَ",
+        "translation": "Tunjukkanlah kami jalan yang lurus,",
+        "transliteration": "Ihdinassirati al-mustaqeen"
+      },
+      {
+        "text": "صِرَاطَ الَّذِينَ أَنۡعَمۡتَ عَلَيۡهِمۡ غَيۡرِ الۡمَغۡضُوبِ عَلَيۡهِمۡ وَلَا الضَّآلِّينَ",
+        "translation": "Yaitu jalan orang-orang yang telah Engkau beri nikmat, bukan jalan mereka yang dimurkai, dan bukan pula jalan mereka yang sesat.",
+        "transliteration": "Sirat al-ladhina an'amta alayim ghayri al-maghdubi alayim wa la ad-dhalleen"
+      }
+    ]
+  },
+  {
+    "name": "Al-Baqarah",
+    "name_arabic": "البقرة",
+    "revelation": "Madinah",
+    "meaning": "Sapi Betina",
+    "ayats": [
+      {
+        "text": "الم",
+        "translation": "Alif, Lam, Mim.",
+        "transliteration": "Alif lam meem"
+      },
+      {
+        "text": "ذَٰلِكَ الۡكِتَابُ لَا رَيۡبَ فِيهِ هُدًى لِّلۡمُتَّقِينَ",
+        "translation": "Kitab (Al-Qur'an) ini tidak ada keraguan padanya; menjadi petunjuk bagi mereka yang takut kepada Allah,",
+        "transliteration": "Dhalika al-kitab la rayba fih hudan lil-muttaqeen"
+      },
+      {
+        "text": "الَّذِينَ يُؤۡمِنُونَ بِالۡغَيۡبِ وَيُقِيمُونَ الصَّلَوٰةَ وَمِمَّا رَزَقۡنَٰهُمۡ يُنفِقُونَ",
+        "translation": "Mereka yang percaya kepada yang ghaib, melaksanakan salat, dan menafkahkan sebagian dari rejeki yang Kami berikan kepada mereka,",
+        "transliteration": "Al-ladhina yu'minun bi-al-ghayb wa yuqimun assalat wa mimma razaqnahum yunfiqun"
+      }
+    ]
+  },
+  {
+    "name": "Ali 'Imran",
+    "name_arabic": "آل عمران",
+    "revelation": "Madinah",
+    "meaning": "Keluarga Imran",
+    "ayats": [
+      {
+        "text": "الم",
+        "translation": "Alif, Lam, Mim.",
+        "transliteration": "Alif lam meem"
+      },
+      {
+        "text": "اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الۡحَيُّ الۡقَيُّومُ",
+        "translation": "Allah, tidak ada tuhan (yang berhak disembah) melainkan Dia yang hidup selamanya, yang mengurus (makhluk-Nya).",
+        "transliteration": "Allah la ilah ila huwa al-hayy al-qayyum"
+      }
+    ]
+  }
+]

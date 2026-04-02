@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sajda App - Welcome</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@300;400;700;800&amp;family=Amiri:wght@400;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary-fixed": "#ffdad9",
+              "primary-fixed": "#b1f0ce",
+              "on-primary": "#ffffff",
+              "tertiary-fixed-dim": "#ffb3b3",
+              "surface-container-lowest": "#ffffff",
+              "on-tertiary-container": "#ffcfce",
+              "on-tertiary": "#ffffff",
+              "tertiary-container": "#8d4d4e",
+              "surface-bright": "#f7faf8",
+              "surface-container-high": "#e6e9e7",
+              "surface-container-highest": "#e0e3e1",
+              "background": "#f7faf8",
+              "secondary-container": "#cee9dc",
+              "on-tertiary-fixed": "#390b0e",
+              "on-primary-fixed": "#002114",
+              "on-tertiary-fixed-variant": "#6f3537",
+              "primary-container": "#2d6a4f",
+              "on-secondary-fixed": "#082018",
+              "surface-container-low": "#f1f4f2",
+              "error-container": "#ffdad6",
+              "surface-tint": "#2c694e",
+              "error": "#ba1a1a",
+              "primary": "#0f5238",
+              "on-surface-variant": "#404943",
+              "inverse-surface": "#2d3130",
+              "outline-variant": "#bfc9c1",
+              "on-surface": "#181c1b",
+              "primary-fixed-dim": "#95d4b3",
+              "secondary": "#4b6359",
+              "inverse-on-surface": "#eef1ef",
+              "on-background": "#181c1b",
+              "on-secondary-container": "#51695f",
+              "surface-container": "#ebefed",
+              "on-error-container": "#93000a",
+              "outline": "#707973",
+              "on-secondary": "#ffffff",
+              "on-error": "#ffffff",
+              "secondary-fixed-dim": "#b2ccc0",
+              "on-secondary-fixed-variant": "#344c42",
+              "on-primary-container": "#a8e7c5",
+              "secondary-fixed": "#cee9dc",
+              "inverse-primary": "#95d4b3",
+              "surface": "#f7faf8",
+              "tertiary": "#713638",
+              "on-primary-fixed-variant": "#0e5138",
+              "surface-dim": "#d7dbd9",
+              "surface-variant": "#e0e3e1"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .bg-ethereal-gradient {
+        background: radial-gradient(circle at center, #F7FAF8 0%, #D4E9DE 100%);
+      }
+      .dark .bg-ethereal-gradient {
+        background: radial-gradient(circle at center, #1A1C1B 0%, #0F5238 100%);
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body overflow-hidden">
+<!-- Splash Screen Container -->
+<main class="relative h-screen w-full flex flex-col items-center justify-between bg-ethereal-gradient">
+<!-- Subtle Architectural Motif Background -->
+<div class="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center overflow-hidden">
+<svg class="text-primary transform scale-150" height="800" viewbox="0 0 100 100" width="800">
+<path d="M50 0 L60 40 L100 50 L60 60 L50 100 L40 60 L0 50 L40 40 Z" fill="currentColor"></path>
+</svg>
+</div>
+<!-- Top Section (Empty for Spacing Balance) -->
+<div class="pt-12"></div>
+<!-- Central Logo Branding -->
+<div class="relative flex flex-col items-center gap-6 z-10">
+<!-- Icon Symbol -->
+<div class="w-24 h-24 rounded-[2rem] bg-primary-container flex items-center justify-center shadow-[0_12px_32px_-4px_rgba(15,82,56,0.15)] transform active:scale-95 transition-transform"><img alt="Sajda Logo" class="w-full h-full object-cover rounded-[2rem]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYrXOl-0hySRIptgDPZt3vQ4eKI7vFkKkYXhH8pGVsMR9SN-0nk5HNfsSiwg5J0D6AOT-3RGOesD26a7K63SKNL1oe5xaSB5QVLRiaMFCp_r20Niq0prgkpFYINbumMTuQFWgFBI8sN52HzmCLlRuJWnRr3xBdLJ3p_0qNCXUeB3ZJvFaqPWmz_nby_Ebx2B48cfsToxaB6vCUWiec-z_kc_qHDTMiMSdUMIGW92aSp-p9WSeVgGH7YSzpsrf2t8lcLO9K6HcVv58R"/></div>
+<!-- Text Brand -->
+<div class="text-center">
+<h1 class="font-headline text-5xl font-extrabold tracking-tighter text-primary">
+                    Sajda
+                </h1>
+<p class="font-label text-sm tracking-[0.2em] uppercase text-secondary font-semibold mt-1">
+                    Spiritual Journey
+                </p>
+</div>
+</div>
+<!-- Bottom Serenity Message & CTA Area -->
+<div class="w-full max-w-md px-8 pb-16 flex flex-col items-center text-center space-y-10 z-10">
+<div class="space-y-3">
+<h2 class="font-headline text-xl text-on-surface font-semibold tracking-tight">
+                    Finding Sakinah in the Digital Age
+                </h2>
+<p class="text-on-surface-variant leading-relaxed text-sm">
+                    Step into your digital sanctuary. A place for prayer, reflection, and the pursuit of spiritual excellence.
+                </p>
+</div>
+<!-- Visual Progress/Loading Bar -->
+<div class="w-full h-1 bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary-container w-2/3 rounded-full"></div>
+</div>
+<!-- Intro Metadata -->
+<div class="flex items-center gap-4 text-xs font-label tracking-widest text-secondary opacity-60">
+<span>PREPARING PRAYER TIMES</span>
+<span class="w-1 h-1 rounded-full bg-secondary"></span>
+<span>SYNCING DHIKR</span>
+</div>
+</div>
+<!-- Glassmorphism Floating Element (Decorative) -->
+<div class="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-primary/10 rounded-full blur-[80px]"></div>
+<div class="absolute top-[-5%] left-[-5%] w-48 h-48 bg-secondary/10 rounded-full blur-[60px]"></div>
+</main>
+<!-- Content Hidden Preload (Mocking the Home Screen for layout reference) -->
+<div class="hidden">
+<!-- Shared Components Reference Implementation -->
+<header class="bg-[#F7FAF8] dark:bg-[#1A1C1B] flex items-center justify-between px-6 py-4 w-full top-0">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#2D6A4F]" data-icon="arrow_back">arrow_back</span>
+<span class="text-xl font-bold tracking-widest text-[#2D6A4F] font-['Manrope']">Sajda</span>
+</div>
+<span class="material-symbols-outlined text-[#2D6A4F]" data-icon="search">search</span>
+</header>
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-[#F7FAF8]/80 dark:bg-[#1A1C1B]/80 backdrop-blur-lg shadow-[0_-12px_32px_-4px_rgba(15,82,56,0.08)] rounded-t-[1.5rem]">
+<div class="flex flex-col items-center justify-center bg-[#D4E9DE] dark:bg-[#2D6A4F]/30 text-[#0F5238] dark:text-[#B1D1C1] rounded-2xl px-5 py-2">
+<span class="material-symbols-outlined" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-['Inter'] text-[0.75rem] font-medium tracking-[0.05em] uppercase">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#414945] dark:text-[#8B938E] px-5 py-2">
+<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span>
+<span class="font-['Inter'] text-[0.75rem] font-medium tracking-[0.05em] uppercase">Qur’an</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#414945] dark:text-[#8B938E] px-5 py-2">
+<span class="material-symbols-outlined" data-icon="schedule">schedule</span>
+<span class="font-['Inter'] text-[0.75rem] font-medium tracking-[0.05em] uppercase">Prayers</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#414945] dark:text-[#8B938E] px-5 py-2">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-['Inter'] text-[0.75rem] font-medium tracking-[0.05em] uppercase">Settings</span>
+</div>
+</nav>
+</div>
+</body></html>

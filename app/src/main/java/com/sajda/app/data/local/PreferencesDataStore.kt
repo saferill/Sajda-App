@@ -1,0 +1,312 @@
+package com.sajda.app.data.local
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import com.sajda.app.domain.model.AppLanguage
+import com.sajda.app.domain.model.AsrMadhhab
+import com.sajda.app.domain.model.PrayerName
+import com.sajda.app.domain.model.PrayerCalculationMethod
+import com.sajda.app.domain.model.UserSettings
+import com.sajda.app.util.DateTimeUtils
+import com.sajda.app.util.LocationConstants
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import java.time.LocalDate
+
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "sajda_preferences")
+
+class PreferencesDataStore(private val context: Context) {
+
+    companion object {
+        private val DARK_MODE = booleanPreferencesKey("dark_mode")
+        private val NIGHT_MODE = booleanPreferencesKey("night_mode")
+        private val FOCUS_MODE = booleanPreferencesKey("focus_mode")
+        private val APP_LANGUAGE = stringPreferencesKey("app_language")
+        private val SHOW_TRANSLATION = booleanPreferencesKey("show_translation")
+        private val ARABIC_ONLY = booleanPreferencesKey("arabic_only")
+        private val SHOW_TRANSLITERATION = booleanPreferencesKey("show_transliteration")
+        private val ARABIC_FONT_SIZE = intPreferencesKey("arabic_font_size")
+        private val TRANSLATION_FONT_SIZE = intPreferencesKey("translation_font_size")
+        private val VERSE_SPACING = intPreferencesKey("verse_spacing")
+        private val ADZAN_ENABLED = booleanPreferencesKey("adzan_enabled")
+        private val OVERRIDE_SILENT_MODE = booleanPreferencesKey("override_silent_mode")
+        private val VIBRATION_ENABLED = booleanPreferencesKey("vibration_enabled")
+        private val AUTO_LOCATION = booleanPreferencesKey("auto_location")
+        private val LATITUDE = doublePreferencesKey("latitude")
+        private val LONGITUDE = doublePreferencesKey("longitude")
+        private val LOCATION = stringPreferencesKey("location")
+        private val ADZAN_SOUND = stringPreferencesKey("adzan_sound")
+        private val PRAYER_CALCULATION_METHOD = stringPreferencesKey("prayer_calculation_method")
+        private val ASR_MADHHAB = stringPreferencesKey("asr_madhhab")
+        private val LAST_PLAYED_SURAH = intPreferencesKey("last_played_surah")
+        private val DAILY_AYAT_READ = intPreferencesKey("daily_ayat_read")
+        private val STREAK_COUNT = intPreferencesKey("streak_count")
+        private val ACTIVITY_DATE = stringPreferencesKey("activity_date")
+        private val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+        private val FAVORITE_LOCATIONS = stringSetPreferencesKey("favorite_locations")
+        private val QURAN_REMINDER_ENABLED = booleanPreferencesKey("quran_reminder_enabled")
+        private val QURAN_REMINDER_TIME = stringPreferencesKey("quran_reminder_time")
+        private val MORNING_DZIKIR_ENABLED = booleanPreferencesKey("morning_dzikir_enabled")
+        private val MORNING_DZIKIR_TIME = stringPreferencesKey("morning_dzikir_time")
+        private val EVENING_DZIKIR_ENABLED = booleanPreferencesKey("evening_dzikir_enabled")
+        private val EVENING_DZIKIR_TIME = stringPreferencesKey("evening_dzikir_time")
+        private val DUA_BOOKMARKS = stringSetPreferencesKey("dua_bookmarks")
+        private val LAST_ADHAN_PRAYER = stringPreferencesKey("last_adhan_prayer")
+        private val LAST_ADHAN_STATUS = stringPreferencesKey("last_adhan_status")
+        private val LAST_ADHAN_AT = stringPreferencesKey("last_adhan_at")
+        private val NEXT_SCHEDULED_PRAYER = stringPreferencesKey("next_scheduled_prayer")
+        private val NEXT_SCHEDULED_AT = stringPreferencesKey("next_scheduled_at")
+        private val ADHAN_SNOOZE_MINUTES = intPreferencesKey("adhan_snooze_minutes")
+        private val FAJR_ENABLED = booleanPreferencesKey("fajr_enabled")
+        private val DHUHR_ENABLED = booleanPreferencesKey("dhuhr_enabled")
+        private val ASR_ENABLED = booleanPreferencesKey("asr_enabled")
+        private val MAGHRIB_ENABLED = booleanPreferencesKey("maghrib_enabled")
+        private val ISHA_ENABLED = booleanPreferencesKey("isha_enabled")
+    }
+
+    val settingsFlow: Flow<UserSettings> = context.dataStore.data.map { preferences ->
+        UserSettings(
+            darkMode = preferences[DARK_MODE] ?: false,
+            nightMode = preferences[NIGHT_MODE] ?: false,
+            focusMode = preferences[FOCUS_MODE] ?: false,
+            appLanguage = preferences[APP_LANGUAGE]?.let {
+                runCatching { AppLanguage.valueOf(it) }.getOrDefault(AppLanguage.INDONESIAN)
+            } ?: AppLanguage.INDONESIAN,
+            showTranslation = preferences[SHOW_TRANSLATION] ?: true,
+            arabicOnly = preferences[ARABIC_ONLY] ?: false,
+            showTransliteration = preferences[SHOW_TRANSLITERATION] ?: false,
+            arabicFontSize = (preferences[ARABIC_FONT_SIZE] ?: 30).coerceIn(24, 40),
+            translationFontSize = (preferences[TRANSLATION_FONT_SIZE] ?: 16).coerceIn(12, 22),
+            verseSpacing = (preferences[VERSE_SPACING] ?: 18).coerceIn(12, 28),
+            adzanEnabled = preferences[ADZAN_ENABLED] ?: true,
+            overrideSilentMode = preferences[OVERRIDE_SILENT_MODE] ?: false,
+            vibrationEnabled = preferences[VIBRATION_ENABLED] ?: true,
+            autoLocation = preferences[AUTO_LOCATION] ?: false,
+            locationName = preferences[LOCATION] ?: LocationConstants.DEFAULT_LOCATION,
+            latitude = preferences[LATITUDE] ?: LocationConstants.DEFAULT_LATITUDE,
+            longitude = preferences[LONGITUDE] ?: LocationConstants.DEFAULT_LONGITUDE,
+            adzanSound = preferences[ADZAN_SOUND] ?: "system_default",
+            prayerCalculationMethod = preferences[PRAYER_CALCULATION_METHOD]?.let {
+                runCatching { PrayerCalculationMethod.valueOf(it) }.getOrDefault(PrayerCalculationMethod.KEMENAG)
+            } ?: PrayerCalculationMethod.KEMENAG,
+            asrMadhhab = preferences[ASR_MADHHAB]?.let {
+                runCatching { AsrMadhhab.valueOf(it) }.getOrDefault(AsrMadhhab.SHAFII)
+            } ?: AsrMadhhab.SHAFII,
+            lastPlayedSurah = preferences[LAST_PLAYED_SURAH] ?: 0,
+            dailyAyatRead = preferences[DAILY_AYAT_READ] ?: 0,
+            streakCount = preferences[STREAK_COUNT] ?: 0,
+            activityDate = preferences[ACTIVITY_DATE] ?: "",
+            onboardingCompleted = preferences[ONBOARDING_COMPLETED] ?: false,
+            favoriteLocationNames = preferences[FAVORITE_LOCATIONS].orEmpty(),
+            quranReminderEnabled = preferences[QURAN_REMINDER_ENABLED] ?: false,
+            quranReminderTime = preferences[QURAN_REMINDER_TIME] ?: "20:00",
+            morningDzikirReminderEnabled = preferences[MORNING_DZIKIR_ENABLED] ?: false,
+            morningDzikirReminderTime = preferences[MORNING_DZIKIR_TIME] ?: "05:30",
+            eveningDzikirReminderEnabled = preferences[EVENING_DZIKIR_ENABLED] ?: false,
+            eveningDzikirReminderTime = preferences[EVENING_DZIKIR_TIME] ?: "18:00",
+            lastAdhanPrayer = preferences[LAST_ADHAN_PRAYER] ?: "",
+            lastAdhanStatus = preferences[LAST_ADHAN_STATUS] ?: "",
+            lastAdhanAt = preferences[LAST_ADHAN_AT] ?: "",
+            nextScheduledPrayer = preferences[NEXT_SCHEDULED_PRAYER] ?: "",
+            nextScheduledAt = preferences[NEXT_SCHEDULED_AT] ?: "",
+            adhanSnoozeMinutes = preferences[ADHAN_SNOOZE_MINUTES] ?: 10,
+            fajrAdzanEnabled = preferences[FAJR_ENABLED] ?: true,
+            dhuhrAdzanEnabled = preferences[DHUHR_ENABLED] ?: true,
+            asrAdzanEnabled = preferences[ASR_ENABLED] ?: true,
+            maghribAdzanEnabled = preferences[MAGHRIB_ENABLED] ?: true,
+            ishaAdzanEnabled = preferences[ISHA_ENABLED] ?: true
+        )
+    }
+
+    suspend fun setDarkMode(enabled: Boolean) = context.dataStore.edit { it[DARK_MODE] = enabled }
+
+    suspend fun setNightMode(enabled: Boolean) = context.dataStore.edit { it[NIGHT_MODE] = enabled }
+
+    suspend fun setFocusMode(enabled: Boolean) = context.dataStore.edit { it[FOCUS_MODE] = enabled }
+
+    suspend fun setAppLanguage(language: AppLanguage) = context.dataStore.edit {
+        it[APP_LANGUAGE] = language.name
+    }
+
+    suspend fun setShowTranslation(enabled: Boolean) = context.dataStore.edit {
+        it[SHOW_TRANSLATION] = enabled
+    }
+
+    suspend fun setArabicOnly(enabled: Boolean) = context.dataStore.edit {
+        it[ARABIC_ONLY] = enabled
+    }
+
+    suspend fun setShowTransliteration(enabled: Boolean) = context.dataStore.edit {
+        it[SHOW_TRANSLITERATION] = enabled
+    }
+
+    suspend fun setArabicFontSize(size: Int) = context.dataStore.edit {
+        it[ARABIC_FONT_SIZE] = size.coerceIn(24, 40)
+    }
+
+    suspend fun setTranslationFontSize(size: Int) = context.dataStore.edit {
+        it[TRANSLATION_FONT_SIZE] = size.coerceIn(12, 22)
+    }
+
+    suspend fun setVerseSpacing(spacing: Int) = context.dataStore.edit {
+        it[VERSE_SPACING] = spacing.coerceIn(12, 28)
+    }
+
+    suspend fun setAdzanEnabled(enabled: Boolean) = context.dataStore.edit { it[ADZAN_ENABLED] = enabled }
+
+    suspend fun setOverrideSilentMode(enabled: Boolean) = context.dataStore.edit {
+        it[OVERRIDE_SILENT_MODE] = enabled
+    }
+
+    suspend fun setVibrationEnabled(enabled: Boolean) = context.dataStore.edit {
+        it[VIBRATION_ENABLED] = enabled
+    }
+
+    suspend fun setAutoLocation(enabled: Boolean) = context.dataStore.edit { it[AUTO_LOCATION] = enabled }
+
+    suspend fun updateLocation(locationName: String, latitude: Double, longitude: Double, automatic: Boolean) {
+        context.dataStore.edit {
+            it[LOCATION] = locationName
+            it[LATITUDE] = latitude
+            it[LONGITUDE] = longitude
+            it[AUTO_LOCATION] = automatic
+        }
+    }
+
+    suspend fun setAdzanSound(sound: String) = context.dataStore.edit { it[ADZAN_SOUND] = sound }
+
+    suspend fun setPrayerCalculationMethod(method: PrayerCalculationMethod) = context.dataStore.edit {
+        it[PRAYER_CALCULATION_METHOD] = method.name
+    }
+
+    suspend fun setAsrMadhhab(madhhab: AsrMadhhab) = context.dataStore.edit {
+        it[ASR_MADHHAB] = madhhab.name
+    }
+
+    suspend fun setLastPlayedSurah(surahNumber: Int) = context.dataStore.edit {
+        it[LAST_PLAYED_SURAH] = surahNumber
+    }
+
+    suspend fun setOnboardingCompleted(completed: Boolean) = context.dataStore.edit {
+        it[ONBOARDING_COMPLETED] = completed
+    }
+
+    suspend fun toggleFavoriteLocation(locationName: String) = context.dataStore.edit { preferences ->
+        val current = preferences[FAVORITE_LOCATIONS].orEmpty().toMutableSet()
+        if (!current.add(locationName)) {
+            current.remove(locationName)
+        }
+        preferences[FAVORITE_LOCATIONS] = current
+    }
+
+    suspend fun setQuranReminder(enabled: Boolean, time: String? = null) = context.dataStore.edit {
+        it[QURAN_REMINDER_ENABLED] = enabled
+        time?.let { selected -> it[QURAN_REMINDER_TIME] = selected }
+    }
+
+    suspend fun setMorningDzikirReminder(enabled: Boolean, time: String? = null) = context.dataStore.edit {
+        it[MORNING_DZIKIR_ENABLED] = enabled
+        time?.let { selected -> it[MORNING_DZIKIR_TIME] = selected }
+    }
+
+    suspend fun setEveningDzikirReminder(enabled: Boolean, time: String? = null) = context.dataStore.edit {
+        it[EVENING_DZIKIR_ENABLED] = enabled
+        time?.let { selected -> it[EVENING_DZIKIR_TIME] = selected }
+    }
+
+    suspend fun toggleDuaBookmark(duaId: String) = context.dataStore.edit { preferences ->
+        val current = preferences[DUA_BOOKMARKS].orEmpty().toMutableSet()
+        if (!current.add(duaId)) {
+            current.remove(duaId)
+        }
+        preferences[DUA_BOOKMARKS] = current
+    }
+
+    val duaBookmarksFlow: Flow<Set<String>> = context.dataStore.data.map { preferences ->
+        preferences[DUA_BOOKMARKS].orEmpty()
+    }
+
+    suspend fun setPrayerEnabled(prayerName: PrayerName, enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            when (prayerName) {
+                PrayerName.FAJR -> preferences[FAJR_ENABLED] = enabled
+                PrayerName.DHUHR -> preferences[DHUHR_ENABLED] = enabled
+                PrayerName.ASR -> preferences[ASR_ENABLED] = enabled
+                PrayerName.MAGHRIB -> preferences[MAGHRIB_ENABLED] = enabled
+                PrayerName.ISHA -> preferences[ISHA_ENABLED] = enabled
+            }
+        }
+    }
+
+    suspend fun updateAdhanLastEvent(
+        prayerName: String,
+        status: String,
+        occurredAt: String = DateTimeUtils.dateTimeString()
+    ) {
+        context.dataStore.edit { preferences ->
+            preferences[LAST_ADHAN_PRAYER] = prayerName
+            preferences[LAST_ADHAN_STATUS] = status
+            preferences[LAST_ADHAN_AT] = occurredAt
+        }
+    }
+
+    suspend fun updateNextScheduledPrayer(
+        prayerName: String,
+        scheduledAt: String
+    ) {
+        context.dataStore.edit { preferences ->
+            preferences[NEXT_SCHEDULED_PRAYER] = prayerName
+            preferences[NEXT_SCHEDULED_AT] = scheduledAt
+        }
+    }
+
+    suspend fun setAdhanSnoozeMinutes(minutes: Int) = context.dataStore.edit {
+        it[ADHAN_SNOOZE_MINUTES] = minutes.coerceIn(5, 30)
+    }
+
+    suspend fun recordAyatRead() {
+        val today = DateTimeUtils.todayString()
+        val yesterday = LocalDate.now().minusDays(1).toString()
+
+        context.dataStore.edit { preferences ->
+            val previousDate = preferences[ACTIVITY_DATE] ?: ""
+            val previousStreak = preferences[STREAK_COUNT] ?: 0
+
+            when (previousDate) {
+                today -> {
+                    preferences[DAILY_AYAT_READ] = (preferences[DAILY_AYAT_READ] ?: 0) + 1
+                }
+
+                yesterday -> {
+                    preferences[DAILY_AYAT_READ] = 1
+                    preferences[STREAK_COUNT] = previousStreak + 1
+                    preferences[ACTIVITY_DATE] = today
+                }
+
+                else -> {
+                    preferences[DAILY_AYAT_READ] = 1
+                    preferences[STREAK_COUNT] = 1
+                    preferences[ACTIVITY_DATE] = today
+                }
+            }
+        }
+    }
+
+    suspend fun resetDailyCounterIfNeeded() {
+        val today = DateTimeUtils.todayString()
+        context.dataStore.edit { preferences ->
+            val activityDate = preferences[ACTIVITY_DATE] ?: ""
+            if (activityDate.isNotEmpty() && activityDate != today) {
+                preferences[DAILY_AYAT_READ] = 0
+            }
+        }
+    }
+}

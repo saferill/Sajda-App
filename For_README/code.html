@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sajda - Digital Sanctuary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-error": "#ffffff",
+                        "primary-fixed-dim": "#91d78a",
+                        "secondary-fixed": "#cdebc5",
+                        "tertiary": "#6b1d3d",
+                        "outline-variant": "#c0c9bb",
+                        "surface-dim": "#d7dbd8",
+                        "on-surface-variant": "#41493e",
+                        "surface-container-low": "#f1f5f2",
+                        "on-secondary-fixed-variant": "#344d31",
+                        "surface-bright": "#f6faf7",
+                        "inverse-surface": "#2d3130",
+                        "primary-fixed": "#acf4a4",
+                        "secondary-container": "#cae8c2",
+                        "on-secondary-fixed": "#082009",
+                        "on-secondary": "#ffffff",
+                        "on-background": "#181d1b",
+                        "surface": "#f6faf7",
+                        "surface-container-highest": "#dfe3e1",
+                        "surface-tint": "#2a6b2c",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-container": "#ffaec6",
+                        "surface-container-high": "#e5e9e6",
+                        "on-primary-container": "#90d689",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "inverse-primary": "#91d78a",
+                        "on-surface": "#181d1b",
+                        "tertiary-fixed": "#ffd9e2",
+                        "on-tertiary-fixed": "#3e001d",
+                        "primary-container": "#1b5e20",
+                        "on-primary-fixed-variant": "#0c5216",
+                        "primary": "#00450d",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#ebefec",
+                        "tertiary-fixed-dim": "#ffb1c8",
+                        "surface-variant": "#dfe3e1",
+                        "secondary": "#4b6547",
+                        "on-error-container": "#93000a",
+                        "inverse-on-surface": "#eef2ef",
+                        "on-tertiary-fixed-variant": "#7a2949",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#b1cfaa",
+                        "outline": "#717a6d",
+                        "background": "#f6faf7",
+                        "on-primary-fixed": "#002203",
+                        "on-secondary-container": "#4f694b",
+                        "tertiary-container": "#883454"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .premium-shadow {
+            box-shadow: 0 40px 80px -20px rgba(0, 69, 13, 0.12);
+        }
+        .pattern-bg {
+            background-image: radial-gradient(#00450d 0.5px, transparent 0.5px);
+            background-size: 24px 24px;
+            opacity: 0.03;
+        }
+        .geometric-overlay {
+            background: linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0) 100%);
+        }
+        .floating-3d {
+            perspective: 1500px;
+        }
+        .card-perspective {
+            transform: rotateY(-15deg) rotateX(10deg) rotateZ(2deg);
+            transition: transform 0.5s ease;
+        }
+        .card-perspective:hover {
+            transform: rotateY(-5deg) rotateX(5deg) rotateZ(0deg);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background antialiased overflow-x-hidden font-body">
+<!-- Navigation (TopNavBar) -->
+<nav class="fixed top-0 w-full z-50 bg-[#f6faf7]/80 dark:bg-emerald-950/80 backdrop-blur-xl shadow-[0_32px_64px_rgba(24,29,27,0.05)] transition-all duration-300">
+<div class="flex justify-between items-center px-12 py-6 max-w-screen-2xl mx-auto">
+<div class="text-2xl font-bold tracking-widest text-[#00450d] dark:text-[#f6faf7] font-headline uppercase">
+            Sajda
+        </div>
+<div class="hidden md:flex items-center gap-12">
+<a class="text-[#00450d] dark:text-white font-bold border-b-2 border-[#00450d] dark:border-[#cae8c2] pb-1 font-headline tracking-tight headline-lg" href="#">Sanctuary</a>
+<a class="text-[#4f694b] dark:text-[#ebefec] hover:text-[#00450d] transition-all duration-500 font-headline tracking-tight headline-lg" href="#">Journey</a>
+<a class="text-[#4f694b] dark:text-[#ebefec] hover:text-[#00450d] transition-all duration-500 font-headline tracking-tight headline-lg" href="#">Reflections</a>
+</div>
+<button class="bg-primary text-on-primary px-8 py-2.5 rounded-full font-bold hover:opacity-80 transition-all duration-500 shadow-lg cursor-pointer">
+            Connect
+        </button>
+</div>
+</nav>
+<main class="relative">
+<!-- Subtle Pattern Layer -->
+<div class="fixed inset-0 pattern-bg pointer-events-none -z-10"></div>
+<!-- Hero Section -->
+<section class="relative pt-52 pb-32 overflow-hidden">
+<div class="max-w-7xl mx-auto px-12">
+<div class="flex flex-col lg:flex-row items-center gap-24">
+<div class="lg:w-3/5 space-y-10">
+<div class="inline-flex items-center px-5 py-2.5 bg-primary/5 text-primary border border-primary/10 rounded-full font-label font-bold text-xs uppercase tracking-widest">
+<span class="material-symbols-outlined text-sm mr-2 leading-none" data-icon="auto_awesome">auto_awesome</span>
+                        Evolving Devotion
+                    </div>
+<h1 class="font-headline font-extrabold text-7xl xl:text-8xl tracking-tight text-primary leading-[1.05]">
+                        The Digital<br/><span class="text-primary/40 italic">Sanctuary</span> for<br/>Your Soul.
+                    </h1>
+<p class="font-body text-xl text-on-surface-variant max-w-xl leading-relaxed opacity-90">
+                        An uncompromising pursuit of spiritual clarity. Seamlessly integrated prayer, Quranic wisdom, and mindful progress in a design that breathes.
+                    </p>
+<div class="flex items-center gap-8 pt-4">
+<button class="bg-primary text-on-primary px-10 py-5 rounded-2xl font-bold flex items-center gap-4 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+                            Explore the Ethos
+                            <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<a class="text-primary font-bold border-b-2 border-primary/20 hover:border-primary transition-all" href="#">View Repository</a>
+</div>
+</div>
+<div class="lg:w-2/5 relative floating-3d">
+<div class="absolute -top-20 -right-20 w-80 h-80 bg-primary/10 blur-[120px] rounded-full"></div>
+<div class="relative card-perspective">
+<div class="bg-white/40 backdrop-blur-md p-1.5 rounded-[3.5rem] premium-shadow border border-white/50">
+<div class="bg-surface-container-lowest rounded-[3rem] overflow-hidden">
+<img alt="App Interface" class="w-full object-cover" src="https://lh3.googleusercontent.com/aida/ADBb0uioneo_sDolC6FXMAXpl31eru-dh-ioSaIcf-Arxq1H6PVLUXz-5uLUD-1InGL2_gLAwtnTUfrT_nz6BJKCO2W7dBpVktC-eXVGRq4qV_KCiZVQqkEwCQHkBT4Zvmi0jPRfgwVDfXJKwypzOOMGq9n4rAu3EcZFbLz1yem5CZDJVdRsrCoTG9aKjy85ZGEbOArkIyFmIblaFYdLHYo0Gxi48YACFTIj6w02ogcR-_vyZWwRM_PREc3MCoTTpLa0v7hhXAv8D75kjAo"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Minimal Feature Cards -->
+<section class="py-32 border-t border-primary/5">
+<div class="max-w-7xl mx-auto px-12">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-16">
+<div class="group space-y-6">
+<div class="w-14 h-14 bg-primary/5 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-500">
+<span class="material-symbols-outlined text-3xl" data-icon="schedule">schedule</span>
+</div>
+<h3 class="text-2xl font-headline font-bold text-primary">Sacred Time</h3>
+<p class="text-on-surface-variant font-body leading-relaxed opacity-80">
+                        Dynamic calculation engine for accurate timings, delivered through a silent notification architecture that honors your presence.
+                    </p>
+</div>
+<div class="group space-y-6">
+<div class="w-14 h-14 bg-primary/5 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-500">
+<span class="material-symbols-outlined text-3xl" data-icon="menu_book">menu_book</span>
+</div>
+<h3 class="text-2xl font-headline font-bold text-primary">Infinite Quran</h3>
+<p class="text-on-surface-variant font-body leading-relaxed opacity-80">
+                        An editorial reading experience prioritizing the divine script. Zero distractions, customizable typography, and seamless bookmarking.
+                    </p>
+</div>
+<div class="group space-y-6">
+<div class="w-14 h-14 bg-primary/5 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-500">
+<span class="material-symbols-outlined text-3xl" data-icon="explore">explore</span>
+</div>
+<h3 class="text-2xl font-headline font-bold text-primary">True North</h3>
+<p class="text-on-surface-variant font-body leading-relaxed opacity-80">
+                        Minimalist Qibla orientation leveraging sophisticated sensor fusion for absolute precision, wherever your journey leads.
+                    </p>
+</div>
+</div>
+</div>
+</section>
+<!-- Overlapping Showcase -->
+<section class="py-40 bg-primary/[0.02] relative overflow-hidden">
+<div class="max-w-7xl mx-auto px-12 relative z-10">
+<div class="flex flex-col lg:flex-row items-center gap-20">
+<div class="lg:w-1/2 space-y-8">
+<h2 class="font-headline font-extrabold text-5xl text-primary tracking-tight">Editorial Design for the Modern Faithful</h2>
+<p class="text-xl text-on-surface-variant font-body leading-relaxed max-w-lg">
+                        We stripped away the noise to leave only what matters. Sajda is more than an utility—it's a digital companion crafted with the same reverence as the rituals it supports.
+                    </p>
+<div class="pt-4 grid grid-cols-2 gap-8 border-t border-primary/10">
+<div>
+<div class="text-3xl font-headline font-extrabold text-primary">85%</div>
+<div class="text-sm font-label uppercase tracking-widest text-primary/60 mt-1">Journey Completion</div>
+</div>
+<div>
+<div class="text-3xl font-headline font-extrabold text-primary">342</div>
+<div class="text-sm font-label uppercase tracking-widest text-primary/60 mt-1">Day Streak</div>
+</div>
+</div>
+</div>
+<div class="lg:w-1/2 relative h-[700px] flex items-center justify-center">
+<!-- Overlapping Layout -->
+<div class="relative w-full max-w-md">
+<!-- Bottom Layer -->
+<div class="absolute top-10 -left-16 w-64 rotate-[-8deg] opacity-40 blur-[1px] hover:blur-0 transition-all duration-700">
+<div class="bg-surface-container-lowest p-2 rounded-[2.5rem] premium-shadow">
+<img alt="Settings screen" class="rounded-[2rem] w-full" src="https://lh3.googleusercontent.com/aida/ADBb0uijr2PS7ol8-BL7PPV15D8CP60lAIUyU3LXaHYdp83ZBKp3HkCyrU4c1Erls2npwDsdyvDtwt9WNgbcIamLXmoCX54fNKzkp0uUqe4sJGCxHk-vZ1G4jU2Z2MWcNEskYxNbPx4jbIHnKLzYLofn2ILNOLPqJe7P2s8JrHm6cYb0iOxethSfXrsl903nIz0iYEcYF270gNLhePlxr8IT9Rwifehopg3XWgPXJWr0Ltxc-O-R7xvSB3AJ6UC926Yf4Kjoj7MNaP61x24"/>
+</div>
+</div>
+<!-- Middle Layer -->
+<div class="absolute -top-10 -right-16 w-64 rotate-[12deg] z-10 premium-shadow hover:-translate-y-4 transition-all duration-500">
+<div class="bg-surface-container-lowest p-2 rounded-[2.5rem] border border-primary/5">
+<img alt="Dashboard screen" class="rounded-[2rem] w-full" src="https://lh3.googleusercontent.com/aida/ADBb0ugb74AJMNQMB3QjWCtZZLnLgbcNtIbjf69CKlGUxT-zbdvDubpAgEa96a9FlKkJENetCT4_y1VHOAoKjzaHhsBXwLOu-fRZdKuNh9lnsxL87n0unn2G8CIk3p9hurzASUY0uUy-uBEgoH0CLovTZbw1QOU563ITkZhOwos540nGhdZBpi-3_QOg64M8yYo3R6qmEpAqtbxIzbxsCxtpYCs6TjVwdLZBQylLOSfiymUGEyfxvtTZEZ-V2IILXDzcFWGbQMk_X6BcJiU"/>
+</div>
+</div>
+<!-- Top/Featured Layer -->
+<div class="relative z-20 w-72 mx-auto translate-y-10 hover:scale-105 transition-all duration-500">
+<div class="bg-surface-container-lowest p-2.5 rounded-[3rem] premium-shadow border border-primary/10">
+<img alt="Splash screen" class="rounded-[2.5rem] w-full" src="https://lh3.googleusercontent.com/aida/ADBb0uioneo_sDolC6FXMAXpl31eru-dh-ioSaIcf-Arxq1H6PVLUXz-5uLUD-1InGL2_gLAwtnTUfrT_nz6BJKCO2W7dBpVktC-eXVGRq4qV_KCiZVQqkEwCQHkBT4Zvmi0jPRfgwVDfXJKwypzOOMGq9n4rAu3EcZFbLz1yem5CZDJVdRsrCoTG9aKjy85ZGEbOArkIyFmIblaFYdLHYo0Gxi48YACFTIj6w02ogcR-_vyZWwRM_PREc3MCoTTpLa0v7hhXAv8D75kjAo"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Decorative Islamic Pattern Detail -->
+<div class="absolute top-1/2 right-0 -translate-y-1/2 opacity-5 pointer-events-none select-none">
+<svg fill="none" height="400" viewbox="0 0 100 100" width="400" xmlns="http://www.w3.org/2000/svg">
+<path d="M50 0L58.2 33.3L91.7 16.7L66.7 41.8L100 50L66.7 58.2L91.7 83.3L58.2 66.7L50 100L41.8 66.7L8.3 83.3L33.3 58.2L0 50L33.3 41.8L8.3 16.7L41.8 33.3L50 0Z" fill="currentColor"></path>
+</svg>
+</div>
+</section>
+<!-- Final CTA - Premium Redesign -->
+<section class="py-40">
+<div class="max-w-6xl mx-auto px-12">
+<div class="bg-primary rounded-[4rem] p-24 text-center relative overflow-hidden premium-shadow">
+<div class="absolute inset-0 pattern-bg opacity-10"></div>
+<div class="absolute inset-0 geometric-overlay"></div>
+<div class="relative z-10 space-y-12">
+<h2 class="font-headline font-bold text-6xl lg:text-7xl text-white tracking-tighter leading-tight">
+                        Elevate your spiritual<br/>journey today.
+                    </h2>
+<p class="text-white/70 font-body text-lg max-w-2xl mx-auto">
+                        Experience the sanctuary designed for the modern world. Available for early access through our open-source community.
+                    </p>
+<div class="flex justify-center pt-8">
+<button class="bg-white text-primary px-12 py-6 rounded-2xl font-bold text-xl hover:bg-secondary-fixed transition-all duration-300">
+                            Download the Source
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-16 bg-[#ebefec] dark:bg-[#181d1b]">
+<div class="flex flex-col md:flex-row justify-between items-center px-16 w-full max-w-screen-2xl mx-auto">
+<div class="mb-8 md:mb-0">
+<p class="font-['Plus_Jakarta_Sans'] body-sm tracking-wide uppercase text-[#4f694b] dark:text-[#cae8c2]">
+                © 2026 Sajda Digital
+            </p>
+</div>
+<div class="flex gap-12">
+<a class="font-['Plus_Jakarta_Sans'] body-sm tracking-wide uppercase text-[#4f694b] opacity-70 hover:text-[#00450d] dark:hover:text-white transition-colors duration-300" href="#">Privacy</a>
+<a class="font-['Plus_Jakarta_Sans'] body-sm tracking-wide uppercase text-[#4f694b] opacity-70 hover:text-[#00450d] dark:hover:text-white transition-colors duration-300" href="#">Terms</a>
+<a class="font-['Plus_Jakarta_Sans'] body-sm tracking-wide uppercase text-[#4f694b] opacity-70 hover:text-[#00450d] dark:hover:text-white transition-colors duration-300" href="#">Ethos</a>
+</div>
+<div class="mt-8 md:mt-0 flex items-center gap-6">
+<a class="text-primary/60 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="language">language</span>
+</a>
+<a class="text-primary/60 hover:text-primary transition-colors" href="#">
+<svg class="w-5 h-5 fill-current" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.744.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path>
+</svg>
+</a>
+</div>
+</div>
+</footer>
+</body></html>
