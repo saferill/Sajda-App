@@ -86,7 +86,7 @@ class PrayerTimeViewModel(
     fun setLocation(cityPreset: CityPreset) {
         viewModelScope.launch {
             preferencesDataStore.updateLocation(
-                cityPreset.name,
+                cityPreset.displayName,
                 cityPreset.latitude,
                 cityPreset.longitude,
                 automatic = false

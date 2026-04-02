@@ -9,6 +9,5 @@
         <item name="windowSplashScreenAnimatedIcon">@drawable/sajda_logo_mark</item>
         <item name="windowSplashScreenAnimationDuration">400</item>
         <item name="postSplashScreenTheme">@style/Theme.SajdaApp</item>
-        <item name="android:windowBackground">@drawable/launch_screen</item>
     </style>
 </resources>

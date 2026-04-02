@@ -454,7 +454,7 @@ private fun QuickAudioCard(
 @Composable
 private fun DailyAyatCard(ayat: Ayat?) {
     SanctuaryCard {
-        SectionHeader(eyebrow = "Daily Verse", title = "Ayat untuk hari ini")
+        SectionHeader(eyebrow = "Daily Verse", title = "Ayat acak untuk hari ini")
         if (ayat != null) {
             ArabicVerseText(text = ayat.textArabic)
             Column(

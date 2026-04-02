@@ -48,7 +48,6 @@ import com.sajda.app.service.AdzanScheduler
 import com.sajda.app.service.AudioPlaybackStore
 import com.sajda.app.service.AudioService
 import com.sajda.app.service.PrayerScheduleWorker
-import com.sajda.app.ui.component.AnimatedSajdaSplashOverlay
 import com.sajda.app.ui.component.DockItem
 import com.sajda.app.ui.component.FloatingDock
 import com.sajda.app.ui.component.FloatingMiniPlayer
@@ -87,7 +86,6 @@ import com.sajda.app.ui.viewmodel.SettingsViewModelFactory
 import com.sajda.app.util.AdhanSystemHelper
 import com.sajda.app.util.DeviceLocationHelper
 import com.sajda.app.util.DeviceLocationResult
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -197,7 +195,6 @@ class MainActivity : ComponentActivity() {
             var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
             var overlay by remember { mutableStateOf<OverlayDestination?>(null) }
             var notificationPermissionPrompted by rememberSaveable { mutableStateOf(false) }
-            var showSplashOverlay by rememberSaveable { mutableStateOf(true) }
             val requestedTabOrdinal = resolveStartTab(intent).ordinal
 
             val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -208,11 +205,6 @@ class MainActivity : ComponentActivity() {
                 if (selectedTabIndex != requestedTabOrdinal) {
                     selectedTabIndex = requestedTabOrdinal
                 }
-            }
-
-            androidx.compose.runtime.LaunchedEffect(Unit) {
-                delay(1100)
-                showSplashOverlay = false
             }
 
             val currentTab = RootTab.entries[selectedTabIndex]
@@ -452,11 +444,6 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                             }
-
-                            AnimatedSajdaSplashOverlay(
-                                visible = showSplashOverlay,
-                                modifier = Modifier.fillMaxSize()
-                            )
                         }
                     }
                 }

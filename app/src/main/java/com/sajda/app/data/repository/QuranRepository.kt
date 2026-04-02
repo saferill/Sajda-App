@@ -137,8 +137,12 @@ class QuranRepository(private val database: SajdaDatabase) {
     suspend fun getLastDownloadedSurah(): Surah? = surahDao.getLastDownloadedSurah()?.toModel()
 
     suspend fun getDailyAyat(date: LocalDate = LocalDate.now()): Ayat? {
-        val surahNumber = ((date.dayOfYear - 1) % 114) + 1
-        return ayatDao.getAyat(surahNumber, 1)?.toModel()
+        val ayatCount = ayatDao.count()
+        if (ayatCount == 0) return null
+
+        val seed = (date.toEpochDay() * 1103515245L + 12345L) and Long.MAX_VALUE
+        val offset = (seed % ayatCount).toInt()
+        return ayatDao.getAyatByOffset(offset)?.toModel()
     }
 
     private fun SurahEntity.toModel(): Surah {

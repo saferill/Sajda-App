@@ -9,6 +9,7 @@ import com.sajda.app.domain.model.Ayat
 import com.sajda.app.domain.model.PrayerTime
 import com.sajda.app.domain.model.Surah
 import com.sajda.app.util.DateTimeUtils
+import java.time.LocalDate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +25,7 @@ data class HomeUiState(
     val lastReadSurah: Surah? = null,
     val lastReadAyat: Ayat? = null,
     val dailyAyat: Ayat? = null,
+    val dailyAyatDate: String = LocalDate.now().toString(),
     val quickPlaySurah: Surah? = null,
     val dailyAyatRead: Int = 0,
     val streakCount: Int = 0,
@@ -43,7 +45,7 @@ class HomeViewModel(
     init {
         observeHomeData()
         startClock()
-        loadDailyAyat()
+        loadDailyAyat(LocalDate.now())
     }
 
     private fun observeHomeData() {
@@ -97,16 +99,25 @@ class HomeViewModel(
         }
     }
 
-    private fun loadDailyAyat() {
+    private fun loadDailyAyat(date: LocalDate) {
         viewModelScope.launch {
-            val ayat = quranRepository.getDailyAyat()
-            _uiState.update { it.copy(dailyAyat = ayat) }
+            val ayat = quranRepository.getDailyAyat(date)
+            _uiState.update {
+                it.copy(
+                    dailyAyat = ayat,
+                    dailyAyatDate = date.toString()
+                )
+            }
         }
     }
 
     private fun startClock() {
         viewModelScope.launch {
             while (true) {
+                val today = LocalDate.now()
+                if (_uiState.value.dailyAyatDate != today.toString()) {
+                    loadDailyAyat(today)
+                }
                 _uiState.update { current ->
                     val prayerTime = current.todayPrayerTime
                     if (prayerTime == null) {

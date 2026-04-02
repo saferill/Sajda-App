@@ -167,8 +167,61 @@ data class AudioDownloadState(
 data class CityPreset(
     val name: String,
     val latitude: Double,
-    val longitude: Double
-)
+    val longitude: Double,
+    val areaType: String = "Kota",
+    val province: String = "",
+    val aliases: List<String> = emptyList()
+) {
+    val displayName: String
+        get() = when {
+            areaType.equals("Provinsi", ignoreCase = true) -> "Provinsi $name"
+            province.isBlank() -> "$areaType $name"
+            else -> "$areaType $name, $province"
+        }
+
+    val subtitle: String
+        get() = when {
+            areaType.equals("Provinsi", ignoreCase = true) -> "Provinsi"
+            province.isBlank() -> areaType
+            else -> "$areaType • $province"
+        }
+
+    fun matches(query: String): Boolean {
+        val normalizedQuery = query.trim().lowercase()
+        if (normalizedQuery.isBlank()) return true
+        return searchableText.contains(normalizedQuery)
+    }
+
+    fun matchScore(query: String): Int {
+        val normalizedQuery = query.trim().lowercase()
+        if (normalizedQuery.isBlank()) return 99
+        return when {
+            displayName.lowercase() == normalizedQuery -> 0
+            name.lowercase() == normalizedQuery -> 1
+            displayName.lowercase().startsWith(normalizedQuery) -> 2
+            name.lowercase().startsWith(normalizedQuery) -> 3
+            province.lowercase().startsWith(normalizedQuery) -> 4
+            aliases.any { it.lowercase().startsWith(normalizedQuery) } -> 5
+            searchableText.contains(normalizedQuery) -> 6
+            else -> 99
+        }
+    }
+
+    private val searchableText: String
+        get() = buildString {
+            append(name.lowercase())
+            append(' ')
+            append(displayName.lowercase())
+            append(' ')
+            append(areaType.lowercase())
+            append(' ')
+            append(province.lowercase())
+            aliases.forEach { alias ->
+                append(' ')
+                append(alias.lowercase())
+            }
+        }
+}
 
 enum class AppLanguage {
     INDONESIAN,

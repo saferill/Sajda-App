@@ -308,10 +308,25 @@ private fun QuickLocationSection(
     onSelectCity: (com.sajda.app.domain.model.CityPreset) -> Unit,
     onOpenLocationSettings: () -> Unit
 ) {
+    val quickCities = LocationConstants.cityPresets.filter { city ->
+        city.areaType == "Kota" && city.name in setOf(
+            "Jakarta Selatan",
+            "Bandung",
+            "Semarang",
+            "Yogyakarta",
+            "Surabaya",
+            "Denpasar",
+            "Medan",
+            "Makassar",
+            "Balikpapan",
+            "Jayapura"
+        )
+    }
+
     SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
         SectionHeader(
             eyebrow = "Quick Location",
-            title = "Pilih kota cepat",
+            title = "Lokasi populer",
             actionLabel = "Atur",
             onAction = onOpenLocationSettings
         )
@@ -319,7 +334,7 @@ private fun QuickLocationSection(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            LocationConstants.cityPresets.forEach { city ->
+            quickCities.forEach { city ->
                 Text(
                     text = city.name,
                     style = MaterialTheme.typography.labelLarge,

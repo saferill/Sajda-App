@@ -557,14 +557,23 @@ fun LocationSettingsScreen(
     var isResolvingLocation by remember { mutableStateOf(false) }
     var locationStatus by remember { mutableStateOf<String?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
+    val normalizedQuery = query.trim()
     val filteredCities = remember(query) {
-        LocationConstants.cityPresets.filter { city ->
-            query.isBlank() || city.name.contains(query.trim(), ignoreCase = true)
-        }
+        LocationConstants.cityPresets
+            .filter { city -> city.matches(normalizedQuery) }
+            .sortedWith(compareBy<CityPreset> { it.matchScore(normalizedQuery) }.thenBy { it.displayName })
     }
     val favoriteCities = remember(settings.favoriteLocationNames) {
-        LocationConstants.cityPresets.filter { it.name in settings.favoriteLocationNames }
+        LocationConstants.cityPresets.filter { city ->
+            city.displayName in settings.favoriteLocationNames || city.name in settings.favoriteLocationNames
+        }.distinctBy { it.displayName }
     }
+
+    fun CityPreset.isSelectedLocation(): Boolean =
+        settings.locationName == displayName || settings.locationName == name
+
+    fun CityPreset.isFavoriteLocation(): Boolean =
+        displayName in settings.favoriteLocationNames || name in settings.favoriteLocationNames
 
     fun refreshFromDevice(markAuto: Boolean) {
         scope.launch {
@@ -664,6 +673,59 @@ fun LocationSettingsScreen(
             }
         }
         SanctuaryCard {
+            SectionHeader(eyebrow = "Manual", title = "Cari wilayah Indonesia")
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                placeholder = { Text("Cari provinsi, kota, atau kabupaten") }
+            )
+            Text(
+                text = "Ketik nama wilayah, lalu pilih hasil yang paling sesuai. Pencarian mendukung provinsi, kota, dan kabupaten.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            filteredCities.take(if (normalizedQuery.isBlank()) 24 else 40).forEach { city ->
+                LocationSelectionRow(
+                    city = city,
+                    isSelected = city.isSelectedLocation(),
+                    isFavorite = city.isFavoriteLocation(),
+                    onUse = {
+                        viewModel.setLocation(city)
+                        query = city.displayName
+                        locationStatus = "${city.displayName} dipakai untuk jadwal sholat."
+                    },
+                    onToggleFavorite = { viewModel.toggleFavoriteLocation(city.displayName) }
+                )
+            }
+            if (filteredCities.isEmpty()) {
+                Text(
+                    text = "Belum ada hasil yang cocok. Coba pakai nama provinsi, kota, atau kabupaten yang lebih lengkap.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        if (favoriteCities.isNotEmpty()) {
+            SanctuaryCard {
+                SectionHeader(eyebrow = "Favorites", title = "Lokasi favorit")
+                favoriteCities.forEach { city ->
+                    LocationSelectionRow(
+                        city = city,
+                        isSelected = city.isSelectedLocation(),
+                        isFavorite = true,
+                        onUse = {
+                            viewModel.setLocation(city)
+                            query = city.displayName
+                            locationStatus = "${city.displayName} dipakai untuk jadwal sholat."
+                        },
+                        onToggleFavorite = { viewModel.toggleFavoriteLocation(city.displayName) }
+                    )
+                }
+            }
+        }
+        SanctuaryCard {
             SectionHeader(eyebrow = "Calculation", title = "Metode waktu sholat")
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 com.sajda.app.domain.model.PrayerCalculationMethod.entries.forEach { method ->
@@ -687,39 +749,6 @@ fun LocationSettingsScreen(
                         onClick = { viewModel.setAsrMadhhab(madhhab) }
                     )
                 }
-            }
-        }
-        if (favoriteCities.isNotEmpty()) {
-            SanctuaryCard {
-                SectionHeader(eyebrow = "Favorites", title = "Lokasi favorit")
-                favoriteCities.forEach { city ->
-                    LocationSelectionRow(
-                        city = city,
-                        isSelected = settings.locationName == city.name,
-                        isFavorite = true,
-                        onUse = { viewModel.setLocation(city) },
-                        onToggleFavorite = { viewModel.toggleFavoriteLocation(city.name) }
-                    )
-                }
-            }
-        }
-        SanctuaryCard {
-            SectionHeader(eyebrow = "Manual", title = "Cari kota Indonesia")
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                placeholder = { Text("Cari kota, misalnya Bandung atau Makassar") }
-            )
-            filteredCities.take(16).forEach { city ->
-                LocationSelectionRow(
-                    city = city,
-                    isSelected = settings.locationName == city.name,
-                    isFavorite = city.name in settings.favoriteLocationNames,
-                    onUse = { viewModel.setLocation(city) },
-                    onToggleFavorite = { viewModel.toggleFavoriteLocation(city.name) }
-                )
             }
         }
     }
@@ -787,9 +816,14 @@ private fun LocationSelectionRow(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = city.name,
+                    text = city.displayName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = city.subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "${"%.3f".format(Locale.US, city.latitude)}, ${"%.3f".format(Locale.US, city.longitude)}",

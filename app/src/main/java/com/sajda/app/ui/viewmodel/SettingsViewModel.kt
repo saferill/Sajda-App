@@ -111,7 +111,7 @@ class SettingsViewModel(
     fun setLocation(cityPreset: CityPreset) {
         viewModelScope.launch {
             preferencesDataStore.updateLocation(
-                locationName = cityPreset.name,
+                locationName = cityPreset.displayName,
                 latitude = cityPreset.latitude,
                 longitude = cityPreset.longitude,
                 automatic = false

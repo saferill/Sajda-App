@@ -127,7 +127,7 @@ object DeviceLocationHelper {
 
         val nearestDistance = nearestCity?.let { distanceKm(latitude, longitude, it) }
         if (nearestCity != null && nearestDistance != null && nearestDistance <= 90.0) {
-            return nearestCity.name
+            return nearestCity.displayName
         }
 
         return "GPS ${"%.3f".format(Locale.US, latitude)}, ${"%.3f".format(Locale.US, longitude)}"
