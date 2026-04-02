@@ -73,7 +73,6 @@ Sajda App brings several important worship features into one consistent experien
 
 ## Picture
 
-This section only shows assets from the `For_README` folder.
 
 <p align="center">
   <img src="For_README/screen.png" alt="For_README Preview" width="760" />
