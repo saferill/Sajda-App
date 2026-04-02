@@ -187,4 +187,3 @@ This repository does not currently include a final license. Before publishing th
 
 - This project follows an offline-first approach
 - Audio is not bundled all at once in order to save storage
-- `For_README` and `stitch_refs` screenshots are intentionally separated in this README
