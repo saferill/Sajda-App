@@ -71,30 +71,13 @@ Sajda App brings several important worship features into one consistent experien
 - Background playback
 - Delete downloaded files
 
-## Screenshots From `For_README`
+## Picture
 
 This section only shows assets from the `For_README` folder.
 
 <p align="center">
   <img src="For_README/screen.png" alt="For_README Preview" width="760" />
 </p>
-
-## Screenshots From `stitch_refs`
-
-This section only shows visual references from the `stitch_refs` folder.
-
-<table>
-  <tr>
-    <td align="center"><strong>Splash</strong></td>
-    <td align="center"><strong>Home</strong></td>
-    <td align="center"><strong>Settings</strong></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="stitch_refs/splash_screen_new_logo/screen.png" alt="Splash Screen" width="250" /></td>
-    <td align="center"><img src="stitch_refs/home_dashboard_new_logo/screen.png" alt="Home Dashboard" width="250" /></td>
-    <td align="center"><img src="stitch_refs/settings_new_logo/screen.png" alt="Settings Screen" width="250" /></td>
-  </tr>
-</table>
 
 ## Tech Stack
 
