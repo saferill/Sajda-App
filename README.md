@@ -15,6 +15,15 @@
   <img src="https://img.shields.io/badge/MVVM-Room%20%2B%20DataStore-4B6359?style=for-the-badge&logo=google&logoColor=white" alt="MVVM Room DataStore" />
 </p>
 
+<p align="center">
+  <a href="https://github.com/saferill/Sajda-App/releases/tag/v1.1.1">
+    <img src="https://img.shields.io/badge/Latest%20Release-v1.1.1-0F5238?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v1.1.1" />
+  </a>
+  <a href="https://github.com/saferill/Sajda-App/releases/download/v1.1.1/Sajda-App-v1.1.1.apk">
+    <img src="https://img.shields.io/badge/Download%20APK-Sajda%20App%20v1.1.1-D6B66A?style=for-the-badge&logo=android&logoColor=1A1A1A" alt="Download Sajda App v1.1.1 APK" />
+  </a>
+</p>
+
 ## About
 
 Sajda App is a native Android application built with Kotlin and Jetpack Compose for a calm, focused, and personal daily worship experience. The project follows an `offline-first` approach so core flows such as Qur'an reading, bookmarks, and prayer schedule access remain fast and reliable.
@@ -78,6 +87,12 @@ Sajda App brings several important worship features into one consistent experien
   <img src="For_README/screen.png" alt="For_README Preview" width="760" />
 </p>
 
+## Latest Release
+
+- Release page: [Sajda App v1.1.1](https://github.com/saferill/Sajda-App/releases/tag/v1.1.1)
+- Direct APK: [Sajda-App-v1.1.1.apk](https://github.com/saferill/Sajda-App/releases/download/v1.1.1/Sajda-App-v1.1.1.apk)
+- Changelog: [CHANGELOG.md](CHANGELOG.md)
+
 ## Tech Stack
 
 | Layer | Stack |
@@ -132,7 +147,7 @@ app/src/main/
 Output:
 
 ```text
-app/build/outputs/apk/release/Sajda-App-v1.1.0.apk
+app/build/outputs/apk/release/Sajda-App-v1.1.1.apk
 ```
 
 ## App Permissions
@@ -156,7 +171,7 @@ Current focus areas:
 
 - Adhan reliability across devices
 - UI/UX consistency and finishing
-- Debug and release build verification
+- Release verification and GitHub distribution
 - Continued improvement of Qur'an, audio, and prayer workflows
 
 ## Roadmap
@@ -165,6 +180,7 @@ Current focus areas:
 - Add deeper Qur'an and spiritual content
 - Refine qibla, location, and prayer calculation flows
 - Prepare a more stable release build
+- Expand hadith and dua content sources
 - Improve documentation for public development
 
 ## Contributing
