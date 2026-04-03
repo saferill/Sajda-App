@@ -16,11 +16,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/saferill/Sajda-App/releases/tag/v1.1.1">
-    <img src="https://img.shields.io/badge/Latest%20Release-v1.1.1-0F5238?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v1.1.1" />
+  <a href="https://github.com/saferill/Sajda-App/releases/tag/v1.1.2">
+    <img src="https://img.shields.io/badge/Latest%20Release-v1.1.2-0F5238?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v1.1.2" />
   </a>
-  <a href="https://github.com/saferill/Sajda-App/releases/download/v1.1.1/Sajda-App-v1.1.1.apk">
-    <img src="https://img.shields.io/badge/Download%20APK-Sajda%20App%20v1.1.1-D6B66A?style=for-the-badge&logo=android&logoColor=1A1A1A" alt="Download Sajda App v1.1.1 APK" />
+  <a href="https://github.com/saferill/Sajda-App/releases/download/v1.1.2/Sajda-App-v1.1.2.apk">
+    <img src="https://img.shields.io/badge/Download%20APK-Sajda%20App%20v1.1.2-D6B66A?style=for-the-badge&logo=android&logoColor=1A1A1A" alt="Download Sajda App v1.1.2 APK" />
   </a>
 </p>
 
@@ -89,8 +89,8 @@ Sajda App brings several important worship features into one consistent experien
 
 ## Latest Release
 
-- Release page: [Sajda App v1.1.1](https://github.com/saferill/Sajda-App/releases/tag/v1.1.1)
-- Direct APK: [Sajda-App-v1.1.1.apk](https://github.com/saferill/Sajda-App/releases/download/v1.1.1/Sajda-App-v1.1.1.apk)
+- Release page: [Sajda App v1.1.2](https://github.com/saferill/Sajda-App/releases/tag/v1.1.2)
+- Direct APK: [Sajda-App-v1.1.2.apk](https://github.com/saferill/Sajda-App/releases/download/v1.1.2/Sajda-App-v1.1.2.apk)
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
 
 ## Tech Stack
@@ -147,7 +147,7 @@ app/src/main/
 Output:
 
 ```text
-app/build/outputs/apk/release/Sajda-App-v1.1.1.apk
+app/build/outputs/apk/release/Sajda-App-v1.1.2.apk
 ```
 
 ## App Permissions

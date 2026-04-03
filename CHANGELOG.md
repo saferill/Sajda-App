@@ -11,6 +11,28 @@ All notable changes to this project are documented in this file.
 - Refine prayer, qibla, and location UX
 - Polish release workflow and public project documentation
 
+## v1.1.2 - 2026-04-03
+
+### Added
+
+- Online hadith and dua content foundation with safe local API key loading
+- Full English Qur'an translation asset and dynamic reading modes
+- Adhan event history for diagnostics and recent troubleshooting
+- More complete language handling across core screens and settings
+
+### Changed
+
+- Refined adhan notification layout to be more compact and avoid cropped heads-up content
+- Improved adhan audio routing so hardware volume buttons follow the alarm stream while adhan is active
+- Pulled saved location into adhan notifications when alarm payloads are missing location details
+- Continued polishing the v1.2 foundation from `TODO.md`
+
+### Fixed
+
+- Adhan flow that could feel unreliable outside one prayer time on some devices
+- Mixed Indonesian and English labels across key app flows
+- Notification location fallback that previously showed an empty or not-selected state too often
+
 ## v1.1.1 - 2026-04-03
 
 ### Added
