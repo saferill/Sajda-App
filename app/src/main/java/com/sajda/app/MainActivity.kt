@@ -35,6 +35,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.sajda.app.data.local.PreferencesDataStore
 import com.sajda.app.data.local.SajdaDatabase
+import com.sajda.app.data.repository.AppUpdateRepository
 import com.sajda.app.data.repository.AudioRepository
 import com.sajda.app.data.repository.PrayerTimeRepository
 import com.sajda.app.data.repository.QuranRepository
@@ -45,9 +46,11 @@ import com.sajda.app.domain.model.SearchResultType
 import com.sajda.app.domain.model.Surah
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.service.AdzanScheduler
+import com.sajda.app.service.AppUpdateWorker
 import com.sajda.app.service.AudioPlaybackStore
 import com.sajda.app.service.AudioService
 import com.sajda.app.service.PrayerScheduleWorker
+import com.sajda.app.ui.component.AnimatedSajdaSplashOverlay
 import com.sajda.app.ui.component.DockItem
 import com.sajda.app.ui.component.FloatingDock
 import com.sajda.app.ui.component.FloatingMiniPlayer
@@ -71,6 +74,7 @@ import com.sajda.app.ui.screen.SearchScreen
 import com.sajda.app.ui.screen.SettingsScreen
 import com.sajda.app.ui.screen.SmartReminderScreen
 import com.sajda.app.ui.screen.TafsirScreen
+import com.sajda.app.ui.screen.UpdateCenterScreen
 import com.sajda.app.ui.screen.WeeklyPrayerScheduleScreen
 import com.sajda.app.ui.screen.WidgetPreviewScreen
 import com.sajda.app.ui.screen.WorshipProgressScreen
@@ -86,6 +90,7 @@ import com.sajda.app.ui.viewmodel.SettingsViewModelFactory
 import com.sajda.app.util.AdhanSystemHelper
 import com.sajda.app.util.DeviceLocationHelper
 import com.sajda.app.util.DeviceLocationResult
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -109,6 +114,7 @@ private sealed interface OverlayDestination {
     data object AppearanceSettings : OverlayDestination
     data object LocationSettings : OverlayDestination
     data object LanguageSettings : OverlayDestination
+    data object UpdateCenter : OverlayDestination
     data object BackgroundAudioInfo : OverlayDestination
     data object WidgetPreview : OverlayDestination
     data object EmptyState : OverlayDestination
@@ -123,6 +129,7 @@ class MainActivity : ComponentActivity() {
     private val quranRepository by lazy { QuranRepository(database) }
     private val prayerTimeRepository by lazy { PrayerTimeRepository(database) }
     private val audioRepository by lazy { AudioRepository(this, quranRepository) }
+    private val appUpdateRepository by lazy { AppUpdateRepository(this) }
     private val adzanScheduler by lazy { AdzanScheduler(this) }
 
     private val homeViewModel by lazy {
@@ -149,7 +156,12 @@ class MainActivity : ComponentActivity() {
     private val settingsViewModel by lazy {
         ViewModelProvider(
             this,
-            SettingsViewModelFactory(preferencesDataStore, prayerTimeRepository, adzanScheduler)
+            SettingsViewModelFactory(
+                preferencesDataStore,
+                prayerTimeRepository,
+                adzanScheduler,
+                appUpdateRepository
+            )
         )[SettingsViewModel::class.java]
     }
 
@@ -180,6 +192,8 @@ class MainActivity : ComponentActivity() {
             adzanScheduler.reschedule(prayerTimes, refreshedSettings)
             PrayerScheduleWorker.enqueueImmediate(this@MainActivity)
             PrayerScheduleWorker.ensurePeriodic(this@MainActivity)
+            AppUpdateWorker.enqueueImmediate(this@MainActivity)
+            AppUpdateWorker.ensurePeriodic(this@MainActivity)
         }
 
         setContent {
@@ -189,12 +203,14 @@ class MainActivity : ComponentActivity() {
             val quranState by quranViewModel.uiState.collectAsStateWithLifecycle()
             val prayerState by prayerTimeViewModel.uiState.collectAsStateWithLifecycle()
             val settingsState by settingsViewModel.settings.collectAsStateWithLifecycle()
+            val appUpdateState by settingsViewModel.appUpdateState.collectAsStateWithLifecycle()
             val duaBookmarks by preferencesDataStore.duaBookmarksFlow.collectAsStateWithLifecycle(initialValue = emptySet())
             val audioState by AudioPlaybackStore.state.collectAsStateWithLifecycle()
 
             var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
             var overlay by remember { mutableStateOf<OverlayDestination?>(null) }
             var notificationPermissionPrompted by rememberSaveable { mutableStateOf(false) }
+            var showSplashOverlay by rememberSaveable { mutableStateOf(true) }
             val requestedTabOrdinal = resolveStartTab(intent).ordinal
 
             val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -205,6 +221,11 @@ class MainActivity : ComponentActivity() {
                 if (selectedTabIndex != requestedTabOrdinal) {
                     selectedTabIndex = requestedTabOrdinal
                 }
+            }
+
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                delay(1250)
+                showSplashOverlay = false
             }
 
             val currentTab = RootTab.entries[selectedTabIndex]
@@ -278,10 +299,12 @@ class MainActivity : ComponentActivity() {
 
                                     RootTab.SETTINGS -> SettingsScreen(
                                         viewModel = settingsViewModel,
+                                        updateState = appUpdateState,
                                         onOpenAdhanSettings = { overlay = OverlayDestination.AdhanSettings },
                                         onOpenAppearanceSettings = { overlay = OverlayDestination.AppearanceSettings },
                                         onOpenLocationSettings = { overlay = OverlayDestination.LocationSettings },
                                         onOpenLanguageSettings = { overlay = OverlayDestination.LanguageSettings },
+                                        onOpenUpdateCenter = { overlay = OverlayDestination.UpdateCenter },
                                         onOpenAudioManagement = { overlay = OverlayDestination.AudioManager },
                                         onOpenWorshipProgress = { overlay = OverlayDestination.WorshipProgress },
                                         onOpenSmartReminders = { overlay = OverlayDestination.SmartReminder },
@@ -379,6 +402,13 @@ class MainActivity : ComponentActivity() {
                                             onBack = { overlay = null }
                                         )
 
+                                        OverlayDestination.UpdateCenter -> UpdateCenterScreen(
+                                            settings = settingsState,
+                                            updateState = appUpdateState,
+                                            viewModel = settingsViewModel,
+                                            onBack = { overlay = null }
+                                        )
+
                                         OverlayDestination.BackgroundAudioInfo -> BackgroundAudioInfoScreen(
                                             onBack = { overlay = null }
                                         )
@@ -444,6 +474,11 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                             }
+
+                            AnimatedSajdaSplashOverlay(
+                                visible = showSplashOverlay,
+                                modifier = Modifier.fillMaxSize()
+                            )
                         }
                     }
                 }

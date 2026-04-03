@@ -1,25 +1,49 @@
 package com.sajda.app.ui.viewmodel
 
+import com.sajda.app.BuildConfig
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sajda.app.data.local.PreferencesDataStore
+import com.sajda.app.data.repository.AppUpdateRepository
 import com.sajda.app.data.repository.PrayerTimeRepository
 import com.sajda.app.domain.model.AppLanguage
+import com.sajda.app.domain.model.AppUpdateInfo
 import com.sajda.app.domain.model.AsrMadhhab
 import com.sajda.app.domain.model.CityPreset
 import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.PrayerCalculationMethod
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.service.AdzanScheduler
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+data class AppUpdateUiState(
+    val currentVersionName: String = BuildConfig.VERSION_NAME,
+    val latestVersionName: String = "",
+    val releaseName: String = "",
+    val notes: String = "",
+    val publishedAt: String = "",
+    val releasePageUrl: String = "",
+    val isChecking: Boolean = false,
+    val isDownloading: Boolean = false,
+    val errorMessage: String? = null,
+    val lastCheckedAt: String = ""
+) {
+    val hasUpdate: Boolean
+        get() = latestVersionName.isNotBlank()
+}
 
 class SettingsViewModel(
     private val preferencesDataStore: PreferencesDataStore,
     private val prayerTimeRepository: PrayerTimeRepository,
-    private val adzanScheduler: AdzanScheduler
+    private val adzanScheduler: AdzanScheduler,
+    private val appUpdateRepository: AppUpdateRepository
 ) : ViewModel() {
 
     val settings = preferencesDataStore.settingsFlow.stateIn(
@@ -27,6 +51,22 @@ class SettingsViewModel(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = UserSettings()
     )
+
+    private val _appUpdateState = MutableStateFlow(AppUpdateUiState())
+    val appUpdateState = _appUpdateState.asStateFlow()
+
+    private var cachedUpdateInfo: AppUpdateInfo? = null
+
+    init {
+        viewModelScope.launch {
+            settings.collect { latestSettings ->
+                _appUpdateState.update { current ->
+                    current.copy(lastCheckedAt = latestSettings.lastUpdateCheckAt)
+                }
+            }
+        }
+        checkForUpdates(silent = true)
+    }
 
     fun setDarkMode(enabled: Boolean) {
         viewModelScope.launch { preferencesDataStore.setDarkMode(enabled) }
@@ -145,6 +185,62 @@ class SettingsViewModel(
     fun setAdhanSnoozeMinutes(minutes: Int) {
         viewModelScope.launch {
             preferencesDataStore.setAdhanSnoozeMinutes(minutes)
+        }
+    }
+
+    fun setAutoUpdateCheckEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesDataStore.setAutoUpdateCheckEnabled(enabled)
+        }
+    }
+
+    fun checkForUpdates(silent: Boolean = false) {
+        viewModelScope.launch {
+            _appUpdateState.update { it.copy(isChecking = true, errorMessage = null) }
+            val updateInfo = appUpdateRepository.fetchLatestRelease()
+            preferencesDataStore.setLastUpdateCheckAt()
+            cachedUpdateInfo = updateInfo
+            _appUpdateState.update { current ->
+                when (updateInfo) {
+                    null -> current.copy(
+                        latestVersionName = "",
+                        releaseName = "",
+                        notes = "",
+                        publishedAt = "",
+                        releasePageUrl = "",
+                        isChecking = false,
+                        isDownloading = false,
+                        errorMessage = if (silent) null else "Belum ada versi publik yang lebih baru saat ini.",
+                        lastCheckedAt = preferencesDataStore.settingsFlow.first().lastUpdateCheckAt
+                    )
+
+                    else -> current.copy(
+                        latestVersionName = updateInfo.versionName,
+                        releaseName = updateInfo.releaseName,
+                        notes = updateInfo.notes,
+                        publishedAt = updateInfo.publishedAt,
+                        releasePageUrl = updateInfo.releasePageUrl,
+                        isChecking = false,
+                        isDownloading = false,
+                        errorMessage = null,
+                        lastCheckedAt = preferencesDataStore.settingsFlow.first().lastUpdateCheckAt
+                    )
+                }
+            }
+        }
+    }
+
+    fun downloadLatestUpdate() {
+        val updateInfo = cachedUpdateInfo ?: return
+        viewModelScope.launch {
+            _appUpdateState.update {
+                it.copy(
+                    isDownloading = true,
+                    errorMessage = "Unduhan update dimulai. Tunggu sampai notifikasi instalasi muncul."
+                )
+            }
+            appUpdateRepository.enqueueUpdateDownload(updateInfo)
+            _appUpdateState.update { it.copy(isDownloading = false) }
         }
     }
 

@@ -1,5 +1,6 @@
 package com.sajda.app.ui.screen
 
+import com.sajda.app.BuildConfig
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.SystemUpdateAlt
 import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +38,7 @@ import com.sajda.app.ui.component.HeroCard
 import com.sajda.app.ui.component.SajdaLogoTile
 import com.sajda.app.ui.component.SajdaTopAction
 import com.sajda.app.ui.component.SanctuaryCard
+import com.sajda.app.ui.viewmodel.AppUpdateUiState
 import com.sajda.app.ui.viewmodel.SettingsViewModel
 
 private data class SettingsItem(
@@ -48,10 +51,12 @@ private data class SettingsItem(
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
+    updateState: AppUpdateUiState,
     onOpenAdhanSettings: () -> Unit,
     onOpenAppearanceSettings: () -> Unit,
     onOpenLocationSettings: () -> Unit,
     onOpenLanguageSettings: () -> Unit,
+    onOpenUpdateCenter: () -> Unit,
     onOpenAudioManagement: () -> Unit,
     onOpenWorshipProgress: () -> Unit,
     onOpenSmartReminders: () -> Unit,
@@ -85,6 +90,16 @@ fun SettingsScreen(
             subtitle = "Indonesia, English, Arabic-only reading",
             icon = Icons.Rounded.Language,
             onClick = onOpenLanguageSettings
+        ),
+        SettingsItem(
+            title = "App Updates",
+            subtitle = if (updateState.hasUpdate) {
+                "Versi ${updateState.latestVersionName} siap diunduh"
+            } else {
+                "Cek update otomatis dan pasang build terbaru"
+            },
+            icon = Icons.Rounded.SystemUpdateAlt,
+            onClick = onOpenUpdateCenter
         )
     )
 
@@ -129,7 +144,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Sajda v1.0.0",
+                        text = "Sajda v${BuildConfig.VERSION_NAME}",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -165,9 +180,37 @@ fun SettingsScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${settings.streakCount} days streak • ${settings.locationName}",
+                            text = "${settings.streakCount} days streak | ${settings.locationName}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
+            if (updateState.hasUpdate) {
+                HeroCard {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Update tersedia",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f)
+                        )
+                        Text(
+                            text = updateState.releaseName.ifBlank { "Sajda App ${updateState.latestVersionName}" },
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Text(
+                            text = "Buka App Updates untuk mengunduh dan memasang versi terbaru.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.84f)
                         )
                     }
                 }

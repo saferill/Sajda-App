@@ -7,7 +7,7 @@
     <style name="Theme.SajdaApp.Launch" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_background</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/sajda_logo_mark</item>
-        <item name="windowSplashScreenAnimationDuration">400</item>
+        <item name="windowSplashScreenAnimationDuration">180</item>
         <item name="postSplashScreenTheme">@style/Theme.SajdaApp</item>
     </style>
 </resources>

@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -17,6 +18,7 @@ import com.sajda.app.domain.model.PrayerCalculationMethod
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.util.DateTimeUtils
 import com.sajda.app.util.LocationConstants
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
@@ -64,7 +66,11 @@ class PreferencesDataStore(private val context: Context) {
         private val LAST_ADHAN_AT = stringPreferencesKey("last_adhan_at")
         private val NEXT_SCHEDULED_PRAYER = stringPreferencesKey("next_scheduled_prayer")
         private val NEXT_SCHEDULED_AT = stringPreferencesKey("next_scheduled_at")
+        private val AUTO_UPDATE_CHECK_ENABLED = booleanPreferencesKey("auto_update_check_enabled")
+        private val LAST_UPDATE_CHECK_AT = stringPreferencesKey("last_update_check_at")
+        private val LAST_NOTIFIED_UPDATE_VERSION = stringPreferencesKey("last_notified_update_version")
         private val ADHAN_SNOOZE_MINUTES = intPreferencesKey("adhan_snooze_minutes")
+        private val LAST_UPDATE_DOWNLOAD_ID = longPreferencesKey("last_update_download_id")
         private val FAJR_ENABLED = booleanPreferencesKey("fajr_enabled")
         private val DHUHR_ENABLED = booleanPreferencesKey("dhuhr_enabled")
         private val ASR_ENABLED = booleanPreferencesKey("asr_enabled")
@@ -117,6 +123,8 @@ class PreferencesDataStore(private val context: Context) {
             lastAdhanAt = preferences[LAST_ADHAN_AT] ?: "",
             nextScheduledPrayer = preferences[NEXT_SCHEDULED_PRAYER] ?: "",
             nextScheduledAt = preferences[NEXT_SCHEDULED_AT] ?: "",
+            autoUpdateCheckEnabled = preferences[AUTO_UPDATE_CHECK_ENABLED] ?: true,
+            lastUpdateCheckAt = preferences[LAST_UPDATE_CHECK_AT] ?: "",
             adhanSnoozeMinutes = preferences[ADHAN_SNOOZE_MINUTES] ?: 10,
             fajrAdzanEnabled = preferences[FAJR_ENABLED] ?: true,
             dhuhrAdzanEnabled = preferences[DHUHR_ENABLED] ?: true,
@@ -270,6 +278,30 @@ class PreferencesDataStore(private val context: Context) {
 
     suspend fun setAdhanSnoozeMinutes(minutes: Int) = context.dataStore.edit {
         it[ADHAN_SNOOZE_MINUTES] = minutes.coerceIn(5, 30)
+    }
+
+    suspend fun setAutoUpdateCheckEnabled(enabled: Boolean) = context.dataStore.edit {
+        it[AUTO_UPDATE_CHECK_ENABLED] = enabled
+    }
+
+    suspend fun setLastUpdateCheckAt(checkedAt: String = DateTimeUtils.dateTimeString()) = context.dataStore.edit {
+        it[LAST_UPDATE_CHECK_AT] = checkedAt
+    }
+
+    suspend fun setLastNotifiedUpdateVersion(versionName: String) = context.dataStore.edit {
+        it[LAST_NOTIFIED_UPDATE_VERSION] = versionName
+    }
+
+    suspend fun getLastNotifiedUpdateVersion(): String {
+        return context.dataStore.data.first()[LAST_NOTIFIED_UPDATE_VERSION] ?: ""
+    }
+
+    suspend fun setLastUpdateDownloadId(downloadId: Long) = context.dataStore.edit {
+        it[LAST_UPDATE_DOWNLOAD_ID] = downloadId
+    }
+
+    suspend fun getLastUpdateDownloadId(): Long? {
+        return context.dataStore.data.first()[LAST_UPDATE_DOWNLOAD_ID]
     }
 
     suspend fun recordAyatRead() {

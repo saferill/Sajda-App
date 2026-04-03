@@ -141,20 +141,38 @@ fun AnimatedSajdaSplashOverlay(
         label = "splashScale"
     )
     val transition = rememberInfiniteTransition(label = "splashPulse")
-    val logoDrift by transition.animateFloat(
-        initialValue = -8f,
-        targetValue = 8f,
+    val logoPulse by transition.animateFloat(
+        initialValue = 0.96f,
+        targetValue = 1.04f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2200),
+            animation = tween(durationMillis = 820),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "splashLogoPulse"
+    )
+    val logoDrift by transition.animateFloat(
+        initialValue = -14f,
+        targetValue = 10f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1500),
             repeatMode = RepeatMode.Reverse
         ),
         label = "splashDrift"
     )
-    val haloAlpha by transition.animateFloat(
-        initialValue = 0.16f,
-        targetValue = 0.32f,
+    val logoRotation by transition.animateFloat(
+        initialValue = -3f,
+        targetValue = 3f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2400),
+            animation = tween(durationMillis = 1400),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "splashRotation"
+    )
+    val haloAlpha by transition.animateFloat(
+        initialValue = 0.18f,
+        targetValue = 0.34f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200),
             repeatMode = RepeatMode.Reverse
         ),
         label = "splashHalo"
@@ -163,24 +181,32 @@ fun AnimatedSajdaSplashOverlay(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(sajdaBackgroundBrush())
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF081B16),
+                        Color(0xFF0F332A),
+                        Color(0xFF123F34)
+                    )
+                )
+            )
             .graphicsLayer(alpha = overlayAlpha)
     ) {
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 72.dp)
-                .size(280.dp)
+                .padding(top = 58.dp)
+                .size(260.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = haloAlpha))
+                .background(Color(0xFFBFE7D1).copy(alpha = haloAlpha))
         )
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 180.dp)
-                .size(220.dp)
+                .padding(bottom = 170.dp)
+                .size(210.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = haloAlpha * 0.7f))
+                .background(Color(0xFF96D0B3).copy(alpha = haloAlpha * 0.45f))
         )
         Column(
             modifier = Modifier.align(Alignment.Center),
@@ -189,25 +215,26 @@ fun AnimatedSajdaSplashOverlay(
         ) {
             Box(
                 modifier = Modifier
-                    .size(172.dp)
+                    .size(168.dp)
                     .graphicsLayer(
-                        scaleX = logoScale,
-                        scaleY = logoScale,
-                        translationY = logoDrift
+                        scaleX = logoScale * logoPulse,
+                        scaleY = logoScale * logoPulse,
+                        translationY = logoDrift,
+                        rotationZ = logoRotation
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
                     modifier = Modifier
-                        .size(172.dp)
+                        .size(168.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.92f))
+                        .background(Color(0xFFF4FBF7).copy(alpha = 0.96f))
                 )
                 Image(
                     painter = painterResource(R.drawable.sajda_logo_mark),
                     contentDescription = "Sajda App",
                     modifier = Modifier
-                        .size(138.dp)
+                        .size(134.dp)
                         .padding(12.dp),
                     contentScale = ContentScale.Fit
                 )
@@ -216,12 +243,12 @@ fun AnimatedSajdaSplashOverlay(
                 text = "Sajda App",
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.primary
+                color = Color(0xFFE8FFF2)
             )
             Text(
                 text = "Qur'an and prayer companion",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = Color(0xFFB9D8CA)
             )
         }
     }

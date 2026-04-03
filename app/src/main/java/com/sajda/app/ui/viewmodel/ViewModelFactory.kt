@@ -3,6 +3,7 @@ package com.sajda.app.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.sajda.app.data.local.PreferencesDataStore
+import com.sajda.app.data.repository.AppUpdateRepository
 import com.sajda.app.data.repository.AudioRepository
 import com.sajda.app.data.repository.PrayerTimeRepository
 import com.sajda.app.data.repository.QuranRepository
@@ -44,10 +45,16 @@ class PrayerTimeViewModelFactory(
 class SettingsViewModelFactory(
     private val preferencesDataStore: PreferencesDataStore,
     private val prayerTimeRepository: PrayerTimeRepository,
-    private val adzanScheduler: AdzanScheduler
+    private val adzanScheduler: AdzanScheduler,
+    private val appUpdateRepository: AppUpdateRepository
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return SettingsViewModel(preferencesDataStore, prayerTimeRepository, adzanScheduler) as T
+        return SettingsViewModel(
+            preferencesDataStore,
+            prayerTimeRepository,
+            adzanScheduler,
+            appUpdateRepository
+        ) as T
     }
 }

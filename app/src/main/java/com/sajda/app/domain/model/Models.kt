@@ -149,12 +149,23 @@ data class UserSettings(
     val lastAdhanAt: String = "",
     val nextScheduledPrayer: String = "",
     val nextScheduledAt: String = "",
+    val autoUpdateCheckEnabled: Boolean = true,
+    val lastUpdateCheckAt: String = "",
     val adhanSnoozeMinutes: Int = 10,
     val fajrAdzanEnabled: Boolean = true,
     val dhuhrAdzanEnabled: Boolean = true,
     val asrAdzanEnabled: Boolean = true,
     val maghribAdzanEnabled: Boolean = true,
     val ishaAdzanEnabled: Boolean = true
+)
+
+data class AppUpdateInfo(
+    val versionName: String,
+    val releaseName: String,
+    val notes: String,
+    val downloadUrl: String,
+    val releasePageUrl: String,
+    val publishedAt: String
 )
 
 data class AudioDownloadState(

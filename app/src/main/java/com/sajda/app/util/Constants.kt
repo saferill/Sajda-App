@@ -11,8 +11,11 @@ object Constants {
     const val AUDIO_DOWNLOAD_DIR = "murattal"
     const val AUDIO_NOTIFICATION_CHANNEL = "audio_playback_channel"
     const val ADZAN_NOTIFICATION_CHANNEL = "adzan_channel"
+    const val UPDATE_NOTIFICATION_CHANNEL = "app_update_channel"
     const val AUDIO_NOTIFICATION_ID = 1201
     const val ADZAN_NOTIFICATION_ID = 1202
+    const val UPDATE_AVAILABLE_NOTIFICATION_ID = 1203
+    const val UPDATE_READY_NOTIFICATION_ID = 1204
 
     const val ACTION_PLAY_AUDIO = "com.sajda.app.action.PLAY_AUDIO"
     const val ACTION_PAUSE_AUDIO = "com.sajda.app.action.PAUSE_AUDIO"
@@ -23,6 +26,7 @@ object Constants {
     const val ACTION_SNOOZE_ADZAN = "com.sajda.app.action.SNOOZE_ADZAN"
     const val ACTION_OPEN_PRAYER_TAB = "com.sajda.app.action.OPEN_PRAYER_TAB"
     const val ACTION_REFRESH_PRAYER_WIDGET = "com.sajda.app.action.REFRESH_PRAYER_WIDGET"
+    const val ACTION_START_APP_UPDATE_DOWNLOAD = "com.sajda.app.action.START_APP_UPDATE_DOWNLOAD"
 
     const val EXTRA_SURAH_NUMBER = "surah_number"
     const val EXTRA_SURAH_TITLE = "surah_title"
@@ -30,8 +34,18 @@ object Constants {
     const val EXTRA_PRAYER_NAME = "prayer_name"
     const val EXTRA_OPEN_TAB = "open_tab"
     const val EXTRA_SNOOZE_MINUTES = "snooze_minutes"
+    const val EXTRA_UPDATE_VERSION_NAME = "update_version_name"
+    const val EXTRA_UPDATE_RELEASE_NAME = "update_release_name"
+    const val EXTRA_UPDATE_NOTES = "update_notes"
+    const val EXTRA_UPDATE_DOWNLOAD_URL = "update_download_url"
+    const val EXTRA_UPDATE_RELEASE_PAGE_URL = "update_release_page_url"
+    const val EXTRA_UPDATE_PUBLISHED_AT = "update_published_at"
 
     const val PRAYER_SCHEDULE_WORK_NAME = "prayer_schedule_refresh"
+    const val APP_UPDATE_WORK_NAME = "app_update_check"
+    const val UPDATE_DOWNLOAD_TITLE = "Sajda App update"
+    const val UPDATE_RELEASES_URL = "https://api.github.com/repos/saferill/Sajda-App/releases/latest"
+    const val UPDATE_RELEASES_PAGE_URL = "https://github.com/saferill/Sajda-App/releases"
 
     fun buildMurattalUrl(surahNumber: Int): String {
         val paddedNumber = surahNumber.toString().padStart(3, '0')
