@@ -224,7 +224,7 @@ class MainActivity : ComponentActivity() {
             }
 
             androidx.compose.runtime.LaunchedEffect(Unit) {
-                delay(1250)
+                delay(720)
                 showSplashOverlay = false
             }
 

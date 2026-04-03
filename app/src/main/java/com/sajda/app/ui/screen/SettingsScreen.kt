@@ -38,6 +38,8 @@ import com.sajda.app.ui.component.HeroCard
 import com.sajda.app.ui.component.SajdaLogoTile
 import com.sajda.app.ui.component.SajdaTopAction
 import com.sajda.app.ui.component.SanctuaryCard
+import com.sajda.app.ui.theme.surfaceContainerLow
+import com.sajda.app.ui.theme.surfaceContainerLowest
 import com.sajda.app.ui.viewmodel.AppUpdateUiState
 import com.sajda.app.ui.viewmodel.SettingsViewModel
 

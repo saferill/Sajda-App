@@ -48,6 +48,8 @@ import com.sajda.app.ui.component.HeroCard
 import com.sajda.app.ui.component.MetadataChip
 import com.sajda.app.ui.component.SanctuaryCard
 import com.sajda.app.ui.component.formatStorageSize
+import com.sajda.app.ui.theme.surfaceContainerLow
+import com.sajda.app.ui.theme.surfaceContainerLowest
 import java.io.File
 
 private data class BookmarkEntryUi(
@@ -270,7 +272,7 @@ fun AudioManagementScreen(
                 }
                 if (state?.isDownloading == true) {
                     LinearProgressIndicator(
-                        progress = { state.progress / 100f },
+                        progress = state.progress / 100f,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -322,7 +324,7 @@ fun FullAudioPlayerScreen(
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.84f)
                 )
                 LinearProgressIndicator(
-                    progress = { playbackState.progress },
+                    progress = playbackState.progress,
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.onPrimary,
                     trackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.16f)

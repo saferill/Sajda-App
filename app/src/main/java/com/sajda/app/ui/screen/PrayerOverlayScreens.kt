@@ -14,10 +14,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -45,7 +48,10 @@ import com.sajda.app.domain.model.PrayerTime
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.ui.component.HeroCard
 import com.sajda.app.ui.component.MetadataChip
+import com.sajda.app.ui.component.SajdaTopAction
+import com.sajda.app.ui.component.SajdaTopBar
 import com.sajda.app.ui.component.SanctuaryCard
+import com.sajda.app.ui.theme.surfaceContainerHigh
 import com.sajda.app.util.DateTimeUtils
 import com.sajda.app.util.PrayerTimeCalculator
 import java.time.LocalDate
@@ -154,7 +160,7 @@ fun WorshipProgressScreen(
                 fontWeight = FontWeight.Bold
             )
             LinearProgressIndicator(
-                progress = { progress },
+                progress = progress,
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.onPrimary,
                 trackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.16f)
@@ -181,7 +187,7 @@ fun WorshipProgressScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     LinearProgressIndicator(
-                        progress = { bars / 20f },
+                        progress = bars / 20f,
                         modifier = Modifier.fillMaxWidth(),
                         color = MaterialTheme.colorScheme.primary,
                         trackColor = MaterialTheme.colorScheme.surfaceContainerHigh
@@ -202,66 +208,95 @@ fun QiblaScreen(
     val compassState = rememberCompassState()
     val qiblaRotation = ((direction.toFloat() - compassState.heading) + 360f) % 360f
 
-    OverlayShell(
-        title = "Qibla",
-        subtitle = "Arah dari utara geografis",
-        onBack = onBack
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        HeroCard {
-            Box(
-                modifier = Modifier
-                    .size(260.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.08f)),
-                contentAlignment = Alignment.Center
+        SajdaTopBar(
+            title = "Qibla",
+            subtitle = prayerTime?.locationName,
+            leading = {
+                SajdaTopAction(Icons.Rounded.ArrowBack, "Kembali", onBack)
+            }
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                CompassFace(modifier = Modifier.rotate(-compassState.heading))
-                androidx.compose.material3.Icon(
-                    imageVector = Icons.Rounded.Navigation,
-                    contentDescription = "Qibla",
-                    tint = MaterialTheme.colorScheme.onPrimary,
+                Box(
                     modifier = Modifier
-                        .size(120.dp)
-                        .rotate(qiblaRotation)
+                        .size(320.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CompassFace(
+                        modifier = Modifier
+                            .size(260.dp)
+                            .rotate(-compassState.heading)
+                    )
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Rounded.Navigation,
+                        contentDescription = "Qibla",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .size(128.dp)
+                            .rotate(qiblaRotation)
+                    )
+                }
+
+                Text(
+                    text = "${direction.toInt()} derajat",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
                 )
+
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    MetadataChip(text = "Qibla ${direction.toInt()} derajat", active = true)
+                    MetadataChip(text = "Heading ${compassState.heading.toInt()} derajat")
+                    MetadataChip(
+                        text = when (compassState.accuracy) {
+                            SensorManager.SENSOR_STATUS_ACCURACY_HIGH -> "Akurasi tinggi"
+                            SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM -> "Akurasi sedang"
+                            SensorManager.SENSOR_STATUS_ACCURACY_LOW -> "Perlu kalibrasi"
+                            else -> "Akurasi belum terbaca"
+                        }
+                    )
+                }
             }
-            Text(
-                text = "${direction.toInt()} deg",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onPrimary,
-                fontWeight = FontWeight.Bold
-            )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                MetadataChip(text = "Qibla ${direction.toInt()} deg", active = true)
-                MetadataChip(text = "Heading ${compassState.heading.toInt()} deg")
-                MetadataChip(
-                    text = when (compassState.accuracy) {
-                        SensorManager.SENSOR_STATUS_ACCURACY_HIGH -> "Akurasi tinggi"
-                        SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM -> "Akurasi sedang"
-                        SensorManager.SENSOR_STATUS_ACCURACY_LOW -> "Perlu kalibrasi"
-                        else -> "Akurasi belum terbaca"
-                    }
-                )
-            }
-            Text(
-                text = if (compassState.isAvailable) {
-                    if (compassState.accuracy <= SensorManager.SENSOR_STATUS_ACCURACY_LOW) {
-                        "Kompas aktif tetapi perlu kalibrasi. Gerakkan ponsel membentuk angka delapan dan jauhkan dari logam atau magnet."
-                    } else {
-                        "Kompas aktif. Pegang ponsel dalam posisi datar dan gerakkan perlahan sampai panah mengarah ke kiblat."
-                    }
-                } else {
-                    "Sensor kompas tidak tersedia di perangkat ini, jadi layar hanya menampilkan arah kiblat statis."
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f),
-                textAlign = TextAlign.Center
-            )
         }
 
+        Text(
+            text = if (compassState.isAvailable) {
+                if (compassState.accuracy <= SensorManager.SENSOR_STATUS_ACCURACY_LOW) {
+                    "Kalibrasi kompas dengan gerakan angka delapan dan jauhkan ponsel dari logam."
+                } else {
+                    "Pegang ponsel datar dan putar perlahan sampai panah mengarah ke kiblat."
+                }
+            } else {
+                "Sensor kompas tidak tersedia, jadi aplikasi hanya menampilkan arah kiblat statis."
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+/*
         SanctuaryCard {
             Text(
                 text = "Fallback manual",
@@ -275,6 +310,7 @@ fun QiblaScreen(
         }
     }
 }
+*/
 
 @Composable
 private fun CompassFace(modifier: Modifier = Modifier) {

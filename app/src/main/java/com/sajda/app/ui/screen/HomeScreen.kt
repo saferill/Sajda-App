@@ -48,6 +48,8 @@ import com.sajda.app.ui.component.SajdaTopAction
 import com.sajda.app.ui.component.SanctuaryCard
 import com.sajda.app.ui.component.SectionHeader
 import com.sajda.app.ui.component.ShortcutTile
+import com.sajda.app.ui.theme.surfaceContainerHigh
+import com.sajda.app.ui.theme.surfaceContainerLow
 import com.sajda.app.ui.viewmodel.HomeViewModel
 import com.sajda.app.util.DateTimeUtils
 
@@ -91,8 +93,8 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(start = 24.dp, top = 18.dp, end = 24.dp, bottom = 180.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp)
+        contentPadding = PaddingValues(start = 24.dp, top = 16.dp, end = 24.dp, bottom = 172.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         item {
             HomeHeader(
@@ -150,7 +152,7 @@ fun HomeScreen(
                                 label = shortcut.label,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(152.dp),
+                                    .height(138.dp),
                                 onClick = shortcut.action
                             )
                         }
@@ -186,7 +188,7 @@ private fun HomeHeader(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = "Assalamu Alaikum",
+                    text = "Sajda App",
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -251,7 +253,7 @@ private fun PrayerHeroCard(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
                 Text(
-                    text = "Lihat jadwal lengkap",
+                    text = "Jadwal",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.clip(RoundedCornerShape(16.dp))
@@ -321,11 +323,6 @@ private fun SpiritualJourneyCard(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "SPIRITUAL JOURNEY",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
                     text = "$streakCount Day Streak",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
@@ -343,7 +340,7 @@ private fun SpiritualJourneyCard(
         }
 
         LinearProgressIndicator(
-            progress = { progress },
+            progress = progress,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(10.dp)
@@ -353,7 +350,7 @@ private fun SpiritualJourneyCard(
         )
 
         Text(
-            text = "Anda sudah membaca $ayatRead ayat hari ini. Target harian Sajda adalah $dailyGoal ayat agar ritme ibadah tetap ringan dan konsisten.",
+            text = "$ayatRead ayat hari ini dari target $dailyGoal ayat.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -407,7 +404,7 @@ private fun LastReadCard(
             }
         } else {
             Text(
-                text = "Buka tab Qur'an untuk mulai membaca. Sajda akan menyimpan ayat terakhir secara otomatis.",
+                text = "Buka tab Qur'an untuk mulai membaca.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -431,7 +428,7 @@ private fun QuickAudioCard(
 
         if (surah?.localAudioPath != null) {
             Text(
-                text = "Audio terakhir siap diputar offline dari perangkat Anda.",
+                text = "Audio terakhir siap diputar offline.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -443,7 +440,7 @@ private fun QuickAudioCard(
             )
         } else {
             Text(
-                text = "Belum ada audio yang diunduh. Unduh per-surah agar hemat storage dan tetap bisa diputar tanpa internet.",
+                text = "Belum ada audio offline yang diunduh.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -454,7 +451,7 @@ private fun QuickAudioCard(
 @Composable
 private fun DailyAyatCard(ayat: Ayat?) {
     SanctuaryCard {
-        SectionHeader(eyebrow = "Daily Verse", title = "Ayat acak untuk hari ini")
+        SectionHeader(eyebrow = "Daily Verse", title = "Ayat hari ini")
         if (ayat != null) {
             ArabicVerseText(text = ayat.textArabic)
             Column(

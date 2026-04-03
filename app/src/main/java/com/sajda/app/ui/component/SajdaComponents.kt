@@ -56,6 +56,9 @@ import androidx.compose.ui.unit.sp
 import com.sajda.app.R
 import com.sajda.app.domain.model.AudioPlaybackState
 import com.sajda.app.ui.theme.SajdaArabicFont
+import com.sajda.app.ui.theme.surfaceContainerHigh
+import com.sajda.app.ui.theme.surfaceContainerLow
+import com.sajda.app.ui.theme.surfaceContainerLowest
 import com.sajda.app.ui.theme.sajdaBackgroundBrush
 import com.sajda.app.ui.theme.sajdaHeroBrush
 
@@ -211,7 +214,7 @@ fun AnimatedSajdaSplashOverlay(
         Column(
             modifier = Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Box(
                 modifier = Modifier
@@ -244,11 +247,6 @@ fun AnimatedSajdaSplashOverlay(
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color(0xFFE8FFF2)
-            )
-            Text(
-                text = "Qur'an and prayer companion",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFFB9D8CA)
             )
         }
     }
@@ -546,7 +544,7 @@ fun FloatingMiniPlayer(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 LinearProgressIndicator(
-                    progress = { playbackState.progress },
+                    progress = playbackState.progress,
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.surfaceContainerHigh

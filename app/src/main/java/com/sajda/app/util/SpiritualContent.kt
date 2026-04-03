@@ -2,6 +2,8 @@ package com.sajda.app.util
 
 import com.sajda.app.domain.model.Ayat
 import com.sajda.app.domain.model.DailyDua
+import com.sajda.app.domain.model.HadithEntry
+import java.time.LocalDate
 
 object SpiritualContent {
     val dailyDuas = listOf(
@@ -174,6 +176,63 @@ object SpiritualContent {
             translation = "Ya Tuhanku, lapangkanlah dadaku dan mudahkanlah urusanku."
         )
     )
+
+    val featuredHadiths = listOf(
+        HadithEntry(
+            id = "hadith_intention",
+            title = "Niat Menentukan Nilai Amal",
+            collection = "Sahih al-Bukhari",
+            reference = "1",
+            narrator = "Umar ibn al-Khattab",
+            text = "Sesungguhnya setiap amal tergantung niatnya, dan setiap orang akan mendapatkan sesuai niat yang ia tetapkan."
+        ),
+        HadithEntry(
+            id = "hadith_mercy",
+            title = "Kasih Sayang",
+            collection = "Sahih Muslim",
+            reference = "2592",
+            narrator = "Jarir ibn Abdullah",
+            text = "Allah merahmati hamba yang penyayang kepada manusia. Sikap lembut adalah jalan yang mengundang rahmat."
+        ),
+        HadithEntry(
+            id = "hadith_quran",
+            title = "Sebaik-baik Orang",
+            collection = "Sahih al-Bukhari",
+            reference = "5027",
+            narrator = "Uthman ibn Affan",
+            text = "Sebaik-baik kalian adalah yang belajar Al-Qur'an lalu mengajarkannya."
+        ),
+        HadithEntry(
+            id = "hadith_prayer_coolness",
+            title = "Ketenangan Dalam Shalat",
+            collection = "Sunan an-Nasa'i",
+            reference = "3940",
+            narrator = "Anas ibn Malik",
+            text = "Ketenteraman hati Nabi dijadikan dalam shalat. Ini mengingatkan kita bahwa shalat adalah tempat pulang jiwa."
+        ),
+        HadithEntry(
+            id = "hadith_kindness",
+            title = "Lemah Lembut",
+            collection = "Sahih Muslim",
+            reference = "2594",
+            narrator = "Aishah",
+            text = "Kelembutan tidak ada pada sesuatu kecuali ia menghiasinya, dan tidak dicabut dari sesuatu kecuali membuatnya terasa kasar."
+        ),
+        HadithEntry(
+            id = "hadith_gratitude",
+            title = "Syukur Harian",
+            collection = "Jami at-Tirmidhi",
+            reference = "1954",
+            narrator = "Abu Hurairah",
+            text = "Siapa yang tidak berterima kasih kepada manusia, ia belum sempurna bersyukur kepada Allah."
+        )
+    )
+
+    fun hadithOfDay(date: LocalDate = LocalDate.now()): HadithEntry? {
+        if (featuredHadiths.isEmpty()) return null
+        val index = Math.floorMod(date.toEpochDay().toInt(), featuredHadiths.size)
+        return featuredHadiths[index]
+    }
 
     fun buildTafsir(ayat: Ayat, surahName: String): List<String> {
         val normalized = ayat.translation.trim()

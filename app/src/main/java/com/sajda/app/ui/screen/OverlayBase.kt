@@ -27,6 +27,7 @@ import com.sajda.app.ui.component.SajdaScrollColumn
 import com.sajda.app.ui.component.SajdaTopAction
 import com.sajda.app.ui.component.SajdaTopBar
 import com.sajda.app.ui.component.SanctuaryCard
+import com.sajda.app.ui.theme.surfaceContainerLow
 
 @Composable
 fun OverlayShell(

@@ -1,17 +1,24 @@
 package com.sajda.app.service
 
 import android.app.AlarmManager
+import android.app.AlarmManager.AlarmClockInfo
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.util.Log
+import com.sajda.app.MainActivity
+import com.sajda.app.data.local.SajdaDatabase
 import com.sajda.app.data.local.PreferencesDataStore
+import com.sajda.app.data.repository.PrayerTimeRepository
 import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.PrayerTime
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.util.Constants
 import com.sajda.app.util.DateTimeUtils
 import com.sajda.app.widget.PrayerTimesWidgetUpdater
+import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -21,27 +28,33 @@ class AdzanScheduler(private val context: Context) {
 
     private val appContext = context.applicationContext
     private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    private val preferencesDataStore = PreferencesDataStore(appContext)
 
-    suspend fun reschedule(prayerTimes: List<PrayerTime>, settings: UserSettings) {
+    suspend fun reschedule(
+        prayerTimes: List<PrayerTime>,
+        settings: UserSettings,
+        referenceTime: LocalDateTime = LocalDateTime.now()
+    ) {
         cancelUpcoming(prayerTimes)
-        val preferencesDataStore = PreferencesDataStore(appContext)
         if (!settings.adzanEnabled) {
             preferencesDataStore.updateNextScheduledPrayer("", "")
+            Log.d(TAG, "Adhan disabled, cleared upcoming alarms")
             return
         }
 
-        prayerTimes.forEach { prayerTime ->
-            PrayerName.entries.forEach { prayerName ->
-                if (isEnabled(settings, prayerName)) {
-                    schedulePrayer(prayerTime, prayerName)
-                }
-            }
+        val upcomingPrayers = findUpcomingScheduledPrayers(prayerTimes, settings, referenceTime)
+        upcomingPrayers.forEachIndexed { index, scheduledPrayer ->
+            schedulePrayer(scheduledPrayer, isPrimary = index == 0)
         }
+        val nextUpcoming = upcomingPrayers.firstOrNull()
 
-        val nextUpcoming = findNextScheduledPrayer(prayerTimes, settings)
         preferencesDataStore.updateNextScheduledPrayer(
-            prayerName = nextUpcoming?.first?.label.orEmpty(),
-            scheduledAt = nextUpcoming?.second?.let(DateTimeUtils::dateTimeString).orEmpty()
+            prayerName = nextUpcoming?.prayerName?.label.orEmpty(),
+            scheduledAt = nextUpcoming?.scheduledAt?.let(DateTimeUtils::dateTimeString).orEmpty()
+        )
+        Log.d(
+            TAG,
+            "Scheduled ${upcomingPrayers.size} adhan alarm(s), next=${nextUpcoming?.prayerName?.label} at ${nextUpcoming?.scheduledAt}"
         )
         PrayerTimesWidgetUpdater.enqueueUpdate(appContext)
     }
@@ -49,43 +62,82 @@ class AdzanScheduler(private val context: Context) {
     fun cancelUpcoming(prayerTimes: List<PrayerTime>) {
         prayerTimes.forEach { prayerTime ->
             PrayerName.entries.forEach { prayerName ->
-                val pendingIntent = pendingIntentFor(prayerTime.date, prayerName)
+                val pendingIntent = pendingIntentFor(
+                    prayerTime = prayerTime,
+                    prayerName = prayerName,
+                    prayerTimeValue = timeFor(prayerTime, prayerName)
+                )
                 alarmManager.cancel(pendingIntent)
             }
         }
     }
 
-    private fun schedulePrayer(prayerTime: PrayerTime, prayerName: PrayerName) {
-        val triggerDateTime = LocalDateTime.of(LocalDate.parse(prayerTime.date), LocalTime.parse(timeFor(prayerTime, prayerName)))
-        if (triggerDateTime.isBefore(LocalDateTime.now())) return
-
-        val triggerAtMillis = triggerDateTime
+    private fun schedulePrayer(scheduledPrayer: ScheduledPrayer, isPrimary: Boolean) {
+        val triggerAtMillis = scheduledPrayer.scheduledAt
             .atZone(ZoneId.systemDefault())
             .toInstant()
             .toEpochMilli()
 
-        val pendingIntent = pendingIntentFor(prayerTime.date, prayerName)
+        val pendingIntent = pendingIntentFor(
+            prayerTime = scheduledPrayer.prayerTime,
+            prayerName = scheduledPrayer.prayerName,
+            prayerTimeValue = scheduledPrayer.timeValue
+        )
+        val openAppIntent = Intent(appContext, MainActivity::class.java).apply {
+            action = Constants.ACTION_OPEN_PRAYER_TAB
+            putExtra(Constants.EXTRA_OPEN_TAB, "prayer")
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val openAppPendingIntent = PendingIntent.getActivity(
+            appContext,
+            400,
+            openAppIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && isPrimary) {
+            alarmManager.setAlarmClock(
+                AlarmClockInfo(triggerAtMillis, openAppPendingIntent),
+                pendingIntent
+            )
+            return
+        }
+
         val canScheduleExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             alarmManager.canScheduleExactAlarms()
         } else {
             true
         }
 
-        if (canScheduleExact) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
-        } else {
-            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+        runCatching {
+            if (canScheduleExact) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+            } else {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+            }
+        }.onFailure { error ->
+            Log.e(TAG, "Failed to schedule ${scheduledPrayer.prayerName.label} at ${scheduledPrayer.scheduledAt}", error)
         }
     }
 
-    private fun pendingIntentFor(date: String, prayerName: PrayerName): PendingIntent {
+    private fun pendingIntentFor(
+        prayerTime: PrayerTime,
+        prayerName: PrayerName,
+        prayerTimeValue: String
+    ): PendingIntent {
         val intent = Intent(appContext, AdzanReceiver::class.java).apply {
             action = Constants.ACTION_TRIGGER_ADZAN
+            data = Uri.parse(
+                "sajda://adhan/${prayerTime.date}/${prayerName.key}?time=$prayerTimeValue&loc=${Uri.encode(prayerTime.locationName)}"
+            )
             putExtra(Constants.EXTRA_PRAYER_NAME, prayerName.label)
+            putExtra(Constants.EXTRA_PRAYER_TIME, prayerTimeValue)
+            putExtra(Constants.EXTRA_PRAYER_DATE, prayerTime.date)
+            putExtra(Constants.EXTRA_LOCATION_NAME, prayerTime.locationName)
         }
         return PendingIntent.getBroadcast(
             appContext,
-            "$date-${prayerName.name}".hashCode(),
+            "${prayerTime.date}-${prayerName.name}-$prayerTimeValue".hashCode(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -111,24 +163,62 @@ class AdzanScheduler(private val context: Context) {
         }
     }
 
-    private fun findNextScheduledPrayer(
+    private fun findUpcomingScheduledPrayers(
         prayerTimes: List<PrayerTime>,
-        settings: UserSettings
-    ): Pair<PrayerName, LocalDateTime>? {
-        val now = LocalDateTime.now()
+        settings: UserSettings,
+        referenceTime: LocalDateTime
+    ): List<ScheduledPrayer> {
         return prayerTimes.asSequence().flatMap { prayerTime ->
             PrayerName.entries.asSequence()
                 .filter { isEnabled(settings, it) }
                 .map { prayerName ->
-                    prayerName to LocalDateTime.of(
-                        LocalDate.parse(prayerTime.date),
-                        LocalTime.parse(timeFor(prayerTime, prayerName))
+                    ScheduledPrayer(
+                        prayerTime = prayerTime,
+                        prayerName = prayerName,
+                        timeValue = timeFor(prayerTime, prayerName),
+                        scheduledAt = LocalDateTime.of(
+                            LocalDate.parse(prayerTime.date),
+                            LocalTime.parse(timeFor(prayerTime, prayerName))
+                        )
                     )
                 }
-        }.filter { (_, scheduledAt) ->
-            !scheduledAt.isBefore(now)
-        }.minByOrNull { (_, scheduledAt) ->
-            scheduledAt
+        }
+            .filter { it.scheduledAt.isAfter(referenceTime) }
+            .sortedBy { it.scheduledAt }
+            .take(MAX_BACKUP_ALARMS)
+            .toList()
+    }
+
+    private data class ScheduledPrayer(
+        val prayerTime: PrayerTime,
+        val prayerName: PrayerName,
+        val timeValue: String,
+        val scheduledAt: LocalDateTime
+    )
+
+    companion object {
+        private const val MAX_BACKUP_ALARMS = 10
+        private const val TAG = "SajdaAdhan"
+
+        suspend fun repairNextAlarm(
+            context: Context,
+            referenceTime: LocalDateTime = LocalDateTime.now()
+        ) {
+            val appContext = context.applicationContext
+            val preferencesDataStore = PreferencesDataStore(appContext)
+            val settings = preferencesDataStore.settingsFlow.first()
+            val prayerTimeRepository = PrayerTimeRepository(SajdaDatabase.getDatabase(appContext))
+            var prayerTimes = prayerTimeRepository.getNextDaysPrayerTimes(days = 30)
+
+            if (prayerTimes.isEmpty() || prayerTimes.none { !LocalDate.parse(it.date).isBefore(referenceTime.toLocalDate()) }) {
+                prayerTimes = prayerTimeRepository.refreshPrayerTimes(settings, days = 30)
+            }
+
+            AdzanScheduler(appContext).reschedule(
+                prayerTimes = prayerTimes,
+                settings = settings,
+                referenceTime = referenceTime
+            )
         }
     }
 }

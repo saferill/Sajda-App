@@ -35,20 +35,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.Ayat
 import com.sajda.app.domain.model.CityPreset
 import com.sajda.app.domain.model.DailyDua
+import com.sajda.app.domain.model.HadithEntry
 import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.Surah
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.ui.component.ArabicVerseText
 import com.sajda.app.ui.component.SanctuaryCard
 import com.sajda.app.ui.component.SectionHeader
+import com.sajda.app.ui.theme.surfaceContainerLow
 import com.sajda.app.service.AdzanService
 import com.sajda.app.ui.viewmodel.SettingsViewModel
 import com.sajda.app.util.AdhanSystemHelper
@@ -57,7 +59,6 @@ import com.sajda.app.util.DeviceLocationResult
 import com.sajda.app.util.LocationConstants
 import com.sajda.app.util.SpiritualContent
 import kotlinx.coroutines.launch
-import java.util.Locale
 
 @Composable
 fun DailyDuaScreen(
@@ -65,11 +66,16 @@ fun DailyDuaScreen(
     onBack: () -> Unit,
     onToggleBookmark: (String) -> Unit
 ) {
+    val hadithOfDay = remember { SpiritualContent.hadithOfDay() }
+
     OverlayShell(
         title = "Daily Dua",
         subtitle = "Morning, evening, daily activities",
         onBack = onBack
     ) {
+        hadithOfDay?.let { hadith ->
+            HadithCard(hadith = hadith)
+        }
         SpiritualContent.dailyDuas
             .groupBy { it.category }
             .entries
@@ -89,6 +95,32 @@ fun DailyDuaScreen(
                     )
                 }
             }
+    }
+}
+
+@Composable
+private fun HadithCard(hadith: HadithEntry) {
+    SanctuaryCard {
+        Text(
+            text = "HADITH OF THE DAY",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = hadith.title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = hadith.text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = "${hadith.collection} | ${hadith.reference} | ${hadith.narrator}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -632,12 +664,7 @@ fun LocationSettingsScreen(
             }
         }
         SanctuaryCard {
-            SectionHeader(eyebrow = "GPS Device", title = "Lokasi perangkat")
-            Text(
-                text = "Gunakan GPS untuk mengambil lokasi ponsel saat ini dan menghitung jadwal sholat yang lebih akurat.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            SectionHeader(eyebrow = "GPS", title = "Lokasi perangkat")
             ChoiceChip(
                 label = if (isResolvingLocation) "Mengambil lokasi..." else "Gunakan lokasi saat ini",
                 selected = settings.autoLocation,
@@ -660,7 +687,7 @@ fun LocationSettingsScreen(
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
             Text(
-                text = "Koordinat aktif: ${"%.4f".format(Locale.US, settings.latitude)}, ${"%.4f".format(Locale.US, settings.longitude)}",
+                text = settings.locationName,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -673,18 +700,13 @@ fun LocationSettingsScreen(
             }
         }
         SanctuaryCard {
-            SectionHeader(eyebrow = "Manual", title = "Cari wilayah Indonesia")
+            SectionHeader(eyebrow = "Manual", title = "Cari wilayah")
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 placeholder = { Text("Cari provinsi, kota, atau kabupaten") }
-            )
-            Text(
-                text = "Ketik nama wilayah, lalu pilih hasil yang paling sesuai. Pencarian mendukung provinsi, kota, dan kabupaten.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             filteredCities.take(if (normalizedQuery.isBlank()) 24 else 40).forEach { city ->
                 LocationSelectionRow(
@@ -825,21 +847,18 @@ private fun LocationSelectionRow(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Text(
-                    text = "${"%.3f".format(Locale.US, city.latitude)}, ${"%.3f".format(Locale.US, city.longitude)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
-            FlowRow(
+            Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                ChoiceChip(
-                    label = if (isFavorite) "Favorit" else "Simpan",
-                    selected = isFavorite,
-                    onClick = onToggleFavorite
-                )
+                IconButton(onClick = onToggleFavorite) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
+                        contentDescription = if (isFavorite) "Hapus favorit" else "Simpan favorit",
+                        tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 ChoiceChip(
                     label = if (isSelected) "Dipakai" else "Gunakan",
                     selected = isSelected,

@@ -249,6 +249,15 @@ data class DailyDua(
     val translation: String
 )
 
+data class HadithEntry(
+    val id: String,
+    val title: String,
+    val collection: String,
+    val reference: String,
+    val narrator: String,
+    val text: String
+)
+
 data class QuranSearchResult(
     val type: SearchResultType,
     val title: String,

@@ -42,7 +42,6 @@ import com.sajda.app.ui.component.SanctuaryCard
 import com.sajda.app.ui.component.SectionHeader
 import com.sajda.app.ui.viewmodel.PrayerTimeViewModel
 import com.sajda.app.util.DateTimeUtils
-import com.sajda.app.util.LocationConstants
 import com.sajda.app.util.PrayerTimeCalculator
 import java.time.LocalDate
 
@@ -101,13 +100,6 @@ fun PrayerTimeScreen(
                 adzanEnabled = state.settings.adzanEnabled,
                 onToggleAdzan = viewModel::toggleAdzan,
                 onOpenWeeklySchedule = onOpenWeeklySchedule
-            )
-        }
-
-        item {
-            QuickLocationSection(
-                onSelectCity = viewModel::setLocation,
-                onOpenLocationSettings = onOpenLocationSettings
             )
         }
 
@@ -238,7 +230,7 @@ private fun DailyPrayerHero(
         }
 
         Text(
-            text = "Metode ${settings.prayerCalculationMethod.label} • Asar ${settings.asrMadhhab.label}",
+            text = "${settings.prayerCalculationMethod.label} | Asar ${settings.asrMadhhab.label}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.84f)
         )
@@ -302,54 +294,6 @@ private fun PrayerHeroMetric(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun QuickLocationSection(
-    onSelectCity: (com.sajda.app.domain.model.CityPreset) -> Unit,
-    onOpenLocationSettings: () -> Unit
-) {
-    val quickCities = LocationConstants.cityPresets.filter { city ->
-        city.areaType == "Kota" && city.name in setOf(
-            "Jakarta Selatan",
-            "Bandung",
-            "Semarang",
-            "Yogyakarta",
-            "Surabaya",
-            "Denpasar",
-            "Medan",
-            "Makassar",
-            "Balikpapan",
-            "Jayapura"
-        )
-    }
-
-    SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
-        SectionHeader(
-            eyebrow = "Quick Location",
-            title = "Lokasi populer",
-            actionLabel = "Atur",
-            onAction = onOpenLocationSettings
-        )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            quickCities.forEach { city ->
-                Text(
-                    text = city.name,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                        .clickable { onSelectCity(city) }
-                        .padding(horizontal = 12.dp, vertical = 9.dp)
-                )
-            }
-        }
-    }
-}
-
 @Composable
 private fun PrayerToggleCard(
     title: String,
@@ -394,7 +338,7 @@ private fun WeeklyPrayerCard(prayerTime: PrayerTime) {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Arah kiblat ${prayerTime.qiblaDirection.toInt()}°",
+                    text = "Arah kiblat ${prayerTime.qiblaDirection.toInt()} derajat",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

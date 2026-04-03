@@ -57,6 +57,9 @@ import com.sajda.app.ui.component.MetadataChip
 import com.sajda.app.ui.component.SajdaTopAction
 import com.sajda.app.ui.component.SanctuaryCard
 import com.sajda.app.ui.component.SectionHeader
+import com.sajda.app.ui.theme.surfaceContainerHigh
+import com.sajda.app.ui.theme.surfaceContainerLow
+import com.sajda.app.ui.theme.surfaceContainerLowest
 import com.sajda.app.ui.viewmodel.QuranViewModel
 
 @Composable
@@ -248,7 +251,7 @@ private fun SurahListContent(
 
                 if (downloadState?.isDownloading == true) {
                     LinearProgressIndicator(
-                        progress = { downloadState.progress / 100f },
+                        progress = downloadState.progress / 100f,
                         modifier = Modifier.fillMaxWidth(),
                         color = MaterialTheme.colorScheme.primary,
                         trackColor = MaterialTheme.colorScheme.surfaceContainerHigh
@@ -368,7 +371,7 @@ private fun SurahDetailContent(
 
                 if (downloadProgress?.isDownloading == true) {
                     LinearProgressIndicator(
-                        progress = { downloadProgress.progress / 100f },
+                        progress = downloadProgress.progress / 100f,
                         modifier = Modifier.fillMaxWidth(),
                         color = MaterialTheme.colorScheme.primary,
                         trackColor = MaterialTheme.colorScheme.surfaceContainerHigh
