@@ -39,6 +39,7 @@ import com.sajda.app.data.repository.AppUpdateRepository
 import com.sajda.app.data.repository.AudioRepository
 import com.sajda.app.data.repository.PrayerTimeRepository
 import com.sajda.app.data.repository.QuranRepository
+import com.sajda.app.data.repository.SpiritualContentRepository
 import com.sajda.app.domain.model.Ayat
 import com.sajda.app.domain.model.Bookmark
 import com.sajda.app.domain.model.QuranSearchResult
@@ -87,9 +88,12 @@ import com.sajda.app.ui.viewmodel.QuranViewModel
 import com.sajda.app.ui.viewmodel.QuranViewModelFactory
 import com.sajda.app.ui.viewmodel.SettingsViewModel
 import com.sajda.app.ui.viewmodel.SettingsViewModelFactory
+import com.sajda.app.ui.viewmodel.SpiritualContentViewModel
+import com.sajda.app.ui.viewmodel.SpiritualContentViewModelFactory
 import com.sajda.app.util.AdhanSystemHelper
 import com.sajda.app.util.DeviceLocationHelper
 import com.sajda.app.util.DeviceLocationResult
+import com.sajda.app.util.pick
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -130,6 +134,7 @@ class MainActivity : ComponentActivity() {
     private val prayerTimeRepository by lazy { PrayerTimeRepository(database) }
     private val audioRepository by lazy { AudioRepository(this, quranRepository) }
     private val appUpdateRepository by lazy { AppUpdateRepository(this) }
+    private val spiritualContentRepository by lazy { SpiritualContentRepository(this) }
     private val adzanScheduler by lazy { AdzanScheduler(this) }
 
     private val homeViewModel by lazy {
@@ -163,6 +168,16 @@ class MainActivity : ComponentActivity() {
                 appUpdateRepository
             )
         )[SettingsViewModel::class.java]
+    }
+
+    private val spiritualContentViewModel by lazy {
+        ViewModelProvider(
+            this,
+            SpiritualContentViewModelFactory(
+                spiritualContentRepository,
+                preferencesDataStore
+            )
+        )[SpiritualContentViewModel::class.java]
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -204,6 +219,7 @@ class MainActivity : ComponentActivity() {
             val prayerState by prayerTimeViewModel.uiState.collectAsStateWithLifecycle()
             val settingsState by settingsViewModel.settings.collectAsStateWithLifecycle()
             val appUpdateState by settingsViewModel.appUpdateState.collectAsStateWithLifecycle()
+            val spiritualState by spiritualContentViewModel.uiState.collectAsStateWithLifecycle()
             val duaBookmarks by preferencesDataStore.duaBookmarksFlow.collectAsStateWithLifecycle(initialValue = emptySet())
             val audioState by AudioPlaybackStore.state.collectAsStateWithLifecycle()
 
@@ -248,6 +264,10 @@ class MainActivity : ComponentActivity() {
                 ) {
                     notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
+            }
+
+            androidx.compose.runtime.LaunchedEffect(settings.appLanguage) {
+                spiritualContentViewModel.refresh(settings.appLanguage)
             }
 
             SajdaAppTheme(darkTheme = settings.darkMode || settings.nightMode) {
@@ -316,6 +336,7 @@ class MainActivity : ComponentActivity() {
                             } else {
                                 when (val destination = overlay) {
                                         OverlayDestination.Search -> SearchScreen(
+                                            appLanguage = settingsState.appLanguage,
                                             quranRepository = quranRepository,
                                             onBack = { overlay = null },
                                             onOpenResult = { result ->
@@ -326,6 +347,7 @@ class MainActivity : ComponentActivity() {
                                         )
 
                                         OverlayDestination.Bookmarks -> BookmarksScreen(
+                                            appLanguage = settingsState.appLanguage,
                                             quranRepository = quranRepository,
                                             bookmarks = quranState.bookmarks,
                                             onBack = { overlay = null },
@@ -337,6 +359,7 @@ class MainActivity : ComponentActivity() {
                                         )
 
                                         OverlayDestination.AudioManager -> AudioManagementScreen(
+                                            appLanguage = settingsState.appLanguage,
                                             surahList = quranState.surahList,
                                             downloadStates = quranState.downloadStates,
                                             onBack = { overlay = null },
@@ -346,6 +369,9 @@ class MainActivity : ComponentActivity() {
                                         )
 
                                         OverlayDestination.DailyDua -> DailyDuaScreen(
+                                            settings = settingsState,
+                                            spiritualState = spiritualState,
+                                            onRefresh = { spiritualContentViewModel.refresh(settingsState.appLanguage) },
                                             bookmarkedIds = duaBookmarks,
                                             onBack = { overlay = null },
                                             onToggleBookmark = { duaId ->
@@ -375,6 +401,7 @@ class MainActivity : ComponentActivity() {
 
                                         OverlayDestination.Qibla -> QiblaScreen(
                                             prayerTime = prayerState.todayPrayerTime,
+                                            appLanguage = settingsState.appLanguage,
                                             onBack = { overlay = null }
                                         )
 
@@ -410,19 +437,23 @@ class MainActivity : ComponentActivity() {
                                         )
 
                                         OverlayDestination.BackgroundAudioInfo -> BackgroundAudioInfoScreen(
+                                            appLanguage = settingsState.appLanguage,
                                             onBack = { overlay = null }
                                         )
 
                                         OverlayDestination.WidgetPreview -> WidgetPreviewScreen(
                                             prayerTime = prayerState.todayPrayerTime,
+                                            appLanguage = settingsState.appLanguage,
                                             onBack = { overlay = null }
                                         )
 
                                         OverlayDestination.EmptyState -> EmptyStateScreen(
+                                            appLanguage = settingsState.appLanguage,
                                             onBack = { overlay = null }
                                         )
 
                                         OverlayDestination.FullPlayer -> FullAudioPlayerScreen(
+                                            appLanguage = settingsState.appLanguage,
                                             playbackState = audioState,
                                             currentSurah = currentAudioSurah,
                                             previousSurah = previousAudioSurah,
@@ -437,6 +468,7 @@ class MainActivity : ComponentActivity() {
                                         is OverlayDestination.Tafsir -> TafsirScreen(
                                             surah = destination.surah,
                                             ayat = destination.ayat,
+                                            appLanguage = settingsState.appLanguage,
                                             onBack = { overlay = null }
                                         )
 
@@ -459,10 +491,10 @@ class MainActivity : ComponentActivity() {
                             if (settingsState.onboardingCompleted && overlay == null) {
                                 FloatingDock(
                                     items = listOf(
-                                        DockItem("Home", Icons.Rounded.Home),
+                                        DockItem(settingsState.pick("Beranda", "Home"), Icons.Rounded.Home),
                                         DockItem("Qur'an", Icons.Rounded.MenuBook),
-                                        DockItem("Prayer", Icons.Rounded.Mosque),
-                                        DockItem("Settings", Icons.Rounded.Settings)
+                                        DockItem(settingsState.pick("Sholat", "Prayer"), Icons.Rounded.Mosque),
+                                        DockItem(settingsState.pick("Pengaturan", "Settings"), Icons.Rounded.Settings)
                                     ),
                                     selectedIndex = selectedTabIndex,
                                     modifier = Modifier

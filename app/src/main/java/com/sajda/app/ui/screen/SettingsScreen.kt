@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.ui.component.HeroCard
 import com.sajda.app.ui.component.SajdaLogoTile
 import com.sajda.app.ui.component.SajdaTopAction
@@ -67,38 +68,39 @@ fun SettingsScreen(
     onOpenEmptyState: () -> Unit
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val isEnglish = settings.appLanguage == AppLanguage.ENGLISH
 
     val primaryItems = listOf(
         SettingsItem(
-            title = "Adhan & Notifications",
-            subtitle = "Kelola alarm sholat, suara, dan vibrasi",
+            title = if (isEnglish) "Adhan & Notifications" else "Adzan & Notifikasi",
+            subtitle = if (isEnglish) "Manage prayer alarms, sound, and vibration" else "Kelola alarm sholat, suara, dan getaran",
             icon = Icons.Rounded.NotificationsActive,
             onClick = onOpenAdhanSettings
         ),
         SettingsItem(
-            title = "Appearance",
-            subtitle = "Tema, mode malam, dan mode fokus ibadah",
+            title = if (isEnglish) "Appearance" else "Tampilan",
+            subtitle = if (isEnglish) "Theme, night mode, and focus mode" else "Tema, mode malam, dan mode fokus ibadah",
             icon = Icons.Rounded.Palette,
             onClick = onOpenAppearanceSettings
         ),
         SettingsItem(
-            title = "Location & Calculation",
-            subtitle = "Lokasi manual, GPS, dan arah kiblat",
+            title = if (isEnglish) "Location & Calculation" else "Lokasi & Perhitungan",
+            subtitle = if (isEnglish) "Manual location, GPS, and qibla direction" else "Lokasi manual, GPS, dan arah kiblat",
             icon = Icons.Rounded.Explore,
             onClick = onOpenLocationSettings
         ),
         SettingsItem(
-            title = "Language",
-            subtitle = "Indonesia, English, Arabic-only reading",
+            title = if (isEnglish) "Language" else "Bahasa",
+            subtitle = if (isEnglish) "App language and Qur'an reading mode" else "Bahasa aplikasi dan mode baca Qur'an",
             icon = Icons.Rounded.Language,
             onClick = onOpenLanguageSettings
         ),
         SettingsItem(
-            title = "App Updates",
+            title = if (isEnglish) "App Updates" else "Pembaruan Aplikasi",
             subtitle = if (updateState.hasUpdate) {
-                "Versi ${updateState.latestVersionName} siap diunduh"
+                if (isEnglish) "Version ${updateState.latestVersionName} is ready to download" else "Versi ${updateState.latestVersionName} siap diunduh"
             } else {
-                "Cek update otomatis dan pasang build terbaru"
+                if (isEnglish) "Check for updates and install the latest build" else "Cek update otomatis dan pasang build terbaru"
             },
             icon = Icons.Rounded.SystemUpdateAlt,
             onClick = onOpenUpdateCenter
@@ -107,20 +109,20 @@ fun SettingsScreen(
 
     val journeyItems = listOf(
         SettingsItem(
-            title = "Audio Management",
-            subtitle = "Unduhan murattal, storage, dan player",
+            title = if (isEnglish) "Audio Management" else "Manajemen Audio",
+            subtitle = if (isEnglish) "Murattal downloads, storage, and player" else "Unduhan murattal, penyimpanan, dan player",
             icon = Icons.Rounded.VolumeUp,
             onClick = onOpenAudioManagement
         ),
         SettingsItem(
-            title = "Worship Goals",
-            subtitle = "Progress ayat harian, streak, dan target pekanan",
+            title = if (isEnglish) "Worship Goals" else "Target Ibadah",
+            subtitle = if (isEnglish) "Daily verse progress, streak, and weekly goals" else "Progress ayat harian, streak, dan target pekanan",
             icon = Icons.Rounded.AutoAwesomeMotion,
             onClick = onOpenWorshipProgress
         ),
         SettingsItem(
-            title = "Smart Reminder",
-            subtitle = "Reminder Qur'an, dzikir pagi, dan dzikir sore",
+            title = if (isEnglish) "Smart Reminder" else "Reminder Pintar",
+            subtitle = if (isEnglish) "Qur'an, morning dzikr, and evening dzikr reminders" else "Reminder Qur'an, dzikir pagi, dan dzikir sore",
             icon = Icons.Rounded.Schedule,
             onClick = onOpenSmartReminders
         )
@@ -141,7 +143,7 @@ fun SettingsScreen(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "Settings",
+                        text = if (isEnglish) "Settings" else "Pengaturan",
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -153,7 +155,7 @@ fun SettingsScreen(
                 }
                 SajdaTopAction(
                     icon = Icons.Rounded.ChevronRight,
-                    label = "Info",
+                    label = if (isEnglish) "Info" else "Info",
                     onClick = onOpenBackgroundAudioInfo
                 )
             }
@@ -172,17 +174,21 @@ fun SettingsScreen(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = "Spiritual Journey",
+                            text = if (isEnglish) "Spiritual Journey" else "Perjalanan Ibadah",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "Assalamu Alaikum",
+                            text = if (isEnglish) "Assalamu Alaikum" else "Assalamu'alaikum",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${settings.streakCount} days streak | ${settings.locationName}",
+                            text = if (isEnglish) {
+                                "${settings.streakCount} day streak | ${settings.locationName}"
+                            } else {
+                                "${settings.streakCount} hari beruntun | ${settings.locationName}"
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -199,7 +205,7 @@ fun SettingsScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "Update tersedia",
+                            text = if (isEnglish) "Update available" else "Update tersedia",
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f)
                         )
@@ -210,7 +216,11 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                         Text(
-                            text = "Buka App Updates untuk mengunduh dan memasang versi terbaru.",
+                            text = if (isEnglish) {
+                                "Open App Updates to download and install the latest version."
+                            } else {
+                                "Buka Pembaruan Aplikasi untuk mengunduh dan memasang versi terbaru."
+                            },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.84f)
                         )
@@ -221,7 +231,7 @@ fun SettingsScreen(
 
         item {
             Text(
-                text = "APP PREFERENCES",
+                text = if (isEnglish) "APP PREFERENCES" else "PREFERENSI APLIKASI",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -237,7 +247,7 @@ fun SettingsScreen(
 
         item {
             Text(
-                text = "CONTENT & JOURNEY",
+                text = if (isEnglish) "CONTENT & JOURNEY" else "KONTEN & PERJALANAN",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

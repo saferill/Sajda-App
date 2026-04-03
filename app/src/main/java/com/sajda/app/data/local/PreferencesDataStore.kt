@@ -11,10 +11,14 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import com.sajda.app.domain.model.AdhanLogEntry
 import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.AsrMadhhab
 import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.PrayerCalculationMethod
+import com.sajda.app.domain.model.QuranReadingMode
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.util.DateTimeUtils
 import com.sajda.app.util.LocationConstants
@@ -27,6 +31,8 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 class PreferencesDataStore(private val context: Context) {
 
+    private val gson = Gson()
+
     companion object {
         private val DARK_MODE = booleanPreferencesKey("dark_mode")
         private val NIGHT_MODE = booleanPreferencesKey("night_mode")
@@ -35,6 +41,7 @@ class PreferencesDataStore(private val context: Context) {
         private val SHOW_TRANSLATION = booleanPreferencesKey("show_translation")
         private val ARABIC_ONLY = booleanPreferencesKey("arabic_only")
         private val SHOW_TRANSLITERATION = booleanPreferencesKey("show_transliteration")
+        private val QURAN_READING_MODE = stringPreferencesKey("quran_reading_mode")
         private val ARABIC_FONT_SIZE = intPreferencesKey("arabic_font_size")
         private val TRANSLATION_FONT_SIZE = intPreferencesKey("translation_font_size")
         private val VERSE_SPACING = intPreferencesKey("verse_spacing")
@@ -64,6 +71,7 @@ class PreferencesDataStore(private val context: Context) {
         private val LAST_ADHAN_PRAYER = stringPreferencesKey("last_adhan_prayer")
         private val LAST_ADHAN_STATUS = stringPreferencesKey("last_adhan_status")
         private val LAST_ADHAN_AT = stringPreferencesKey("last_adhan_at")
+        private val ADHAN_HISTORY_JSON = stringPreferencesKey("adhan_history_json")
         private val NEXT_SCHEDULED_PRAYER = stringPreferencesKey("next_scheduled_prayer")
         private val NEXT_SCHEDULED_AT = stringPreferencesKey("next_scheduled_at")
         private val AUTO_UPDATE_CHECK_ENABLED = booleanPreferencesKey("auto_update_check_enabled")
@@ -89,6 +97,9 @@ class PreferencesDataStore(private val context: Context) {
             showTranslation = preferences[SHOW_TRANSLATION] ?: true,
             arabicOnly = preferences[ARABIC_ONLY] ?: false,
             showTransliteration = preferences[SHOW_TRANSLITERATION] ?: false,
+            quranReadingMode = preferences[QURAN_READING_MODE]?.let {
+                runCatching { QuranReadingMode.valueOf(it) }.getOrDefault(QuranReadingMode.ARABIC_INDONESIAN)
+            } ?: QuranReadingMode.ARABIC_INDONESIAN,
             arabicFontSize = (preferences[ARABIC_FONT_SIZE] ?: 30).coerceIn(24, 40),
             translationFontSize = (preferences[TRANSLATION_FONT_SIZE] ?: 16).coerceIn(12, 22),
             verseSpacing = (preferences[VERSE_SPACING] ?: 18).coerceIn(12, 28),
@@ -121,6 +132,7 @@ class PreferencesDataStore(private val context: Context) {
             lastAdhanPrayer = preferences[LAST_ADHAN_PRAYER] ?: "",
             lastAdhanStatus = preferences[LAST_ADHAN_STATUS] ?: "",
             lastAdhanAt = preferences[LAST_ADHAN_AT] ?: "",
+            adhanHistory = parseAdhanHistory(preferences[ADHAN_HISTORY_JSON]),
             nextScheduledPrayer = preferences[NEXT_SCHEDULED_PRAYER] ?: "",
             nextScheduledAt = preferences[NEXT_SCHEDULED_AT] ?: "",
             autoUpdateCheckEnabled = preferences[AUTO_UPDATE_CHECK_ENABLED] ?: true,
@@ -154,6 +166,28 @@ class PreferencesDataStore(private val context: Context) {
 
     suspend fun setShowTransliteration(enabled: Boolean) = context.dataStore.edit {
         it[SHOW_TRANSLITERATION] = enabled
+    }
+
+    suspend fun setQuranReadingMode(mode: QuranReadingMode) = context.dataStore.edit {
+        it[QURAN_READING_MODE] = mode.name
+        when (mode) {
+            QuranReadingMode.ARABIC_ONLY -> {
+                it[ARABIC_ONLY] = true
+                it[SHOW_TRANSLATION] = false
+            }
+
+            QuranReadingMode.ARABIC_INDONESIAN,
+            QuranReadingMode.ARABIC_ENGLISH -> {
+                it[ARABIC_ONLY] = false
+                it[SHOW_TRANSLATION] = true
+            }
+
+            QuranReadingMode.ALL -> {
+                it[ARABIC_ONLY] = false
+                it[SHOW_TRANSLATION] = true
+                it[SHOW_TRANSLITERATION] = true
+            }
+        }
     }
 
     suspend fun setArabicFontSize(size: Int) = context.dataStore.edit {
@@ -257,12 +291,41 @@ class PreferencesDataStore(private val context: Context) {
     suspend fun updateAdhanLastEvent(
         prayerName: String,
         status: String,
-        occurredAt: String = DateTimeUtils.dateTimeString()
+        occurredAt: String = DateTimeUtils.dateTimeString(),
+        occurredAtEpochMillis: Long = System.currentTimeMillis(),
+        details: String = ""
     ) {
         context.dataStore.edit { preferences ->
             preferences[LAST_ADHAN_PRAYER] = prayerName
             preferences[LAST_ADHAN_STATUS] = status
             preferences[LAST_ADHAN_AT] = occurredAt
+            preferences[ADHAN_HISTORY_JSON] = updatedAdhanHistoryJson(
+                currentRaw = preferences[ADHAN_HISTORY_JSON],
+                prayerName = prayerName,
+                status = status,
+                occurredAt = occurredAt,
+                occurredAtEpochMillis = occurredAtEpochMillis,
+                details = details
+            )
+        }
+    }
+
+    suspend fun appendAdhanLog(
+        prayerName: String,
+        status: String,
+        occurredAt: String = DateTimeUtils.dateTimeString(),
+        occurredAtEpochMillis: Long = System.currentTimeMillis(),
+        details: String = ""
+    ) {
+        context.dataStore.edit { preferences ->
+            preferences[ADHAN_HISTORY_JSON] = updatedAdhanHistoryJson(
+                currentRaw = preferences[ADHAN_HISTORY_JSON],
+                prayerName = prayerName,
+                status = status,
+                occurredAt = occurredAt,
+                occurredAtEpochMillis = occurredAtEpochMillis,
+                details = details
+            )
         }
     }
 
@@ -340,5 +403,40 @@ class PreferencesDataStore(private val context: Context) {
                 preferences[DAILY_AYAT_READ] = 0
             }
         }
+    }
+
+    private fun parseAdhanHistory(raw: String?): List<AdhanLogEntry> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return runCatching {
+            val listType = object : TypeToken<List<AdhanLogEntry>>() {}.type
+            gson.fromJson<List<AdhanLogEntry>>(raw, listType).orEmpty()
+        }.getOrDefault(emptyList())
+    }
+
+    private fun updatedAdhanHistoryJson(
+        currentRaw: String?,
+        prayerName: String,
+        status: String,
+        occurredAt: String,
+        occurredAtEpochMillis: Long,
+        details: String
+    ): String {
+        val history = parseAdhanHistory(currentRaw).toMutableList()
+        history.add(
+            0,
+            AdhanLogEntry(
+                prayerName = prayerName,
+                status = status,
+                occurredAt = occurredAt,
+                occurredAtEpochMillis = occurredAtEpochMillis,
+                details = details
+            )
+        )
+        val sevenDaysAgo = System.currentTimeMillis() - (7L * 24L * 60L * 60L * 1000L)
+        return gson.toJson(
+            history
+                .filter { it.occurredAtEpochMillis >= sevenDaysAgo }
+                .take(80)
+        )
     }
 }

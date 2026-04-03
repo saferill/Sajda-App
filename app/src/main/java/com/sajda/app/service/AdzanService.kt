@@ -28,16 +28,20 @@ import androidx.core.content.ContextCompat
 import com.sajda.app.MainActivity
 import com.sajda.app.R
 import com.sajda.app.data.local.PreferencesDataStore
+import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.util.Constants
+import com.sajda.app.util.localizedPrayerName
+import com.sajda.app.util.pick
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 class AdzanService : Service() {
 
     private var mediaPlayer: MediaPlayer? = null
+    private var fallbackRingtone: android.media.Ringtone? = null
     private var audioFocusRequest: AudioFocusRequest? = null
-    private var currentPrayerName: String = "Waktu sholat"
+    private var currentPrayerName: String = "Subuh"
     private var currentPrayerTime: String = ""
     private var currentPrayerDate: String = ""
     private var currentLocationName: String = ""
@@ -59,10 +63,13 @@ class AdzanService : Service() {
                 return START_NOT_STICKY
             }
             else -> {
-                currentPrayerName = intent?.getStringExtra(Constants.EXTRA_PRAYER_NAME) ?: "Waktu sholat"
+                currentPrayerName = intent?.getStringExtra(Constants.EXTRA_PRAYER_NAME) ?: PrayerName.FAJR.label
                 currentPrayerTime = intent?.getStringExtra(Constants.EXTRA_PRAYER_TIME).orEmpty()
                 currentPrayerDate = intent?.getStringExtra(Constants.EXTRA_PRAYER_DATE).orEmpty()
                 currentLocationName = intent?.getStringExtra(Constants.EXTRA_LOCATION_NAME).orEmpty()
+                if (currentLocationName.isBlank()) {
+                    currentLocationName = resolveLocationLabel()
+                }
                 startForeground(Constants.ADZAN_NOTIFICATION_ID, createNotification(currentPrayerName))
                 triggerAdzan(currentPrayerName)
                 return START_REDELIVER_INTENT
@@ -72,6 +79,7 @@ class AdzanService : Service() {
 
     override fun onDestroy() {
         releasePlayer()
+        releaseFallbackRingtone()
         abandonAudioFocus()
         super.onDestroy()
     }
@@ -81,6 +89,7 @@ class AdzanService : Service() {
     private fun triggerAdzan(prayerName: String) {
         val preferencesDataStore = PreferencesDataStore(this@AdzanService)
         val settings = runBlocking { preferencesDataStore.settingsFlow.first() }
+        currentLocationName = currentLocationName.ifBlank { resolveLocationLabel(settings) }
         val audioManager = getSystemService(AudioManager::class.java)
         val alarmVolumeAudible = audioManager.getStreamVolume(AudioManager.STREAM_ALARM) > 0
         val canPlaySound = (
@@ -95,7 +104,11 @@ class AdzanService : Service() {
             runBlocking {
                 preferencesDataStore.updateAdhanLastEvent(
                     prayerName = prayerName,
-                    status = "Notif tampil, suara mengikuti mode perangkat"
+                    status = settings.pick(
+                        "Notif tampil, suara mengikuti mode perangkat",
+                        "Notification shown, sound follows the device mode"
+                    ),
+                    details = "Silent override=${settings.overrideSilentMode}, ringer=${audioManager.ringerMode}, volumeAlarm=${audioManager.getStreamVolume(AudioManager.STREAM_ALARM)}"
                 )
             }
             keepNotificationVisibleAndStop(
@@ -110,12 +123,7 @@ class AdzanService : Service() {
         releasePlayer()
         val audioSource = resolveAdzanAudio(prayerName)
         val adzanUri = audioSource.uri ?: run {
-            keepNotificationVisibleAndStop(
-                createNotification(
-                    prayerName = prayerName,
-                    soundDisabled = true
-                )
-            )
+            playShortFallbackAlert(prayerName, "Sumber audio tidak ditemukan")
             return
         }
 
@@ -126,14 +134,19 @@ class AdzanService : Service() {
                 setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .setLegacyStreamType(AudioManager.STREAM_ALARM)
                         .build()
                 )
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+                    @Suppress("DEPRECATION")
+                    setAudioStreamType(AudioManager.STREAM_ALARM)
+                }
                 setDataSource(this@AdzanService, adzanUri)
                 isLooping = audioSource.shouldLoop
                 setOnCompletionListener { finishAdzanPlayback() }
                 setOnErrorListener { _, _, _ ->
-                    stopAdzan()
+                    playShortFallbackAlert(prayerName, "MediaPlayer error")
                     true
                 }
                 prepare()
@@ -142,7 +155,12 @@ class AdzanService : Service() {
             runBlocking {
                 preferencesDataStore.updateAdhanLastEvent(
                     prayerName = prayerName,
-                    status = "Adzan diputar"
+                    status = if (audioSource.isFallbackShort) {
+                        settings.pick("Alarm pengganti diputar", "Fallback alert played")
+                    } else {
+                        settings.pick("Adzan diputar", "Adhan played")
+                    },
+                    details = adzanUri.toString()
                 )
             }
             Log.d(TAG, "Playing adhan for $prayerName from $adzanUri")
@@ -152,18 +170,17 @@ class AdzanService : Service() {
             )
         }.onFailure {
             Log.e(TAG, "Failed to play adhan for $prayerName", it)
+            playShortFallbackAlert(prayerName, it.message.orEmpty())
             runBlocking {
                 preferencesDataStore.updateAdhanLastEvent(
                     prayerName = prayerName,
-                    status = "Gagal memutar audio, notif tetap tampil"
+                    status = settings.pick(
+                        "Gagal memutar audio, alarm pengganti dipakai",
+                        "Audio playback failed, fallback alert was used"
+                    ),
+                    details = it.message.orEmpty()
                 )
             }
-            keepNotificationVisibleAndStop(
-                createNotification(
-                    prayerName = prayerName,
-                    soundDisabled = true
-                )
-            )
         }
     }
 
@@ -188,6 +205,8 @@ class AdzanService : Service() {
         isPlaying: Boolean = false,
         soundDisabled: Boolean = false
     ): Notification {
+        val language = currentLanguage()
+        val displayName = displayPrayerName(prayerName, language)
         val openAppIntent = Intent(this, MainActivity::class.java).apply {
             action = Constants.ACTION_OPEN_PRAYER_TAB
             putExtra(Constants.EXTRA_OPEN_TAB, "prayer")
@@ -233,20 +252,29 @@ class AdzanService : Service() {
         val summaryText = buildSummaryText(prayerName)
         val expandedText = when {
             soundDisabled -> {
-                "$summaryText Notifikasi tetap muncul, tetapi suara mengikuti mode perangkat atau akses sistem belum lengkap."
+                language.pick(
+                    "Notifikasi tetap tampil. Suara mengikuti mode perangkat atau izin sistem belum lengkap.",
+                    "The notification is still shown. Sound follows the device mode or system access is incomplete."
+                )
             }
             isPlaying -> {
-                "$summaryText Adzan sedang dikumandangkan. Ketuk Stop untuk menghentikan atau Snooze untuk menunda."
+                language.pick(
+                    "Adzan sedang diputar. Gunakan tombol volume HP untuk mengatur besar suara.",
+                    "The adhan is playing. Use your phone volume buttons to adjust the sound."
+                )
             }
             else -> {
-                "$summaryText Buka halaman Prayer untuk melihat jadwal lengkap dan countdown berikutnya."
+                language.pick(
+                    "Buka halaman Sholat untuk melihat jadwal lengkap berikutnya.",
+                    "Open the Prayer page to view the next full schedule."
+                )
             }
         }
 
         val compactView = buildCompactNotificationView(
             prayerName = prayerName,
-            statusLine = if (soundDisabled) "Notifikasi aktif, suara mengikuti perangkat" else "Saatnya bersiap menunaikan sholat",
-            accentLine = currentPrayerTime.ifBlank { "Sajda App" }
+            statusLine = language.pick("Saatnya menunaikan sholat", "It is time to pray"),
+            accentLine = buildMetaLine(language)
         )
         val expandedView = buildExpandedNotificationView(
             prayerName = prayerName,
@@ -258,9 +286,8 @@ class AdzanService : Service() {
 
         return NotificationCompat.Builder(this, Constants.ADZAN_NOTIFICATION_CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Waktu $prayerName telah tiba")
+            .setContentTitle(language.pick("Waktu $displayName telah tiba", "$displayName time has arrived"))
             .setContentText(summaryText)
-            .setSubText(currentLocationName.ifBlank { "Sajda App" })
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -273,27 +300,27 @@ class AdzanService : Service() {
             .setLargeIcon(BitmapFactory.decodeResource(resources, R.drawable.sajda_logo_mark))
             .setCustomContentView(compactView)
             .setCustomBigContentView(expandedView)
-            .setCustomHeadsUpContentView(expandedView)
+            .setCustomHeadsUpContentView(compactView)
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .addAction(
                 NotificationCompat.Action(
                     android.R.drawable.ic_menu_directions,
-                    "Prayer",
+                    language.pick("Sholat", "Prayer"),
                     prayerPendingIntent
                 )
             )
             .addAction(
                 NotificationCompat.Action(
                     android.R.drawable.ic_lock_idle_alarm,
-                    "Snooze ${snoozeMinutes}m",
+                    if (language == AppLanguage.ENGLISH) "Snooze ${snoozeMinutes}m" else "Tunda ${snoozeMinutes}m",
                     snoozePendingIntent
                 )
             )
             .addAction(
                 NotificationCompat.Action(
                     android.R.drawable.ic_media_pause,
-                    "Stop",
+                    language.pick("Stop", "Stop"),
                     stopPendingIntent
                 )
             )
@@ -305,10 +332,10 @@ class AdzanService : Service() {
             val manager = getSystemService(NotificationManager::class.java)
             val channel = NotificationChannel(
                 Constants.ADZAN_NOTIFICATION_CHANNEL,
-                "Notifikasi Adzan Sajda",
+                "Sajda Adhan",
                 NotificationManager.IMPORTANCE_HIGH
             )
-            channel.description = "Notifikasi dan kontrol suara adzan"
+            channel.description = "Sajda adhan alerts and controls"
             channel.enableVibration(true)
             channel.vibrationPattern = longArrayOf(0, 250, 180, 250, 180, 300)
             channel.lockscreenVisibility = Notification.VISIBILITY_PUBLIC
@@ -333,9 +360,10 @@ class AdzanService : Service() {
         runBlocking {
             PreferencesDataStore(this@AdzanService).updateAdhanLastEvent(
                 prayerName = currentPrayerName,
-                status = "Dihentikan manual"
+                status = currentLanguage().pick("Dihentikan manual", "Stopped manually")
             )
         }
+        releaseFallbackRingtone()
         releasePlayer()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -345,9 +373,10 @@ class AdzanService : Service() {
         runBlocking {
             PreferencesDataStore(this@AdzanService).updateAdhanLastEvent(
                 prayerName = currentPrayerName,
-                status = "Selesai diputar"
+                status = currentLanguage().pick("Selesai diputar", "Playback finished")
             )
         }
+        releaseFallbackRingtone()
         releasePlayer()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -358,9 +387,14 @@ class AdzanService : Service() {
         runBlocking {
             PreferencesDataStore(this@AdzanService).updateAdhanLastEvent(
                 prayerName = prayerName,
-                status = "Ditunda $safeMinutes menit"
+                status = if (currentLanguage() == AppLanguage.ENGLISH) {
+                    "Snoozed ${safeMinutes} minutes"
+                } else {
+                    "Ditunda $safeMinutes menit"
+                }
             )
         }
+        releaseFallbackRingtone()
         scheduleSnoozeAlarm(this, prayerName, safeMinutes)
         releasePlayer()
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -377,6 +411,50 @@ class AdzanService : Service() {
         }
         mediaPlayer = null
         abandonAudioFocus()
+    }
+
+    private fun releaseFallbackRingtone() {
+        fallbackRingtone?.stop()
+        fallbackRingtone = null
+    }
+
+    private fun playShortFallbackAlert(prayerName: String, details: String) {
+        releasePlayer()
+        releaseFallbackRingtone()
+        val fallbackUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+
+        fallbackRingtone = fallbackUri?.let { uri ->
+            RingtoneManager.getRingtone(this, uri)?.apply {
+                audioAttributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+                play()
+            }
+        }
+
+        NotificationManagerCompat.from(this).notify(
+            Constants.ADZAN_NOTIFICATION_ID,
+            createNotification(
+                prayerName = prayerName,
+                soundDisabled = true
+            )
+        )
+
+        runBlocking {
+            PreferencesDataStore(this@AdzanService).appendAdhanLog(
+                prayerName = prayerName,
+                status = currentLanguage().pick("Alarm pengganti diputar", "Fallback alert played"),
+                details = details
+            )
+        }
+
+        android.os.Handler(mainLooper).postDelayed({
+            releaseFallbackRingtone()
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+        }, 3_500L)
     }
 
     private fun resolveAdzanAudio(prayerName: String): AdzanAudioSource {
@@ -401,12 +479,13 @@ class AdzanService : Service() {
         val fallbackUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
-        return AdzanAudioSource(uri = fallbackUri, shouldLoop = true)
+        return AdzanAudioSource(uri = fallbackUri, shouldLoop = false, isFallbackShort = true)
     }
 
     private data class AdzanAudioSource(
         val uri: Uri?,
-        val shouldLoop: Boolean
+        val shouldLoop: Boolean,
+        val isFallbackShort: Boolean = false
     )
 
     companion object {
@@ -453,18 +532,20 @@ class AdzanService : Service() {
         }
     }
 
+    private fun currentLanguage(): AppLanguage {
+        return runBlocking { PreferencesDataStore(this@AdzanService).settingsFlow.first().appLanguage }
+    }
+
+    private fun displayPrayerName(prayerName: String, language: AppLanguage = currentLanguage()): String {
+        return localizedPrayerName(prayerName, language)
+    }
+
     private fun buildSummaryText(prayerName: String): String {
+        val language = currentLanguage()
+        val displayName = displayPrayerName(prayerName, language)
         return buildString {
-            append("Saatnya menunaikan sholat ")
-            append(prayerName)
-            if (currentPrayerTime.isNotBlank()) {
-                append(" pada ")
-                append(currentPrayerTime)
-            }
-            if (currentLocationName.isNotBlank()) {
-                append(" di ")
-                append(currentLocationName)
-            }
+            append(language.pick("Saatnya sholat ", "Time for "))
+            append(displayName)
             append('.')
         }
     }
@@ -474,17 +555,14 @@ class AdzanService : Service() {
         statusLine: String,
         accentLine: String
     ): RemoteViews {
+        val language = currentLanguage()
+        val displayName = displayPrayerName(prayerName, language)
         return RemoteViews(packageName, R.layout.notification_adhan_compact).apply {
             setImageViewResource(R.id.logoView, R.drawable.sajda_logo_mark)
             setTextViewText(R.id.badgeView, "ADHAN")
-            setTextViewText(R.id.titleView, "Waktu $prayerName telah tiba")
+            setTextViewText(R.id.titleView, language.pick("Waktu $displayName", "$displayName time"))
             setTextViewText(R.id.statusView, statusLine)
-            setTextViewText(
-                R.id.metaView,
-                listOf(currentLocationName, accentLine, currentPrayerDate)
-                    .filter { it.isNotBlank() }
-                    .joinToString("  |  ")
-            )
+            setTextViewText(R.id.metaView, accentLine)
         }
     }
 
@@ -495,20 +573,28 @@ class AdzanService : Service() {
         isPlaying: Boolean,
         soundDisabled: Boolean
     ): RemoteViews {
+        val language = currentLanguage()
+        val displayName = displayPrayerName(prayerName, language)
+        val locationLabel = resolveLocationLabel()
         return RemoteViews(packageName, R.layout.notification_adhan_expanded).apply {
             setImageViewResource(R.id.logoView, R.drawable.sajda_logo_mark)
             setTextViewText(R.id.badgeView, "SAJDA APP")
-            setTextViewText(R.id.titleView, "Waktu $prayerName telah tiba")
-            setTextViewText(R.id.metaView, currentPrayerTime.ifBlank { "Sekarang" })
-            setTextViewText(R.id.locationView, currentLocationName.ifBlank { "Lokasi belum dipilih" })
+            setTextViewText(R.id.titleView, language.pick("Waktu $displayName telah tiba", "$displayName time has arrived"))
+            setTextViewText(R.id.metaView, currentPrayerTime.ifBlank { language.pick("Sekarang", "Now") })
+            if (locationLabel.isBlank()) {
+                setViewVisibility(R.id.locationView, android.view.View.GONE)
+            } else {
+                setViewVisibility(R.id.locationView, android.view.View.VISIBLE)
+                setTextViewText(R.id.locationView, locationLabel)
+            }
             setTextViewText(R.id.summaryView, summaryText)
             setTextViewText(R.id.statusView, expandedText)
             setTextViewText(
                 R.id.stateChipView,
                 when {
-                    soundDisabled -> "Suara mengikuti perangkat"
-                    isPlaying -> "Adzan sedang diputar"
-                    else -> "Notifikasi aktif"
+                    soundDisabled -> language.pick("Suara mengikuti perangkat", "Sound follows the device")
+                    isPlaying -> language.pick("Adzan sedang diputar", "Adhan is playing")
+                    else -> language.pick("Notifikasi aktif", "Notification active")
                 }
             )
         }
@@ -521,7 +607,8 @@ class AdzanService : Service() {
                 .setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .setLegacyStreamType(AudioManager.STREAM_ALARM)
                         .build()
                 )
                 .setWillPauseWhenDucked(false)
@@ -547,5 +634,26 @@ class AdzanService : Service() {
             @Suppress("DEPRECATION")
             audioManager.abandonAudioFocus(null)
         }
+    }
+
+    private fun buildMetaLine(language: AppLanguage): String {
+        return listOf(
+            currentPrayerTime.ifBlank { language.pick("Sekarang", "Now") },
+            resolveLocationLabel()
+        ).filter { it.isNotBlank() }.joinToString(" - ")
+    }
+
+    private fun resolveLocationLabel(
+        settings: com.sajda.app.domain.model.UserSettings? = null
+    ): String {
+        val savedSettings = settings ?: runBlocking { PreferencesDataStore(this@AdzanService).settingsFlow.first() }
+        return listOf(currentLocationName, savedSettings.locationName)
+            .map { it.trim() }
+            .firstOrNull {
+                it.isNotBlank() &&
+                    !it.equals("Lokasi belum dipilih", ignoreCase = true) &&
+                    !it.equals("Location not selected", ignoreCase = true)
+            }
+            .orEmpty()
     }
 }

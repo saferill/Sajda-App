@@ -5,6 +5,7 @@ data class Surah(
     val nameArabic: String,
     val transliteration: String,
     val translation: String,
+    val englishTranslation: String = "",
     val revelationPlace: String,
     val totalVerses: Int,
     val audioUrl: String,
@@ -19,6 +20,7 @@ data class Ayat(
     val ayatNumber: Int,
     val textArabic: String,
     val translation: String,
+    val englishTranslation: String = "",
     val transliteration: String
 )
 
@@ -119,6 +121,7 @@ data class UserSettings(
     val showTranslation: Boolean = true,
     val arabicOnly: Boolean = false,
     val showTransliteration: Boolean = false,
+    val quranReadingMode: QuranReadingMode = QuranReadingMode.ARABIC_INDONESIAN,
     val arabicFontSize: Int = 30,
     val translationFontSize: Int = 16,
     val verseSpacing: Int = 18,
@@ -147,6 +150,7 @@ data class UserSettings(
     val lastAdhanPrayer: String = "",
     val lastAdhanStatus: String = "",
     val lastAdhanAt: String = "",
+    val adhanHistory: List<AdhanLogEntry> = emptyList(),
     val nextScheduledPrayer: String = "",
     val nextScheduledAt: String = "",
     val autoUpdateCheckEnabled: Boolean = true,
@@ -194,7 +198,7 @@ data class CityPreset(
         get() = when {
             areaType.equals("Provinsi", ignoreCase = true) -> "Provinsi"
             province.isBlank() -> areaType
-            else -> "$areaType • $province"
+            else -> "$areaType - $province"
         }
 
     fun matches(query: String): Boolean {
@@ -236,8 +240,14 @@ data class CityPreset(
 
 enum class AppLanguage {
     INDONESIAN,
-    ENGLISH,
-    ARABIC
+    ENGLISH
+}
+
+enum class QuranReadingMode {
+    ARABIC_ONLY,
+    ARABIC_INDONESIAN,
+    ARABIC_ENGLISH,
+    ALL
 }
 
 data class DailyDua(
@@ -246,16 +256,29 @@ data class DailyDua(
     val title: String,
     val arabic: String,
     val transliteration: String,
-    val translation: String
+    val translation: String,
+    val sourceLabel: String = ""
 )
 
 data class HadithEntry(
     val id: String,
+    val category: String,
     val title: String,
     val collection: String,
     val reference: String,
     val narrator: String,
-    val text: String
+    val text: String,
+    val arabicText: String = "",
+    val sourceLabel: String = ""
+)
+
+data class AdhanLogEntry(
+    val id: Long = System.currentTimeMillis(),
+    val prayerName: String,
+    val status: String,
+    val occurredAt: String,
+    val occurredAtEpochMillis: Long = System.currentTimeMillis(),
+    val details: String = ""
 )
 
 data class QuranSearchResult(

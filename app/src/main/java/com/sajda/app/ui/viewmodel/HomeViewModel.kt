@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.sajda.app.data.local.PreferencesDataStore
 import com.sajda.app.data.repository.PrayerTimeRepository
 import com.sajda.app.data.repository.QuranRepository
+import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.Ayat
 import com.sajda.app.domain.model.PrayerTime
 import com.sajda.app.domain.model.Surah
@@ -30,6 +31,7 @@ data class HomeUiState(
     val dailyAyatRead: Int = 0,
     val streakCount: Int = 0,
     val locationName: String = "",
+    val appLanguage: AppLanguage = AppLanguage.INDONESIAN,
     val isLoading: Boolean = true
 )
 
@@ -92,6 +94,7 @@ class HomeViewModel(
                         quickPlaySurah = quickPlay,
                         dailyAyatRead = settings.dailyAyatRead,
                         streakCount = settings.streakCount,
+                        appLanguage = settings.appLanguage,
                         isLoading = false
                     )
                 }

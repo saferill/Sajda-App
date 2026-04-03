@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sajda.app.domain.model.Ayat
+import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.PrayerTime
 import com.sajda.app.domain.model.Surah
 import com.sajda.app.ui.component.ArabicVerseText
@@ -52,6 +53,7 @@ import com.sajda.app.ui.theme.surfaceContainerHigh
 import com.sajda.app.ui.theme.surfaceContainerLow
 import com.sajda.app.ui.viewmodel.HomeViewModel
 import com.sajda.app.util.DateTimeUtils
+import com.sajda.app.util.localizedPrayerName
 
 private data class HomeShortcut(
     val label: String,
@@ -74,6 +76,7 @@ fun HomeScreen(
     onPlayLastAudio: (Surah) -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val isEnglish = state.appLanguage == AppLanguage.ENGLISH
 
     if (state.isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -83,10 +86,10 @@ fun HomeScreen(
     }
 
     val shortcuts = listOf(
-        HomeShortcut("Qibla", Icons.Rounded.Explore, onOpenQibla),
-        HomeShortcut("Jadwal", Icons.Rounded.Schedule, onNavigateToPrayer),
-        HomeShortcut("Audio", Icons.Rounded.Headphones, onOpenAudioManager),
-        HomeShortcut("Dua", Icons.Rounded.AutoAwesome, onOpenDua)
+        HomeShortcut(if (isEnglish) "Qibla" else "Qibla", Icons.Rounded.Explore, onOpenQibla),
+        HomeShortcut(if (isEnglish) "Schedule" else "Jadwal", Icons.Rounded.Schedule, onNavigateToPrayer),
+        HomeShortcut(if (isEnglish) "Audio" else "Audio", Icons.Rounded.Headphones, onOpenAudioManager),
+        HomeShortcut(if (isEnglish) "Dua" else "Doa", Icons.Rounded.AutoAwesome, onOpenDua)
     )
 
     LazyColumn(
@@ -98,6 +101,7 @@ fun HomeScreen(
     ) {
         item {
             HomeHeader(
+                appLanguage = state.appLanguage,
                 locationName = state.locationName.ifBlank { "Jakarta" },
                 onOpenSearch = onOpenSearch,
                 onOpenReminders = onOpenReminders
@@ -106,6 +110,7 @@ fun HomeScreen(
 
         item {
             PrayerHeroCard(
+                appLanguage = state.appLanguage,
                 prayerTime = state.todayPrayerTime,
                 nextPrayerLabel = state.nextPrayerLabel,
                 nextPrayerTime = state.nextPrayerTime,
@@ -116,6 +121,7 @@ fun HomeScreen(
 
         item {
             SpiritualJourneyCard(
+                appLanguage = state.appLanguage,
                 ayatRead = state.dailyAyatRead,
                 streakCount = state.streakCount,
                 onOpenProgress = onOpenProgress
@@ -124,6 +130,7 @@ fun HomeScreen(
 
         item {
             LastReadCard(
+                appLanguage = state.appLanguage,
                 surah = state.lastReadSurah,
                 ayat = state.lastReadAyat,
                 onContinueReading = onNavigateToQuran,
@@ -133,6 +140,7 @@ fun HomeScreen(
 
         item {
             QuickAudioCard(
+                appLanguage = state.appLanguage,
                 surah = state.quickPlaySurah,
                 onPlay = onPlayLastAudio,
                 onOpenAudioManager = onOpenAudioManager
@@ -165,17 +173,19 @@ fun HomeScreen(
         }
 
         item {
-            DailyAyatCard(ayat = state.dailyAyat)
+            DailyAyatCard(appLanguage = state.appLanguage, ayat = state.dailyAyat)
         }
     }
 }
 
 @Composable
 private fun HomeHeader(
+    appLanguage: AppLanguage,
     locationName: String,
     onOpenSearch: () -> Unit,
     onOpenReminders: () -> Unit
 ) {
+    val isEnglish = appLanguage == AppLanguage.ENGLISH
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -200,20 +210,22 @@ private fun HomeHeader(
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            SajdaTopAction(icon = Icons.Rounded.Search, label = "Cari", onClick = onOpenSearch)
-            SajdaTopAction(icon = Icons.Rounded.Notifications, label = "Reminder", onClick = onOpenReminders)
+            SajdaTopAction(icon = Icons.Rounded.Search, label = if (isEnglish) "Search" else "Cari", onClick = onOpenSearch)
+            SajdaTopAction(icon = Icons.Rounded.Notifications, label = if (isEnglish) "Reminders" else "Reminder", onClick = onOpenReminders)
         }
     }
 }
 
 @Composable
 private fun PrayerHeroCard(
+    appLanguage: AppLanguage,
     prayerTime: PrayerTime?,
     nextPrayerLabel: String,
     nextPrayerTime: String,
     countdown: String,
     onOpenPrayer: () -> Unit
 ) {
+    val isEnglish = appLanguage == AppLanguage.ENGLISH
     HeroCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -222,12 +234,12 @@ private fun PrayerHeroCard(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "NEXT PRAYER",
+                    text = if (isEnglish) "NEXT PRAYER" else "SHOLAT BERIKUTNYA",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f)
                 )
                 Text(
-                    text = nextPrayerLabel,
+                    text = localizedPrayerName(nextPrayerLabel, appLanguage),
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onPrimary
@@ -243,7 +255,7 @@ private fun PrayerHeroCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "REMAINING",
+                    text = if (isEnglish) "REMAINING" else "SISA WAKTU",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f)
                 )
@@ -253,7 +265,7 @@ private fun PrayerHeroCard(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
                 Text(
-                    text = "Jadwal",
+                    text = if (isEnglish) "Schedule" else "Jadwal",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.clip(RoundedCornerShape(16.dp))
@@ -289,7 +301,7 @@ private fun PrayerHeroCard(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = prayer.label.uppercase(),
+                            text = localizedPrayerName(prayer.label, appLanguage).uppercase(),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f)
                         )
@@ -307,10 +319,12 @@ private fun PrayerHeroCard(
 
 @Composable
 private fun SpiritualJourneyCard(
+    appLanguage: AppLanguage,
     ayatRead: Int,
     streakCount: Int,
     onOpenProgress: () -> Unit
 ) {
+    val isEnglish = appLanguage == AppLanguage.ENGLISH
     val dailyGoal = 20
     val progress = (ayatRead / dailyGoal.toFloat()).coerceIn(0f, 1f)
     val level = (streakCount / 7) + 1
@@ -323,13 +337,13 @@ private fun SpiritualJourneyCard(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "$streakCount Day Streak",
+                    text = if (isEnglish) "$streakCount Day Streak" else "$streakCount Hari Beruntun",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
             }
             Text(
-                text = "LEVEL $level",
+                text = if (isEnglish) "LEVEL $level" else "LEVEL $level",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
@@ -350,13 +364,17 @@ private fun SpiritualJourneyCard(
         )
 
         Text(
-            text = "$ayatRead ayat hari ini dari target $dailyGoal ayat.",
+            text = if (isEnglish) {
+                "$ayatRead verses today out of the $dailyGoal verse goal."
+            } else {
+                "$ayatRead ayat hari ini dari target $dailyGoal ayat."
+            },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Text(
-            text = "Lihat progres lengkap",
+            text = if (isEnglish) "View full progress" else "Lihat progres lengkap",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.clickable(onClick = onOpenProgress)
@@ -366,27 +384,29 @@ private fun SpiritualJourneyCard(
 
 @Composable
 private fun LastReadCard(
+    appLanguage: AppLanguage,
     surah: Surah?,
     ayat: Ayat?,
     onContinueReading: () -> Unit,
     onOpenBookmarks: () -> Unit
 ) {
+    val isEnglish = appLanguage == AppLanguage.ENGLISH
     SanctuaryCard {
         SectionHeader(
-            eyebrow = "Last Read",
-            title = surah?.transliteration ?: "Mulai perjalanan Qur'an",
-            actionLabel = "Bookmarks",
+            eyebrow = if (isEnglish) "Last Read" else "Terakhir Dibaca",
+            title = surah?.transliteration ?: if (isEnglish) "Start your Qur'an journey" else "Mulai perjalanan Qur'an",
+            actionLabel = if (isEnglish) "Bookmarks" else "Bookmark",
             onAction = onOpenBookmarks
         )
 
         if (surah != null && ayat != null) {
             Text(
-                text = "Ayat ${ayat.ayatNumber}",
+                text = if (isEnglish) "Verse ${ayat.ayatNumber}" else "Ayat ${ayat.ayatNumber}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = ayat.translation,
+                text = if (isEnglish) ayat.englishTranslation.ifBlank { ayat.translation } else ayat.translation,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -396,7 +416,7 @@ private fun LastReadCard(
             ) {
                 Icon(Icons.Rounded.Bookmark, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Text(
-                    text = "Resume reading",
+                    text = if (isEnglish) "Resume reading" else "Lanjutkan membaca",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable(onClick = onContinueReading)
@@ -404,7 +424,7 @@ private fun LastReadCard(
             }
         } else {
             Text(
-                text = "Buka tab Qur'an untuk mulai membaca.",
+                text = if (isEnglish) "Open the Qur'an tab to start reading." else "Buka tab Qur'an untuk mulai membaca.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -414,33 +434,35 @@ private fun LastReadCard(
 
 @Composable
 private fun QuickAudioCard(
+    appLanguage: AppLanguage,
     surah: Surah?,
     onPlay: (Surah) -> Unit,
     onOpenAudioManager: () -> Unit
 ) {
+    val isEnglish = appLanguage == AppLanguage.ENGLISH
     SanctuaryCard {
         SectionHeader(
-            eyebrow = "Quick Audio",
-            title = surah?.transliteration ?: "Murattal Offline",
-            actionLabel = "Kelola",
+            eyebrow = if (isEnglish) "Quick Audio" else "Audio Cepat",
+            title = surah?.transliteration ?: if (isEnglish) "Offline Murattal" else "Murattal Offline",
+            actionLabel = if (isEnglish) "Manage" else "Kelola",
             onAction = onOpenAudioManager
         )
 
         if (surah?.localAudioPath != null) {
             Text(
-                text = "Audio terakhir siap diputar offline.",
+                text = if (isEnglish) "The latest audio is ready to play offline." else "Audio terakhir siap diputar offline.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Putar sekarang",
+                text = if (isEnglish) "Play now" else "Putar sekarang",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.clickable { onPlay(surah) }
             )
         } else {
             Text(
-                text = "Belum ada audio offline yang diunduh.",
+                text = if (isEnglish) "No offline audio has been downloaded yet." else "Belum ada audio offline yang diunduh.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -449,9 +471,13 @@ private fun QuickAudioCard(
 }
 
 @Composable
-private fun DailyAyatCard(ayat: Ayat?) {
+private fun DailyAyatCard(appLanguage: AppLanguage, ayat: Ayat?) {
+    val isEnglish = appLanguage == AppLanguage.ENGLISH
     SanctuaryCard {
-        SectionHeader(eyebrow = "Daily Verse", title = "Ayat hari ini")
+        SectionHeader(
+            eyebrow = if (isEnglish) "Daily Verse" else "Ayat Harian",
+            title = if (isEnglish) "Today's verse" else "Ayat hari ini"
+        )
         if (ayat != null) {
             ArabicVerseText(text = ayat.textArabic)
             Column(
@@ -462,12 +488,12 @@ private fun DailyAyatCard(ayat: Ayat?) {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "\"${ayat.translation}\"",
+                    text = "\"${if (isEnglish) ayat.englishTranslation.ifBlank { ayat.translation } else ayat.translation}\"",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Surah ${ayat.surahNumber}:${ayat.ayatNumber}",
+                    text = if (isEnglish) "Surah ${ayat.surahNumber}:${ayat.ayatNumber}" else "Surah ${ayat.surahNumber}:${ayat.ayatNumber}",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Start
@@ -475,7 +501,11 @@ private fun DailyAyatCard(ayat: Ayat?) {
             }
         } else {
             Text(
-                text = "Ayat harian akan tampil setelah data Qur'an selesai dimuat.",
+                text = if (isEnglish) {
+                    "The daily verse will appear after the Qur'an data finishes loading."
+                } else {
+                    "Ayat harian akan tampil setelah data Qur'an selesai dimuat."
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

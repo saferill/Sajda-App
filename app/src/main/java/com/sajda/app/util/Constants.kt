@@ -6,6 +6,7 @@ object Constants {
     const val APP_NAME = "Sajda App"
     const val DATABASE_NAME = "sajda_database"
     const val QURAN_TRANSLATION_ASSET = "quran_id.json"
+    const val QURAN_ENGLISH_ASSET = "quran_en.json"
     const val QURAN_TRANSLITERATION_ASSET = "quran_transliteration.json"
 
     const val AUDIO_DOWNLOAD_DIR = "murattal"

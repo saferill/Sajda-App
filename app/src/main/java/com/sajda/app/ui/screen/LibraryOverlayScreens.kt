@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.sajda.app.data.repository.QuranRepository
+import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.AudioDownloadState
 import com.sajda.app.domain.model.AudioPlaybackState
 import com.sajda.app.domain.model.Bookmark
@@ -50,16 +51,19 @@ import com.sajda.app.ui.component.SanctuaryCard
 import com.sajda.app.ui.component.formatStorageSize
 import com.sajda.app.ui.theme.surfaceContainerLow
 import com.sajda.app.ui.theme.surfaceContainerLowest
+import com.sajda.app.util.pick
 import java.io.File
 
 private data class BookmarkEntryUi(
     val bookmark: Bookmark,
     val arabic: String,
-    val translation: String
+    val translation: String,
+    val englishTranslation: String
 )
 
 @Composable
 fun SearchScreen(
+    appLanguage: AppLanguage,
     quranRepository: QuranRepository,
     onBack: () -> Unit,
     onOpenResult: (QuranSearchResult) -> Unit
@@ -70,8 +74,8 @@ fun SearchScreen(
     }
 
     OverlayShell(
-        title = "Search",
-        subtitle = "Surah dan ayat",
+        title = appLanguage.pick("Cari", "Search"),
+        subtitle = appLanguage.pick("Surah dan ayat", "Surah and verses"),
         onBack = onBack
     ) {
         SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
@@ -80,18 +84,28 @@ fun SearchScreen(
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Rounded.Language, contentDescription = null) },
-                placeholder = { Text("Cari ayat, arti, atau nama surah") },
+                placeholder = { Text(appLanguage.pick("Cari ayat, arti, atau nama surah", "Search verses, meanings, or surah names")) },
                 singleLine = true
             )
         }
 
         if (results.isEmpty()) {
             EmptyStateCard(
-                title = if (query.isBlank()) "Mulai mencari" else "Hasil belum ditemukan",
-                message = if (query.isBlank()) {
-                    "Ketik kata kunci untuk mencari surah atau ayat secara offline."
+                title = if (query.isBlank()) {
+                    appLanguage.pick("Mulai mencari", "Start searching")
                 } else {
-                    "Coba kata yang lebih singkat atau lebih umum."
+                    appLanguage.pick("Hasil belum ditemukan", "No results found")
+                },
+                message = if (query.isBlank()) {
+                    appLanguage.pick(
+                        "Ketik kata kunci untuk mencari surah atau ayat secara offline.",
+                        "Type a keyword to search surahs or verses offline."
+                    )
+                } else {
+                    appLanguage.pick(
+                        "Coba kata yang lebih singkat atau lebih umum.",
+                        "Try a shorter or more common keyword."
+                    )
                 }
             )
         } else {
@@ -100,7 +114,11 @@ fun SearchScreen(
                     modifier = Modifier.clickable { onOpenResult(result) }
                 ) {
                     MetadataChip(
-                        text = if (result.type == SearchResultType.SURAH) "Surah" else "Ayat",
+                        text = if (result.type == SearchResultType.SURAH) {
+                            appLanguage.pick("Surah", "Surah")
+                        } else {
+                            appLanguage.pick("Ayat", "Verse")
+                        },
                         active = result.type == SearchResultType.SURAH
                     )
                     Text(
@@ -121,6 +139,7 @@ fun SearchScreen(
 
 @Composable
 fun BookmarksScreen(
+    appLanguage: AppLanguage,
     quranRepository: QuranRepository,
     bookmarks: List<Bookmark>,
     onBack: () -> Unit,
@@ -132,20 +151,27 @@ fun BookmarksScreen(
             BookmarkEntryUi(
                 bookmark = bookmark,
                 arabic = ayat.textArabic,
-                translation = ayat.translation
+                translation = ayat.translation,
+                englishTranslation = ayat.englishTranslation
             )
         }
     }
 
     OverlayShell(
-        title = "Bookmarks",
-        subtitle = "${bookmarks.size} ayat tersimpan",
+        title = appLanguage.pick("Bookmark", "Bookmarks"),
+        subtitle = appLanguage.pick(
+            "${bookmarks.size} ayat tersimpan",
+            "${bookmarks.size} saved verses"
+        ),
         onBack = onBack
     ) {
         if (entries.isEmpty()) {
             EmptyStateCard(
-                title = "Belum ada bookmark",
-                message = "Simpan ayat favorit dari layar Qur'an untuk membangun perpustakaan tadabbur pribadi."
+                title = appLanguage.pick("Belum ada bookmark", "No bookmarks yet"),
+                message = appLanguage.pick(
+                    "Simpan ayat favorit dari layar Qur'an untuk membangun perpustakaan tadabbur pribadi.",
+                    "Save your favorite verses from the Qur'an screen to build a personal reflection library."
+                )
             )
         } else {
             entries.forEach { entry ->
@@ -154,14 +180,18 @@ fun BookmarksScreen(
                     containerColor = bookmarkCardColor(entry.bookmark.highlightColor)
                 ) {
                     Text(
-                        text = "${entry.bookmark.surahName} • Ayat ${entry.bookmark.ayatNumber}",
+                        text = "${entry.bookmark.surahName} - ${appLanguage.pick("Ayat", "Verse")} ${entry.bookmark.ayatNumber}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    BookmarkMetaRow(entry.bookmark)
+                    BookmarkMetaRow(entry.bookmark, appLanguage)
                     ArabicVerseText(text = entry.arabic, fontSize = 22)
                     Text(
-                        text = entry.translation,
+                        text = if (appLanguage == AppLanguage.ENGLISH) {
+                            entry.englishTranslation.ifBlank { entry.translation }
+                        } else {
+                            entry.translation
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -180,9 +210,9 @@ fun BookmarksScreen(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun BookmarkMetaRow(bookmark: Bookmark) {
+private fun BookmarkMetaRow(bookmark: Bookmark, appLanguage: AppLanguage) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        MetadataChip(text = bookmark.folderName.ifBlank { "Favorites" }, active = true)
+        MetadataChip(text = bookmark.folderName.ifBlank { appLanguage.pick("Favorit", "Favorites") }, active = true)
         if (bookmark.highlightColor.isNotBlank()) {
             MetadataChip(text = bookmark.highlightColor, active = false)
         }
@@ -202,6 +232,7 @@ private fun bookmarkCardColor(highlightColor: String): Color {
 
 @Composable
 fun AudioManagementScreen(
+    appLanguage: AppLanguage,
     surahList: List<Surah>,
     downloadStates: Map<Int, AudioDownloadState>,
     onBack: () -> Unit,
@@ -215,8 +246,8 @@ fun AudioManagementScreen(
     }
 
     OverlayShell(
-        title = "Audio Manager",
-        subtitle = "Murattal per surah",
+        title = appLanguage.pick("Manajemen Audio", "Audio Management"),
+        subtitle = appLanguage.pick("Murattal per surah", "Murattal by surah"),
         onBack = onBack
     ) {
         SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
@@ -226,7 +257,10 @@ fun AudioManagementScreen(
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "${downloaded.size} surah tersimpan offline. Anda bebas menghapus atau mengunduh ulang kapan saja.",
+                text = appLanguage.pick(
+                    "${downloaded.size} surah tersimpan offline. Anda bebas menghapus atau mengunduh ulang kapan saja.",
+                    "${downloaded.size} surahs are stored offline. You can delete or download them again at any time."
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -250,7 +284,7 @@ fun AudioManagementScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${surah.translation} • ${surah.totalVerses} ayat",
+                            text = "${if (appLanguage == AppLanguage.ENGLISH) surah.englishTranslation.ifBlank { surah.translation } else surah.translation} - ${surah.totalVerses} ${appLanguage.pick("ayat", "verses")}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -258,14 +292,14 @@ fun AudioManagementScreen(
                     Row {
                         if (surah.localAudioPath != null) {
                             IconButton(onClick = { onPlay(surah) }) {
-                                Icon(Icons.Rounded.Headphones, contentDescription = "Play")
+                                Icon(Icons.Rounded.Headphones, contentDescription = appLanguage.pick("Putar", "Play"))
                             }
                             IconButton(onClick = { onDelete(surah) }) {
-                                Icon(Icons.Rounded.Delete, contentDescription = "Delete")
+                                Icon(Icons.Rounded.Delete, contentDescription = appLanguage.pick("Hapus", "Delete"))
                             }
                         } else {
                             IconButton(onClick = { onDownload(surah) }) {
-                                Icon(Icons.Rounded.Download, contentDescription = "Download")
+                                Icon(Icons.Rounded.Download, contentDescription = appLanguage.pick("Unduh", "Download"))
                             }
                         }
                     }
@@ -278,9 +312,9 @@ fun AudioManagementScreen(
                 }
                 MetadataChip(
                     text = when {
-                        state?.isDownloading == true -> "Downloading ${state.progress}%"
-                        surah.localAudioPath != null -> "Offline ready"
-                        else -> "Not downloaded"
+                        state?.isDownloading == true -> appLanguage.pick("Mengunduh ${state.progress}%", "Downloading ${state.progress}%")
+                        surah.localAudioPath != null -> appLanguage.pick("Siap offline", "Offline ready")
+                        else -> appLanguage.pick("Belum diunduh", "Not downloaded")
                     },
                     active = surah.localAudioPath != null
                 )
@@ -291,6 +325,7 @@ fun AudioManagementScreen(
 
 @Composable
 fun FullAudioPlayerScreen(
+    appLanguage: AppLanguage,
     playbackState: AudioPlaybackState,
     currentSurah: Surah?,
     previousSurah: Surah?,
@@ -302,8 +337,8 @@ fun FullAudioPlayerScreen(
     onStop: () -> Unit
 ) {
     OverlayShell(
-        title = "Now Playing",
-        subtitle = currentSurah?.transliteration ?: "Murattal Sajda",
+        title = appLanguage.pick("Sedang Diputar", "Now Playing"),
+        subtitle = currentSurah?.transliteration ?: appLanguage.pick("Murattal Sajda", "Sajda Murattal"),
         onBack = onBack
     ) {
         HeroCard {
@@ -313,7 +348,7 @@ fun FullAudioPlayerScreen(
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
                 Text(
-                    text = playbackState.title.ifBlank { "Murattal Sajda" },
+                    text = playbackState.title.ifBlank { appLanguage.pick("Murattal Sajda", "Sajda Murattal") },
                     style = MaterialTheme.typography.headlineLarge,
                     color = MaterialTheme.colorScheme.onPrimary,
                     fontWeight = FontWeight.Bold
@@ -334,22 +369,22 @@ fun FullAudioPlayerScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onPrevious, enabled = previousSurah != null) {
-                        Icon(Icons.Rounded.SkipPrevious, contentDescription = "Previous", tint = MaterialTheme.colorScheme.onPrimary)
+                        Icon(Icons.Rounded.SkipPrevious, contentDescription = appLanguage.pick("Sebelumnya", "Previous"), tint = MaterialTheme.colorScheme.onPrimary)
                     }
                     IconButton(onClick = onTogglePlayback) {
                         Icon(
                             imageVector = if (playbackState.isPlaying) Icons.Rounded.PauseCircle else Icons.Rounded.PlayCircle,
-                            contentDescription = "Toggle",
+                            contentDescription = appLanguage.pick("Putar atau jeda", "Toggle playback"),
                             tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(56.dp)
                         )
                     }
                     IconButton(onClick = onNext, enabled = nextSurah != null) {
-                        Icon(Icons.Rounded.SkipNext, contentDescription = "Next", tint = MaterialTheme.colorScheme.onPrimary)
+                        Icon(Icons.Rounded.SkipNext, contentDescription = appLanguage.pick("Berikutnya", "Next"), tint = MaterialTheme.colorScheme.onPrimary)
                     }
                 }
                 Text(
-                    text = "Stop playback",
+                    text = appLanguage.pick("Hentikan audio", "Stop playback"),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.clickable(onClick = onStop)
@@ -359,7 +394,10 @@ fun FullAudioPlayerScreen(
 
         SanctuaryCard {
             Text(
-                text = "Background audio tetap aktif saat aplikasi ditutup, dengan kontrol play/pause dan pindah surah dari player ini.",
+                text = appLanguage.pick(
+                    "Audio latar tetap aktif saat aplikasi ditutup, dengan kontrol putar/jeda dan pindah surah dari player ini.",
+                    "Background audio stays active when the app is closed, with play/pause and next-surah controls from this player."
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

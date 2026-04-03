@@ -12,6 +12,7 @@ import com.sajda.app.domain.model.AsrMadhhab
 import com.sajda.app.domain.model.CityPreset
 import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.PrayerCalculationMethod
+import com.sajda.app.domain.model.QuranReadingMode
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.service.AdzanScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -94,6 +95,10 @@ class SettingsViewModel(
 
     fun setShowTransliteration(enabled: Boolean) {
         viewModelScope.launch { preferencesDataStore.setShowTransliteration(enabled) }
+    }
+
+    fun setQuranReadingMode(mode: QuranReadingMode) {
+        viewModelScope.launch { preferencesDataStore.setQuranReadingMode(mode) }
     }
 
     fun setArabicFontSize(size: Int) {

@@ -18,6 +18,8 @@ val appVersionName = "1.1.1"
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("keystore.properties")
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
 val hasReleaseKeystore = keystorePropertiesFile.exists()
 val isReleaseTaskRequested = gradle.startParameter.taskNames.any { taskName ->
     taskName.contains("release", ignoreCase = true) || taskName.contains("bundle", ignoreCase = true)
@@ -31,6 +33,13 @@ if (hasReleaseKeystore) {
             "Jangan buat keystore baru agar signature APK tetap sama."
     )
 }
+
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use(localProperties::load)
+}
+
+fun String.toBuildConfigString(): String =
+    "\"" + replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
 android {
     namespace = "com.sajda.app"
@@ -59,6 +68,27 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         resourceConfigurations += listOf("id", "in", "en", "ar")
+        buildConfigField(
+            "String",
+            "HADITH_API_KEY",
+            localProperties.getProperty("hadith.api.key", "").toBuildConfigString()
+        )
+        buildConfigField(
+            "String",
+            "HADITH_API_BASE_URL",
+            localProperties.getProperty(
+                "hadith.api.baseUrl",
+                "https://hadithapi.com/public/api"
+            ).toBuildConfigString()
+        )
+        buildConfigField(
+            "String",
+            "DUA_CONTENT_URL",
+            localProperties.getProperty(
+                "dua.content.url",
+                "https://raw.githubusercontent.com/wafaaelmaandy/Hisn-Muslim-Json/master/hisnmuslim.json"
+            ).toBuildConfigString()
+        )
         vectorDrawables {
             useSupportLibrary = true
         }

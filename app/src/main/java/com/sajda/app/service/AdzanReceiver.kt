@@ -7,8 +7,10 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.sajda.app.data.local.PreferencesDataStore
 import com.sajda.app.util.Constants
+import com.sajda.app.util.pick
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
@@ -27,19 +29,39 @@ class AdzanReceiver : BroadcastReceiver() {
 
         CoroutineScope(Dispatchers.IO).launch {
             runCatching {
+                val language = PreferencesDataStore(appContext).settingsFlow.first().appLanguage
                 PreferencesDataStore(appContext).updateAdhanLastEvent(
                     prayerName = prayerName,
-                    status = if (prayerTime.isBlank()) "Alarm dipicu" else "Alarm dipicu • $prayerTime"
+                    status = if (prayerTime.isBlank()) {
+                        language.pick("Alarm dipicu", "Alarm triggered")
+                    } else {
+                        language.pick("Alarm dipicu", "Alarm triggered") + " | $prayerTime"
+                    },
+                    details = buildString {
+                        append(language.pick("Tanggal ", "Date "))
+                        append(prayerDate)
+                        append(". ")
+                        if (locationName.isNotBlank()) {
+                            append(language.pick("Lokasi ", "Location "))
+                            append(locationName)
+                            append(".")
+                        }
+                    }
                 )
                 AdzanScheduler.repairNextAlarm(
                     context = appContext,
                     referenceTime = LocalDateTime.now().plusSeconds(30)
                 )
-            }.onFailure {
-                Log.e(TAG, "Failed to repair next adhan after $prayerName", it)
+            }.onFailure { error ->
+                Log.e(TAG, "Failed to repair next adhan after $prayerName", error)
+                val language = PreferencesDataStore(appContext).settingsFlow.first().appLanguage
                 PreferencesDataStore(appContext).updateAdhanLastEvent(
                     prayerName = prayerName,
-                    status = "Alarm dipicu, tapi gagal memasang jadwal berikutnya"
+                    status = language.pick(
+                        "Alarm dipicu, tapi gagal memasang jadwal berikutnya",
+                        "Alarm triggered, but the next schedule could not be rebuilt"
+                    ),
+                    details = error.message.orEmpty()
                 )
             }
             pendingResult.finish()
@@ -54,12 +76,17 @@ class AdzanReceiver : BroadcastReceiver() {
         }
         runCatching {
             ContextCompat.startForegroundService(appContext, serviceIntent)
-        }.onFailure {
-            Log.e(TAG, "Failed to start AdzanService for $prayerName", it)
+        }.onFailure { error ->
+            Log.e(TAG, "Failed to start AdzanService for $prayerName", error)
             CoroutineScope(Dispatchers.IO).launch {
+                val language = PreferencesDataStore(appContext).settingsFlow.first().appLanguage
                 PreferencesDataStore(appContext).updateAdhanLastEvent(
                     prayerName = prayerName,
-                    status = "Alarm dipicu, tapi service adzan gagal dibuka"
+                    status = language.pick(
+                        "Alarm dipicu, tapi service adzan gagal dibuka",
+                        "Alarm triggered, but the adhan service could not start"
+                    ),
+                    details = error.message.orEmpty()
                 )
             }
         }

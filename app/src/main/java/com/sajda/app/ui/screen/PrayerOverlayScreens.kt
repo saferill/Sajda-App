@@ -44,6 +44,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.sajda.app.domain.model.AppLanguage
+import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.PrayerTime
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.ui.component.HeroCard
@@ -54,6 +56,9 @@ import com.sajda.app.ui.component.SanctuaryCard
 import com.sajda.app.ui.theme.surfaceContainerHigh
 import com.sajda.app.util.DateTimeUtils
 import com.sajda.app.util.PrayerTimeCalculator
+import com.sajda.app.util.displayName
+import com.sajda.app.util.localizedPrayerName
+import com.sajda.app.util.pick
 import java.time.LocalDate
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -68,8 +73,12 @@ fun WeeklyPrayerScheduleScreen(
     val prayerTimes = if (selectedRangeDays == 30) monthlyPrayerTimes else weeklyPrayerTimes
 
     OverlayShell(
-        title = "Prayer Schedule",
-        subtitle = if (selectedRangeDays == 30) "30 hari ke depan" else "7 hari ke depan",
+        title = settings.pick("Jadwal Sholat", "Prayer Schedule"),
+        subtitle = if (selectedRangeDays == 30) {
+            settings.pick("30 hari ke depan", "Next 30 days")
+        } else {
+            settings.pick("7 hari ke depan", "Next 7 days")
+        },
         onBack = onBack
     ) {
         FlowRow(
@@ -77,12 +86,12 @@ fun WeeklyPrayerScheduleScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             ChoiceChip(
-                label = "7 Hari",
+                label = settings.pick("7 Hari", "7 Days"),
                 selected = selectedRangeDays == 7,
                 onClick = { selectedRangeDays = 7 }
             )
             ChoiceChip(
-                label = "30 Hari",
+                label = settings.pick("30 Hari", "30 Days"),
                 selected = selectedRangeDays == 30,
                 onClick = { selectedRangeDays = 30 }
             )
@@ -104,7 +113,10 @@ fun WeeklyPrayerScheduleScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Imsak ${details.imsak} • Terbit ${details.sunrise}",
+                    text = settings.pick(
+                        "Imsak ${details.imsak} - Terbit ${details.sunrise}",
+                        "Imsak ${details.imsak} - Sunrise ${details.sunrise}"
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -113,11 +125,11 @@ fun WeeklyPrayerScheduleScreen(
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    WeeklyPrayerSlot("Subuh", prayerTime.fajr)
-                    WeeklyPrayerSlot("Dzuhur", prayerTime.dhuhr)
-                    WeeklyPrayerSlot("Ashar", prayerTime.asr)
-                    WeeklyPrayerSlot("Maghrib", prayerTime.maghrib)
-                    WeeklyPrayerSlot("Isya", prayerTime.isha)
+                    WeeklyPrayerSlot(PrayerName.FAJR.displayName(settings.appLanguage), prayerTime.fajr)
+                    WeeklyPrayerSlot(PrayerName.DHUHR.displayName(settings.appLanguage), prayerTime.dhuhr)
+                    WeeklyPrayerSlot(PrayerName.ASR.displayName(settings.appLanguage), prayerTime.asr)
+                    WeeklyPrayerSlot(PrayerName.MAGHRIB.displayName(settings.appLanguage), prayerTime.maghrib)
+                    WeeklyPrayerSlot(PrayerName.ISHA.displayName(settings.appLanguage), prayerTime.isha)
                 }
             }
         }
@@ -148,13 +160,13 @@ fun WorshipProgressScreen(
     val progress = (settings.dailyAyatRead / 20f).coerceIn(0f, 1f)
 
     OverlayShell(
-        title = "Worship Progress",
-        subtitle = "Track ibadah harian",
+        title = settings.pick("Progres Ibadah", "Worship Progress"),
+        subtitle = settings.pick("Lacak ibadah harian", "Track daily worship"),
         onBack = onBack
     ) {
         HeroCard {
             Text(
-                text = "${settings.streakCount} Day Streak",
+                text = settings.pick("${settings.streakCount} Hari Berturut-turut", "${settings.streakCount} Day Streak"),
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.onPrimary,
                 fontWeight = FontWeight.Bold
@@ -166,7 +178,7 @@ fun WorshipProgressScreen(
                 trackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.16f)
             )
             Text(
-                text = "${settings.dailyAyatRead} ayat dibaca hari ini",
+                text = settings.pick("${settings.dailyAyatRead} ayat dibaca hari ini", "${settings.dailyAyatRead} verses read today"),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onPrimary
             )
@@ -174,7 +186,7 @@ fun WorshipProgressScreen(
 
         SanctuaryCard {
             Text(
-                text = "Ringkasan pekanan",
+                text = settings.pick("Ringkasan pekanan", "Weekly summary"),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -182,7 +194,7 @@ fun WorshipProgressScreen(
                 val bars = ((settings.dailyAyatRead + index * 2) % 20).coerceAtLeast(3)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "Hari ${index + 1}",
+                        text = settings.pick("Hari ${index + 1}", "Day ${index + 1}"),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -202,6 +214,7 @@ fun WorshipProgressScreen(
 @Composable
 fun QiblaScreen(
     prayerTime: PrayerTime?,
+    appLanguage: AppLanguage,
     onBack: () -> Unit
 ) {
     val direction = prayerTime?.qiblaDirection ?: 294.0
@@ -215,10 +228,10 @@ fun QiblaScreen(
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         SajdaTopBar(
-            title = "Qibla",
+            title = appLanguage.pick("Kiblat", "Qibla"),
             subtitle = prayerTime?.locationName,
             leading = {
-                SajdaTopAction(Icons.Rounded.ArrowBack, "Kembali", onBack)
+                SajdaTopAction(Icons.Rounded.ArrowBack, appLanguage.pick("Kembali", "Back"), onBack)
             }
         )
 
@@ -246,7 +259,7 @@ fun QiblaScreen(
                     )
                     androidx.compose.material3.Icon(
                         imageVector = Icons.Rounded.Navigation,
-                        contentDescription = "Qibla",
+                        contentDescription = appLanguage.pick("Kiblat", "Qibla"),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
                             .size(128.dp)
@@ -255,7 +268,7 @@ fun QiblaScreen(
                 }
 
                 Text(
-                    text = "${direction.toInt()} derajat",
+                    text = appLanguage.pick("${direction.toInt()} derajat", "${direction.toInt()} degrees"),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
@@ -265,14 +278,25 @@ fun QiblaScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    MetadataChip(text = "Qibla ${direction.toInt()} derajat", active = true)
-                    MetadataChip(text = "Heading ${compassState.heading.toInt()} derajat")
+                    MetadataChip(
+                        text = appLanguage.pick(
+                            "Arah kiblat ${direction.toInt()} derajat",
+                            "Qibla ${direction.toInt()} degrees"
+                        ),
+                        active = true
+                    )
+                    MetadataChip(
+                        text = appLanguage.pick(
+                            "Arah kompas ${compassState.heading.toInt()} derajat",
+                            "Heading ${compassState.heading.toInt()} degrees"
+                        )
+                    )
                     MetadataChip(
                         text = when (compassState.accuracy) {
-                            SensorManager.SENSOR_STATUS_ACCURACY_HIGH -> "Akurasi tinggi"
-                            SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM -> "Akurasi sedang"
-                            SensorManager.SENSOR_STATUS_ACCURACY_LOW -> "Perlu kalibrasi"
-                            else -> "Akurasi belum terbaca"
+                            SensorManager.SENSOR_STATUS_ACCURACY_HIGH -> appLanguage.pick("Akurasi tinggi", "High accuracy")
+                            SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM -> appLanguage.pick("Akurasi sedang", "Medium accuracy")
+                            SensorManager.SENSOR_STATUS_ACCURACY_LOW -> appLanguage.pick("Perlu kalibrasi", "Needs calibration")
+                            else -> appLanguage.pick("Akurasi belum terbaca", "Accuracy unavailable")
                         }
                     )
                 }
@@ -282,12 +306,21 @@ fun QiblaScreen(
         Text(
             text = if (compassState.isAvailable) {
                 if (compassState.accuracy <= SensorManager.SENSOR_STATUS_ACCURACY_LOW) {
-                    "Kalibrasi kompas dengan gerakan angka delapan dan jauhkan ponsel dari logam."
+                    appLanguage.pick(
+                        "Kalibrasi kompas dengan gerakan angka delapan dan jauhkan ponsel dari logam.",
+                        "Calibrate the compass with a figure-eight motion and keep the phone away from metal."
+                    )
                 } else {
-                    "Pegang ponsel datar dan putar perlahan sampai panah mengarah ke kiblat."
+                    appLanguage.pick(
+                        "Pegang ponsel datar dan putar perlahan sampai panah mengarah ke kiblat.",
+                        "Hold the phone flat and turn slowly until the arrow points to the qibla."
+                    )
                 }
             } else {
-                "Sensor kompas tidak tersedia, jadi aplikasi hanya menampilkan arah kiblat statis."
+                appLanguage.pick(
+                    "Sensor kompas tidak tersedia, jadi aplikasi hanya menampilkan arah kiblat statis.",
+                    "Compass sensors are unavailable, so the app can only show a static qibla direction."
+                )
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -396,20 +429,27 @@ private fun rememberCompassState(): CompassState {
 
 @Composable
 fun BackgroundAudioInfoScreen(
+    appLanguage: AppLanguage,
     onBack: () -> Unit
 ) {
     OverlayShell(
-        title = "Background Audio",
-        subtitle = "Playback service",
+        title = appLanguage.pick("Audio Latar", "Background Audio"),
+        subtitle = appLanguage.pick("Layanan playback", "Playback service"),
         onBack = onBack
     ) {
         SanctuaryCard {
             Text(
-                text = "Audio murattal berjalan melalui foreground service, jadi playback tetap hidup saat aplikasi ditutup atau Anda pindah ke aplikasi lain.",
+                text = appLanguage.pick(
+                    "Audio murattal berjalan melalui foreground service, jadi playback tetap hidup saat aplikasi ditutup atau Anda pindah ke aplikasi lain.",
+                    "Murattal audio runs through a foreground service, so playback stays alive when the app is closed or you switch to another app."
+                ),
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                text = "Kontrol utama tersedia dari notifikasi dan mini player Sajda.",
+                text = appLanguage.pick(
+                    "Kontrol utama tersedia dari notifikasi dan mini player Sajda.",
+                    "Main controls remain available from the notification and the Sajda mini player."
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -420,11 +460,12 @@ fun BackgroundAudioInfoScreen(
 @Composable
 fun WidgetPreviewScreen(
     prayerTime: PrayerTime?,
+    appLanguage: AppLanguage,
     onBack: () -> Unit
 ) {
     OverlayShell(
-        title = "Widget Preview",
-        subtitle = "Prayer time cards",
+        title = appLanguage.pick("Pratinjau Widget", "Widget Preview"),
+        subtitle = appLanguage.pick("Kartu waktu sholat", "Prayer time cards"),
         onBack = onBack
     ) {
         HeroCard {
@@ -435,14 +476,17 @@ fun WidgetPreviewScreen(
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Subuh ${prayerTime?.fajr ?: "--:--"} | Dzuhur ${prayerTime?.dhuhr ?: "--:--"} | Maghrib ${prayerTime?.maghrib ?: "--:--"}",
+                text = "${localizedPrayerName(PrayerName.FAJR.label, appLanguage)} ${prayerTime?.fajr ?: "--:--"} | ${localizedPrayerName(PrayerName.DHUHR.label, appLanguage)} ${prayerTime?.dhuhr ?: "--:--"} | ${localizedPrayerName(PrayerName.MAGHRIB.label, appLanguage)} ${prayerTime?.maghrib ?: "--:--"}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f)
             )
         }
         SanctuaryCard {
             Text(
-                text = "Mini widget ini dirancang untuk tampilan homescreen: ringkas, jelas, dan fokus pada jadwal sholat berikutnya.",
+                text = appLanguage.pick(
+                    "Mini widget ini dirancang untuk tampilan homescreen: ringkas, jelas, dan fokus pada jadwal sholat berikutnya.",
+                    "This mini widget is designed for the home screen: compact, clear, and focused on the next prayer time."
+                ),
                 style = MaterialTheme.typography.bodyMedium
             )
         }
@@ -451,24 +495,34 @@ fun WidgetPreviewScreen(
 
 @Composable
 fun EmptyStateScreen(
+    appLanguage: AppLanguage,
     onBack: () -> Unit
 ) {
     OverlayShell(
-        title = "Empty States",
-        subtitle = "Friendly fallback",
+        title = appLanguage.pick("Keadaan Kosong", "Empty States"),
+        subtitle = appLanguage.pick("Tampilan cadangan yang ramah", "Friendly fallback views"),
         onBack = onBack
     ) {
         EmptyStateCard(
-            title = "Belum ada bookmark",
-            message = "Simpan ayat yang ingin Anda kunjungi lagi nanti."
+            title = appLanguage.pick("Belum ada bookmark", "No bookmarks yet"),
+            message = appLanguage.pick(
+                "Simpan ayat yang ingin Anda kunjungi lagi nanti.",
+                "Save the verses you want to revisit later."
+            )
         )
         EmptyStateCard(
-            title = "Belum ada audio offline",
-            message = "Unduh murattal per-surah agar storage tetap ringan."
+            title = appLanguage.pick("Belum ada audio offline", "No offline audio yet"),
+            message = appLanguage.pick(
+                "Unduh murattal per-surah agar penyimpanan tetap ringan.",
+                "Download murattal by surah to keep storage light."
+            )
         )
         EmptyStateCard(
-            title = "Belum ada hasil pencarian",
-            message = "Coba kata yang lebih singkat atau cari dari nama surah."
+            title = appLanguage.pick("Belum ada hasil pencarian", "No search results yet"),
+            message = appLanguage.pick(
+                "Coba kata yang lebih singkat atau cari dari nama surah.",
+                "Try a shorter keyword or search by surah name."
+            )
         )
     }
 }

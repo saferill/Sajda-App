@@ -48,9 +48,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sajda.app.domain.model.AppLanguage
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sajda.app.domain.model.Ayat
 import com.sajda.app.domain.model.Bookmark
+import com.sajda.app.domain.model.QuranReadingMode
 import com.sajda.app.domain.model.Surah
 import com.sajda.app.ui.component.ArabicVerseText
 import com.sajda.app.ui.component.MetadataChip
@@ -61,6 +63,25 @@ import com.sajda.app.ui.theme.surfaceContainerHigh
 import com.sajda.app.ui.theme.surfaceContainerLow
 import com.sajda.app.ui.theme.surfaceContainerLowest
 import com.sajda.app.ui.viewmodel.QuranViewModel
+import com.sajda.app.util.displayLabel
+import com.sajda.app.util.pick
+
+private fun Surah.localizedMeaning(language: AppLanguage): String {
+    return if (language == AppLanguage.ENGLISH && englishTranslation.isNotBlank()) {
+        englishTranslation
+    } else {
+        translation
+    }
+}
+
+private fun Ayat.translationLines(mode: QuranReadingMode): List<String> {
+    return when (mode) {
+        QuranReadingMode.ARABIC_ONLY -> emptyList()
+        QuranReadingMode.ARABIC_INDONESIAN -> listOf(translation)
+        QuranReadingMode.ARABIC_ENGLISH -> listOf(englishTranslation.ifBlank { translation })
+        QuranReadingMode.ALL -> listOf(englishTranslation.ifBlank { translation }, translation).distinct()
+    }.filter { it.isNotBlank() }
+}
 
 @Composable
 fun QuranScreen(
@@ -86,8 +107,10 @@ fun QuranScreen(
             surahList = state.surahList.filter {
                 it.transliteration.contains(query, ignoreCase = true) ||
                     it.translation.contains(query, ignoreCase = true) ||
+                    it.englishTranslation.contains(query, ignoreCase = true) ||
                     it.nameArabic.contains(query)
             },
+            appLanguage = state.appLanguage,
             query = query,
             onQueryChange = { query = it },
             downloadStates = state.downloadStates,
@@ -103,6 +126,7 @@ fun QuranScreen(
         FocusModeContent(
             surah = selectedSurah,
             ayatList = state.ayatList,
+            appLanguage = state.appLanguage,
             showTransliteration = state.showTransliteration && !state.arabicOnly,
             arabicFontSize = state.arabicFontSize + 4,
             verseSpacing = state.verseSpacing + 4,
@@ -114,6 +138,8 @@ fun QuranScreen(
         SurahDetailContent(
             surah = selectedSurah,
             ayatList = state.ayatList,
+            appLanguage = state.appLanguage,
+            quranReadingMode = state.quranReadingMode,
             bookmarks = selectedBookmarkMap,
             downloadProgress = state.downloadStates[selectedSurah.number],
             showTranslation = state.showTranslation,
@@ -139,6 +165,7 @@ fun QuranScreen(
 @Composable
 private fun SurahListContent(
     surahList: List<Surah>,
+    appLanguage: AppLanguage,
     query: String,
     onQueryChange: (String) -> Unit,
     downloadStates: Map<Int, com.sajda.app.domain.model.AudioDownloadState>,
@@ -150,6 +177,7 @@ private fun SurahListContent(
     onOpenSearch: () -> Unit,
     onOpenAudioManager: () -> Unit
 ) {
+    val isEnglish = appLanguage == AppLanguage.ENGLISH
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -165,19 +193,19 @@ private fun SurahListContent(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "Qur'an",
+                        text = if (isEnglish) "Qur'an" else "Al-Qur'an",
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "114 surah offline-first",
+                        text = if (isEnglish) "114 surahs available offline" else "114 surah tersedia offline",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    SajdaTopAction(Icons.Rounded.Bookmark, "Bookmark", onOpenBookmarks)
-                    SajdaTopAction(Icons.Rounded.Search, "Cari", onOpenSearch)
+                    SajdaTopAction(Icons.Rounded.Bookmark, if (isEnglish) "Bookmark" else "Bookmark", onOpenBookmarks)
+                    SajdaTopAction(Icons.Rounded.Search, if (isEnglish) "Search" else "Cari", onOpenSearch)
                 }
             }
         }
@@ -185,9 +213,9 @@ private fun SurahListContent(
         item {
             SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
                 SectionHeader(
-                    eyebrow = "Library",
-                    title = "Baca, unduh, dan putar",
-                    actionLabel = "Audio",
+                    eyebrow = if (isEnglish) "Library" else "Perpustakaan",
+                    title = if (isEnglish) "Read, download, and play" else "Baca, unduh, dan putar",
+                    actionLabel = if (isEnglish) "Audio" else "Audio",
                     onAction = onOpenAudioManager
                 )
                 OutlinedTextField(
@@ -195,7 +223,7 @@ private fun SurahListContent(
                     onValueChange = onQueryChange,
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                    placeholder = { Text("Cari surah atau arti...") },
+                    placeholder = { Text(if (isEnglish) "Search surah or meaning..." else "Cari surah atau arti...") },
                     singleLine = true,
                     shape = RoundedCornerShape(18.dp)
                 )
@@ -227,7 +255,19 @@ private fun SurahListContent(
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "${surah.translation} - ${surah.totalVerses} ayat - ${surah.revelationPlace}",
+                            text = buildString {
+                                append(surah.localizedMeaning(appLanguage))
+                                append(" - ")
+                                append(surah.totalVerses)
+                                append(if (isEnglish) " verses - " else " ayat - ")
+                                append(
+                                    if (isEnglish) {
+                                        surah.revelationPlace.replaceFirstChar { it.uppercase() }
+                                    } else {
+                                        surah.revelationPlace
+                                    }
+                                )
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -257,13 +297,17 @@ private fun SurahListContent(
                         trackColor = MaterialTheme.colorScheme.surfaceContainerHigh
                     )
                     Text(
-                        text = "Mengunduh ${downloadState.progress}%",
+                        text = if (isEnglish) "Downloading ${downloadState.progress}%" else "Mengunduh ${downloadState.progress}%",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else {
                     MetadataChip(
-                        text = if (surah.isDownloaded) "Downloaded" else "Tap to open",
+                        text = if (surah.isDownloaded) {
+                            if (isEnglish) "Downloaded" else "Sudah diunduh"
+                        } else {
+                            if (isEnglish) "Tap to open" else "Ketuk untuk buka"
+                        },
                         active = surah.isDownloaded
                     )
                 }
@@ -277,6 +321,8 @@ private fun SurahListContent(
 private fun SurahDetailContent(
     surah: Surah,
     ayatList: List<Ayat>,
+    appLanguage: AppLanguage,
+    quranReadingMode: QuranReadingMode,
     bookmarks: Map<Int, Bookmark>,
     downloadProgress: com.sajda.app.domain.model.AudioDownloadState?,
     showTranslation: Boolean,
@@ -296,6 +342,7 @@ private fun SurahDetailContent(
     onSaveBookmarkReflection: (Ayat, String, String, String) -> Unit,
     onOpenTafsir: (Ayat) -> Unit
 ) {
+    val isEnglish = appLanguage == AppLanguage.ENGLISH
     var editingAyatNumber by rememberSaveable(surah.number) { mutableStateOf<Int?>(null) }
     val editingAyat = ayatList.firstOrNull { it.ayatNumber == editingAyatNumber }
     val editingBookmark = editingAyatNumber?.let { bookmarks[it] }
@@ -315,11 +362,11 @@ private fun SurahDetailContent(
                     verticalAlignment = Alignment.Top
                 ) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Rounded.ArrowBack, contentDescription = "Kembali")
+                        Icon(Icons.Rounded.ArrowBack, contentDescription = if (isEnglish) "Back" else "Kembali")
                     }
                     Row {
                         Text(
-                            text = "Focus",
+                            text = if (isEnglish) "Focus" else "Fokus",
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
@@ -354,19 +401,34 @@ private fun SurahDetailContent(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "${surah.translation} - ${surah.totalVerses} ayat",
+                    text = buildString {
+                        append(surah.localizedMeaning(appLanguage))
+                        append(" - ")
+                        append(surah.totalVerses)
+                        append(if (isEnglish) " verses" else " ayat")
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MetadataChip(text = if (arabicOnly) "Arabic only" else "Translation", active = showTranslation && !arabicOnly)
+                    MetadataChip(
+                        text = quranReadingMode.displayLabel(appLanguage),
+                        active = quranReadingMode != QuranReadingMode.ARABIC_ONLY
+                    )
                     if (showTransliteration && !arabicOnly) {
-                        MetadataChip(text = "Transliteration", active = true)
+                        MetadataChip(text = if (isEnglish) "Transliteration" else "Transliterasi", active = true)
                     }
-                    MetadataChip(text = "${arabicFontSize}sp arabic", active = false)
-                    MetadataChip(text = "${verseSpacing}dp spacing", active = false)
-                    MetadataChip(text = if (surah.isDownloaded) "Offline audio" else "Download audio", active = surah.isDownloaded)
+                    MetadataChip(text = if (isEnglish) "${arabicFontSize}sp Arabic" else "${arabicFontSize}sp Arab", active = false)
+                    MetadataChip(text = if (isEnglish) "${verseSpacing}dp spacing" else "${verseSpacing}dp jarak", active = false)
+                    MetadataChip(
+                        text = if (surah.isDownloaded) {
+                            if (isEnglish) "Offline audio" else "Audio offline"
+                        } else {
+                            if (isEnglish) "Download audio" else "Unduh audio"
+                        },
+                        active = surah.isDownloaded
+                    )
                 }
 
                 if (downloadProgress?.isDownloading == true) {
@@ -403,7 +465,10 @@ private fun SurahDetailContent(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        MetadataChip(text = "Ayat ${ayat.ayatNumber}", active = false)
+                        MetadataChip(
+                            text = if (isEnglish) "Verse ${ayat.ayatNumber}" else "Ayat ${ayat.ayatNumber}",
+                            active = false
+                        )
                         Row {
                             IconButton(onClick = { onToggleBookmark(ayat) }) {
                                 Icon(
@@ -412,11 +477,11 @@ private fun SurahDetailContent(
                                     } else {
                                         Icons.Rounded.BookmarkBorder
                                     },
-                                    contentDescription = "Bookmark"
+                                    contentDescription = if (isEnglish) "Bookmark" else "Bookmark"
                                 )
                             }
                             IconButton(onClick = { editingAyatNumber = ayat.ayatNumber }) {
-                                Icon(Icons.Rounded.Edit, contentDescription = "Catatan")
+                                Icon(Icons.Rounded.Edit, contentDescription = if (isEnglish) "Notes" else "Catatan")
                             }
                             IconButton(onClick = { onOpenTafsir(ayat) }) {
                                 Icon(Icons.Rounded.Tune, contentDescription = "Tafsir")
@@ -440,17 +505,23 @@ private fun SurahDetailContent(
                     }
 
                     if (!arabicOnly && showTranslation) {
-                        Text(
-                            text = ayat.translation,
-                            fontSize = translationFontSize.sp,
-                            lineHeight = (translationFontSize + 8).sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        ayat.translationLines(quranReadingMode).forEachIndexed { index, line ->
+                            Text(
+                                text = line,
+                                fontSize = translationFontSize.sp,
+                                lineHeight = (translationFontSize + 8).sp,
+                                color = if (index == 0) {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.84f)
+                                }
+                            )
+                        }
                     }
 
                     if (!bookmark?.note.isNullOrBlank()) {
                         Text(
-                            text = "Catatan pribadi",
+                            text = if (isEnglish) "Personal note" else "Catatan pribadi",
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -483,6 +554,7 @@ private fun SurahDetailContent(
 private fun FocusModeContent(
     surah: Surah,
     ayatList: List<Ayat>,
+    appLanguage: AppLanguage,
     showTransliteration: Boolean,
     arabicFontSize: Int,
     verseSpacing: Int,
@@ -490,6 +562,7 @@ private fun FocusModeContent(
     onPlayAudio: () -> Unit,
     onOpenTafsir: (Ayat) -> Unit
 ) {
+    val isEnglish = appLanguage == AppLanguage.ENGLISH
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -510,13 +583,13 @@ private fun FocusModeContent(
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Exit",
+                        text = if (isEnglish) "Exit" else "Keluar",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable(onClick = onExit)
                     )
                     Text(
-                        text = "Play",
+                        text = if (isEnglish) "Play" else "Putar",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable(onClick = onPlayAudio)
@@ -532,7 +605,7 @@ private fun FocusModeContent(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text(
-                    text = "Ayat ${ayat.ayatNumber}",
+                    text = if (isEnglish) "Verse ${ayat.ayatNumber}" else "Ayat ${ayat.ayatNumber}",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -549,7 +622,7 @@ private fun FocusModeContent(
                     )
                 }
                 Text(
-                    text = "Tafsir ringkas",
+                    text = if (isEnglish) "Quick tafsir" else "Tafsir ringkas",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable { onOpenTafsir(ayat) }

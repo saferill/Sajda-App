@@ -25,6 +25,7 @@ class QuranRepository(private val database: SajdaDatabase) {
     private val lastReadDao = database.lastReadDao()
 
     suspend fun seedIfNeeded(context: Context) {
+        QuranDataLoader.prepareSupportingData(context)
         if (surahDao.count() > 0 && ayatDao.count() > 0) return
         val (surahs, ayats) = QuranDataLoader.loadQuranData(context)
         surahDao.insertAllSurah(surahs.map { it.toEntity() })
@@ -35,12 +36,14 @@ class QuranRepository(private val database: SajdaDatabase) {
 
     suspend fun getSurahByNumber(number: Int): Surah? = surahDao.getSurahByNumber(number)?.toModel()
 
-    suspend fun getAyatBySurah(surahNumber: Int): List<Ayat> = ayatDao.getAyatBySurah(surahNumber).map { it.toModel() }
+    suspend fun getAyatBySurah(surahNumber: Int): List<Ayat> =
+        ayatDao.getAyatBySurah(surahNumber).map { it.toModel() }
 
     fun observeAyatBySurah(surahNumber: Int): Flow<List<Ayat>> =
         ayatDao.observeAyatBySurah(surahNumber).map { items -> items.map { it.toModel() } }
 
-    suspend fun getAyat(surahNumber: Int, ayatNumber: Int): Ayat? = ayatDao.getAyat(surahNumber, ayatNumber)?.toModel()
+    suspend fun getAyat(surahNumber: Int, ayatNumber: Int): Ayat? =
+        ayatDao.getAyat(surahNumber, ayatNumber)?.toModel()
 
     suspend fun search(query: String): List<QuranSearchResult> {
         val trimmedQuery = query.trim()
@@ -50,6 +53,7 @@ class QuranRepository(private val database: SajdaDatabase) {
             .filter { surah ->
                 surah.transliteration.contains(trimmedQuery, ignoreCase = true) ||
                     surah.translation.contains(trimmedQuery, ignoreCase = true) ||
+                    QuranDataLoader.englishSurahTranslation(surah.number).contains(trimmedQuery, ignoreCase = true) ||
                     surah.nameArabic.contains(trimmedQuery)
             }
             .take(10)
@@ -57,7 +61,10 @@ class QuranRepository(private val database: SajdaDatabase) {
                 QuranSearchResult(
                     type = SearchResultType.SURAH,
                     title = surah.transliteration,
-                    subtitle = "${surah.translation} • ${surah.totalVerses} ayat",
+                    subtitle = listOf(
+                        surah.translation,
+                        QuranDataLoader.englishSurahTranslation(surah.number)
+                    ).filter { it.isNotBlank() }.joinToString(" • "),
                     surahNumber = surah.number
                 )
             }
@@ -74,7 +81,28 @@ class QuranRepository(private val database: SajdaDatabase) {
                 )
             }
 
-        return (surahResults + ayatResults).take(24)
+        val englishAyatResults = ayatDao.getAllAyat()
+            .filter { ayat ->
+                QuranDataLoader.englishAyatTranslation(ayat.surahNumber, ayat.ayatNumber)
+                    .contains(trimmedQuery, ignoreCase = true)
+            }
+            .take(20)
+            .mapNotNull { ayat ->
+                val surah = surahDao.getSurahByNumber(ayat.surahNumber) ?: return@mapNotNull null
+                QuranSearchResult(
+                    type = SearchResultType.AYAT,
+                    title = "${surah.transliteration} • Ayah ${ayat.ayatNumber}",
+                    subtitle = QuranDataLoader
+                        .englishAyatTranslation(ayat.surahNumber, ayat.ayatNumber)
+                        .take(120),
+                    surahNumber = ayat.surahNumber,
+                    ayatNumber = ayat.ayatNumber
+                )
+            }
+
+        return (surahResults + ayatResults + englishAyatResults)
+            .distinctBy { "${it.type}-${it.surahNumber}-${it.ayatNumber ?: 0}-${it.title}" }
+            .take(24)
     }
 
     fun observeBookmarks(): Flow<List<Bookmark>> = bookmarkDao.observeBookmarks().map { items -> items.map { it.toModel() } }
@@ -151,6 +179,7 @@ class QuranRepository(private val database: SajdaDatabase) {
             nameArabic = nameArabic,
             transliteration = transliteration,
             translation = translation,
+            englishTranslation = QuranDataLoader.englishSurahTranslation(number),
             revelationPlace = revelationPlace,
             totalVerses = totalVerses,
             audioUrl = audioUrl,
@@ -182,6 +211,7 @@ class QuranRepository(private val database: SajdaDatabase) {
             ayatNumber = ayatNumber,
             textArabic = textArabic,
             translation = translation,
+            englishTranslation = QuranDataLoader.englishAyatTranslation(surahNumber, ayatNumber),
             transliteration = transliteration
         )
     }

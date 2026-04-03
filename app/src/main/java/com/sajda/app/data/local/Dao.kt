@@ -57,6 +57,9 @@ interface AyatDao {
     @Query("SELECT * FROM ayat ORDER BY surahNumber ASC, ayatNumber ASC LIMIT 1 OFFSET :offset")
     suspend fun getAyatByOffset(offset: Int): AyatEntity?
 
+    @Query("SELECT * FROM ayat ORDER BY surahNumber ASC, ayatNumber ASC")
+    suspend fun getAllAyat(): List<AyatEntity>
+
     @Query(
         """
         SELECT * FROM ayat

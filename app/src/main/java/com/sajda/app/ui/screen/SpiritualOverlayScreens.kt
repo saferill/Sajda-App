@@ -45,6 +45,7 @@ import com.sajda.app.domain.model.CityPreset
 import com.sajda.app.domain.model.DailyDua
 import com.sajda.app.domain.model.HadithEntry
 import com.sajda.app.domain.model.PrayerName
+import com.sajda.app.domain.model.QuranReadingMode
 import com.sajda.app.domain.model.Surah
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.ui.component.ArabicVerseText
@@ -53,30 +54,64 @@ import com.sajda.app.ui.component.SectionHeader
 import com.sajda.app.ui.theme.surfaceContainerLow
 import com.sajda.app.service.AdzanService
 import com.sajda.app.ui.viewmodel.SettingsViewModel
+import com.sajda.app.ui.viewmodel.SpiritualContentUiState
 import com.sajda.app.util.AdhanSystemHelper
 import com.sajda.app.util.DeviceLocationHelper
 import com.sajda.app.util.DeviceLocationResult
 import com.sajda.app.util.LocationConstants
 import com.sajda.app.util.SpiritualContent
+import com.sajda.app.util.displayLabel
+import com.sajda.app.util.displayName
+import com.sajda.app.util.isEnglish
+import com.sajda.app.util.localizedDescription
+import com.sajda.app.util.localizedPrayerName
+import com.sajda.app.util.pick
 import kotlinx.coroutines.launch
 
 @Composable
 fun DailyDuaScreen(
+    settings: UserSettings,
+    spiritualState: SpiritualContentUiState,
+    onRefresh: () -> Unit,
     bookmarkedIds: Set<String>,
     onBack: () -> Unit,
     onToggleBookmark: (String) -> Unit
 ) {
-    val hadithOfDay = remember { SpiritualContent.hadithOfDay() }
-
     OverlayShell(
-        title = "Daily Dua",
-        subtitle = "Morning, evening, daily activities",
+        title = settings.pick("Doa Harian", "Daily Dua"),
+        subtitle = if (spiritualState.isRemote) {
+            settings.pick("Koleksi spiritual online", "Online spiritual collections")
+        } else {
+            settings.pick("Koleksi spiritual offline", "Offline spiritual collections")
+        },
         onBack = onBack
     ) {
-        hadithOfDay?.let { hadith ->
-            HadithCard(hadith = hadith)
+        spiritualState.hadithOfDay?.let { hadith ->
+            HadithCard(hadith = hadith, language = settings.appLanguage)
         }
-        SpiritualContent.dailyDuas
+        if (spiritualState.errorMessage != null) {
+            SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+                Text(
+                    text = spiritualState.errorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = if (settings.appLanguage == AppLanguage.ENGLISH) "Refresh content" else "Segarkan konten",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable(onClick = onRefresh)
+                )
+            }
+        }
+        if (spiritualState.sourceLabel.isNotBlank()) {
+            Text(
+                text = settings.pick("SUMBER", "SOURCE") + " | " + spiritualState.sourceLabel.uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        spiritualState.duas
             .groupBy { it.category }
             .entries
             .forEach { entry ->
@@ -95,14 +130,44 @@ fun DailyDuaScreen(
                     )
                 }
             }
+        if (spiritualState.hadithCategories.isNotEmpty()) {
+            Text(
+                text = if (settings.appLanguage == AppLanguage.ENGLISH) "HADITH CATEGORIES" else "KATEGORI HADITS",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            spiritualState.hadithCategories.forEach { (category, items) ->
+                SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+                    Text(
+                        text = category,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    items.take(3).forEach { hadith ->
+                        Text(
+                            text = "- ${hadith.text}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = listOf(hadith.collection, hadith.reference, hadith.sourceLabel)
+                                .filter { it.isNotBlank() }
+                                .joinToString(" | "),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun HadithCard(hadith: HadithEntry) {
+private fun HadithCard(hadith: HadithEntry, language: AppLanguage) {
     SanctuaryCard {
         Text(
-            text = "HADITH OF THE DAY",
+            text = language.pick("HADITS HARI INI", "HADITH OF THE DAY"),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -117,7 +182,13 @@ private fun HadithCard(hadith: HadithEntry) {
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = "${hadith.collection} | ${hadith.reference} | ${hadith.narrator}",
+            text = listOf(
+                hadith.category,
+                hadith.collection,
+                hadith.reference,
+                hadith.narrator,
+                hadith.sourceLabel
+            ).filter { it.isNotBlank() }.joinToString(" | "),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -158,6 +229,13 @@ private fun DuaCard(
             text = dua.translation,
             style = MaterialTheme.typography.bodyMedium
         )
+        if (dua.sourceLabel.isNotBlank()) {
+            Text(
+                text = dua.sourceLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -165,21 +243,22 @@ private fun DuaCard(
 fun TafsirScreen(
     surah: Surah,
     ayat: Ayat,
+    appLanguage: AppLanguage,
     onBack: () -> Unit
 ) {
-    val tafsirItems = remember(surah.number, ayat.id) {
-        SpiritualContent.buildTafsir(ayat, surah.transliteration)
+    val tafsirItems = remember(surah.number, ayat.id, appLanguage) {
+        SpiritualContent.buildTafsir(ayat, surah.transliteration, appLanguage)
     }
 
     OverlayShell(
-        title = "Tafsir Ringkas",
-        subtitle = "${surah.transliteration} • Ayat ${ayat.ayatNumber}",
+        title = appLanguage.pick("Tafsir Ringkas", "Light Tafsir"),
+        subtitle = "${surah.transliteration} - ${appLanguage.pick("Ayat", "Verse")} ${ayat.ayatNumber}",
         onBack = onBack
     ) {
         SanctuaryCard {
             ArabicVerseText(text = ayat.textArabic)
             Text(
-                text = ayat.translation,
+                text = if (appLanguage == AppLanguage.ENGLISH) ayat.englishTranslation.ifBlank { ayat.translation } else ayat.translation,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -199,29 +278,32 @@ fun SmartReminderScreen(
     onBack: () -> Unit
 ) {
     OverlayShell(
-        title = "Smart Reminder",
-        subtitle = "Qur'an dan dzikir",
+        title = settings.pick("Reminder Pintar", "Smart Reminder"),
+        subtitle = settings.pick("Qur'an dan dzikir", "Qur'an and dhikr"),
         onBack = onBack
     ) {
         ReminderCard(
-            title = "Qur'an Reading",
-            subtitle = "Ingatkan untuk membaca Al-Qur'an setiap hari.",
+            timeLabel = settings.pick("Jam", "Time"),
+            title = settings.pick("Baca Qur'an", "Qur'an reading"),
+            subtitle = settings.pick("Ingatkan untuk membaca Al-Qur'an setiap hari.", "Remind me to read the Qur'an every day."),
             checked = settings.quranReminderEnabled,
             time = settings.quranReminderTime,
             onCheckedChange = { enabled: Boolean -> viewModel.setQuranReminder(enabled) },
             onTimePicked = { time: String -> viewModel.setQuranReminder(settings.quranReminderEnabled, time) }
         )
         ReminderCard(
-            title = "Dzikir Pagi",
-            subtitle = "Pengingat wirid dan dzikir setelah Subuh.",
+            timeLabel = settings.pick("Jam", "Time"),
+            title = settings.pick("Dzikir Pagi", "Morning dhikr"),
+            subtitle = settings.pick("Pengingat wirid dan dzikir setelah Subuh.", "A reminder for morning dhikr after Fajr."),
             checked = settings.morningDzikirReminderEnabled,
             time = settings.morningDzikirReminderTime,
             onCheckedChange = { enabled: Boolean -> viewModel.setMorningDzikirReminder(enabled) },
             onTimePicked = { time: String -> viewModel.setMorningDzikirReminder(settings.morningDzikirReminderEnabled, time) }
         )
         ReminderCard(
-            title = "Dzikir Sore",
-            subtitle = "Pengingat dzikir sore menjelang Maghrib.",
+            timeLabel = settings.pick("Jam", "Time"),
+            title = settings.pick("Dzikir Sore", "Evening dhikr"),
+            subtitle = settings.pick("Pengingat dzikir sore menjelang Maghrib.", "A reminder for evening dhikr before Maghrib."),
             checked = settings.eveningDzikirReminderEnabled,
             time = settings.eveningDzikirReminderTime,
             onCheckedChange = { enabled: Boolean -> viewModel.setEveningDzikirReminder(enabled) },
@@ -232,6 +314,7 @@ fun SmartReminderScreen(
 
 @Composable
 private fun ReminderCard(
+    timeLabel: String,
     title: String,
     subtitle: String,
     checked: Boolean,
@@ -260,7 +343,7 @@ private fun ReminderCard(
             androidx.compose.material3.Switch(checked = checked, onCheckedChange = onCheckedChange)
         }
         Text(
-            text = "Jam $time",
+            text = "$timeLabel $time",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.clickable { showTimePicker(context, time, onTimePicked) }
@@ -287,9 +370,15 @@ fun AdhanSettingsScreen(
     ) { granted ->
         systemRefreshKey += 1
         systemMessage = if (granted) {
-            "Izin notifikasi berhasil diberikan."
+            settings.pick(
+                "Izin notifikasi berhasil diberikan.",
+                "Notification permission granted successfully."
+            )
         } else {
-            "Izin notifikasi ditolak. Notifikasi adzan bisa tidak muncul di Android 13+."
+            settings.pick(
+                "Izin notifikasi ditolak. Notifikasi adzan bisa tidak muncul di Android 13+.",
+                "Notification permission was denied. Adhan alerts may not appear on Android 13+."
+            )
         }
     }
 
@@ -305,36 +394,71 @@ fun AdhanSettingsScreen(
         }
     }
 
+    val isEnglish = settings.appLanguage.isEnglish()
+    val helpChecklist = remember(settings.appLanguage) {
+        AdhanSystemHelper.helpChecklist().map { item ->
+            if (isEnglish) {
+                when (item) {
+                    "Pastikan notifikasi aplikasi diizinkan." -> "Make sure app notifications are allowed."
+                    "Pastikan izin exact alarm aktif." -> "Make sure exact alarm permission is enabled."
+                    "Lepaskan pembatasan baterai untuk Sajda App." -> "Remove battery restrictions for Sajda App."
+                    "Naikkan volume alarm perangkat di atas nol." -> "Keep the device alarm volume above zero."
+                    "Aktifkan Override silent mode jika Anda ingin adzan tetap bersuara saat HP silent." -> "Enable Override silent mode if you want adhan to sound while the phone is silent."
+                    "Buka aplikasi minimal sekali setelah reboot atau update bila vendor sangat agresif." -> "Open the app at least once after reboot or update if your device vendor is very aggressive."
+                    else -> item
+                }
+            } else {
+                item
+            }
+        }
+    }
+    val vendorTips = remember(systemRefreshKey, settings.appLanguage) { AdhanSystemHelper.vendorTips(context) }
+
     OverlayShell(
-        title = "Adhan Settings",
-        subtitle = "Alarm sholat offline",
+        title = settings.pick("Pengaturan Adzan", "Adhan Settings"),
+        subtitle = settings.pick("Alarm sholat offline", "Offline prayer alarms"),
         onBack = onBack
     ) {
-        SettingToggleCard("Adzan otomatis", settings.adzanEnabled) { viewModel.setAdzanEnabled(it) }
-        SettingToggleCard("Override silent mode", settings.overrideSilentMode) { viewModel.setOverrideSilentMode(it) }
-        SettingToggleCard("Vibration", settings.vibrationEnabled) { viewModel.setVibrationEnabled(it) }
+        SettingToggleCard(settings.pick("Adzan otomatis", "Automatic adhan"), settings.adzanEnabled) { viewModel.setAdzanEnabled(it) }
+        SettingToggleCard(settings.pick("Override mode senyap", "Override silent mode"), settings.overrideSilentMode) { viewModel.setOverrideSilentMode(it) }
+        SettingToggleCard(settings.pick("Getaran", "Vibration"), settings.vibrationEnabled) { viewModel.setVibrationEnabled(it) }
         SanctuaryCard {
-            SectionHeader(eyebrow = "Status Sistem Adzan", title = "Alarm berikutnya dan riwayat")
+            SectionHeader(
+                eyebrow = settings.pick("Status Sistem Adzan", "Adhan System Status"),
+                title = settings.pick("Alarm berikutnya dan riwayat", "Next alarm and history")
+            )
             Text(
                 text = if (settings.nextScheduledPrayer.isNotBlank() && settings.nextScheduledAt.isNotBlank()) {
-                    "Berikutnya: ${settings.nextScheduledPrayer} • ${settings.nextScheduledAt}"
+                    settings.pick(
+                        "Berikutnya: ${localizedPrayerName(settings.nextScheduledPrayer, settings.appLanguage)} | ${settings.nextScheduledAt}",
+                        "Next: ${localizedPrayerName(settings.nextScheduledPrayer, settings.appLanguage)} | ${settings.nextScheduledAt}"
+                    )
                 } else {
-                    "Belum ada alarm berikutnya yang tersimpan. Coba jadwalkan ulang."
+                    settings.pick(
+                        "Belum ada alarm berikutnya yang tersimpan. Coba jadwalkan ulang.",
+                        "There is no saved upcoming alarm yet. Try rebuilding the schedule."
+                    )
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = if (settings.lastAdhanPrayer.isNotBlank()) {
-                    "Terakhir: ${settings.lastAdhanPrayer} • ${settings.lastAdhanStatus} • ${settings.lastAdhanAt}"
+                    settings.pick(
+                        "Terakhir: ${localizedPrayerName(settings.lastAdhanPrayer, settings.appLanguage)} | ${settings.lastAdhanStatus} | ${settings.lastAdhanAt}",
+                        "Latest: ${localizedPrayerName(settings.lastAdhanPrayer, settings.appLanguage)} | ${settings.lastAdhanStatus} | ${settings.lastAdhanAt}"
+                    )
                 } else {
-                    "Belum ada riwayat adzan. Tes manual bisa dipakai untuk memastikan alurnya."
+                    settings.pick(
+                        "Belum ada riwayat adzan. Tes manual bisa dipakai untuk memastikan alurnya.",
+                        "There is no adhan history yet. Use the manual test to verify the flow."
+                    )
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Snooze default",
+                text = settings.pick("Snooze default", "Default snooze"),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -352,39 +476,57 @@ fun AdhanSettingsScreen(
             }
         }
         SanctuaryCard {
-            SectionHeader(eyebrow = "Kesiapan Sistem", title = "Diagnosa adzan")
+            SectionHeader(
+                eyebrow = settings.pick("Kesiapan Sistem", "System Readiness"),
+                title = settings.pick("Diagnosa adzan", "Adhan diagnostics")
+            )
             SystemStatusLine(
-                title = "Izin notifikasi",
+                appLanguage = settings.appLanguage,
+                title = settings.pick("Izin notifikasi", "Notification permission"),
                 ready = readiness.notificationPermissionGranted && readiness.appNotificationsEnabled
             )
             SystemStatusLine(
-                title = "Channel adzan aktif",
+                appLanguage = settings.appLanguage,
+                title = settings.pick("Channel adzan aktif", "Adhan channel enabled"),
                 ready = readiness.adhanChannelEnabled
             )
             SystemStatusLine(
-                title = "Exact alarm",
+                appLanguage = settings.appLanguage,
+                title = settings.pick("Exact alarm", "Exact alarm"),
                 ready = readiness.exactAlarmGranted
             )
             SystemStatusLine(
-                title = "Optimasi baterai",
+                appLanguage = settings.appLanguage,
+                title = settings.pick("Optimasi baterai", "Battery optimization"),
                 ready = readiness.batteryOptimizationIgnored
             )
             SystemStatusLine(
-                title = "Mode senyap perangkat",
+                appLanguage = settings.appLanguage,
+                title = settings.pick("Mode senyap perangkat", "Device silent mode"),
                 ready = !readiness.silentModeActive || settings.overrideSilentMode,
                 message = if (readiness.silentModeActive && !settings.overrideSilentMode) {
-                    "HP sedang silent/vibrate dan Override silent mode masih mati."
+                    settings.pick(
+                        "HP sedang silent/vibrate dan Override silent mode masih mati.",
+                        "The phone is in silent/vibrate mode and Override silent mode is still off."
+                    )
                 } else {
                     null
                 }
             )
             SystemStatusLine(
-                title = "Volume alarm",
+                appLanguage = settings.appLanguage,
+                title = settings.pick("Volume alarm", "Alarm volume"),
                 ready = readiness.alarmVolumeLevel > 0,
                 message = if (readiness.alarmVolumeLevel > 0) {
-                    "Level alarm saat ini: ${readiness.alarmVolumeLevel}"
+                    settings.pick(
+                        "Level alarm saat ini: ${readiness.alarmVolumeLevel}",
+                        "Current alarm level: ${readiness.alarmVolumeLevel}"
+                    )
                 } else {
-                    "Volume alarm sedang 0, jadi suara adzan tidak akan terdengar."
+                    settings.pick(
+                        "Volume alarm sedang 0, jadi suara adzan tidak akan terdengar.",
+                        "Alarm volume is 0, so the adhan sound will not be audible."
+                    )
                 }
             )
             FlowRow(
@@ -393,9 +535,9 @@ fun AdhanSettingsScreen(
             ) {
                 ChoiceChip(
                     label = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !readiness.notificationPermissionGranted) {
-                        "Izinkan notifikasi"
+                        settings.pick("Izinkan notifikasi", "Allow notifications")
                     } else {
-                        "Pengaturan notif"
+                        settings.pick("Pengaturan notif", "Notification settings")
                     },
                     selected = readiness.notificationPermissionGranted && readiness.appNotificationsEnabled,
                     onClick = {
@@ -407,27 +549,33 @@ fun AdhanSettingsScreen(
                     }
                 )
                 ChoiceChip(
-                    label = "Exact alarm",
+                    label = settings.pick("Exact alarm", "Exact alarm"),
                     selected = readiness.exactAlarmGranted,
                     onClick = { AdhanSystemHelper.openExactAlarmSettings(context) }
                 )
                 ChoiceChip(
-                    label = "Baterai",
+                    label = settings.pick("Baterai", "Battery"),
                     selected = readiness.batteryOptimizationIgnored,
                     onClick = { AdhanSystemHelper.openBatteryOptimizationSettings(context) }
                 )
                 ChoiceChip(
-                    label = "Jadwalkan ulang",
+                    label = settings.pick("Jadwalkan ulang", "Reschedule"),
                     selected = false,
                     onClick = {
                         viewModel.refreshPrayerSchedule()
                         systemRefreshKey += 1
-                        systemMessage = "Jadwal adzan dijadwalkan ulang dari pengaturan sekarang."
+                        systemMessage = settings.pick(
+                            "Jadwal adzan dijadwalkan ulang dari pengaturan sekarang.",
+                            "Adhan schedules were rebuilt from the current settings."
+                        )
                     }
                 )
             }
             Text(
-                text = "Agar adzan bekerja seperti aplikasi adzan pada umumnya, minimal aktifkan notifikasi, exact alarm, dan lepaskan pembatasan baterai.",
+                text = settings.pick(
+                    "Agar adzan bekerja seperti aplikasi adzan pada umumnya, minimal aktifkan notifikasi, exact alarm, dan lepaskan pembatasan baterai.",
+                    "To behave like a real adhan app, at minimum enable notifications, exact alarms, and remove battery restrictions."
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -440,46 +588,134 @@ fun AdhanSettingsScreen(
             }
         }
         SanctuaryCard {
-            SectionHeader(eyebrow = "Manual Test", title = "Coba suara adzan")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SectionHeader(
+                eyebrow = settings.pick("Tes Manual", "Manual Test"),
+                title = settings.pick("Coba semua waktu adzan", "Test every prayer adhan")
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                PrayerName.entries.forEach { prayerName ->
+                    ChoiceChip(
+                        label = prayerName.displayName(settings.appLanguage),
+                        selected = false,
+                        onClick = { AdzanService.play(context, prayerName.label) }
+                    )
+                }
                 ChoiceChip(
-                    label = "Tes Subuh",
-                    selected = false,
-                    onClick = { AdzanService.play(context, PrayerName.FAJR.label) }
-                )
-                ChoiceChip(
-                    label = "Tes Reguler",
-                    selected = false,
-                    onClick = { AdzanService.play(context, PrayerName.DHUHR.label) }
-                )
-                ChoiceChip(
-                    label = "Stop",
+                    label = settings.pick("Stop", "Stop"),
                     selected = false,
                     onClick = { AdzanService.stop(context) }
                 )
             }
             Text(
-                text = "Tes Subuh memakai audio khusus Subuh. Tes Reguler memakai audio untuk Dzuhur, Ashar, Maghrib, dan Isya.",
+                text = settings.pick(
+                    "Subuh memakai audio khusus Subuh. Dzuhur, Ashar, Maghrib, dan Isya memakai audio adzan reguler.",
+                    "Fajr uses the dedicated Fajr adhan audio. Dhuhr, Asr, Maghrib, and Isha use the regular adhan audio."
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        SettingToggleCard("Subuh", settings.fajrAdzanEnabled) { viewModel.setPrayerEnabled(PrayerName.FAJR, it) }
-        SettingToggleCard("Dzuhur", settings.dhuhrAdzanEnabled) { viewModel.setPrayerEnabled(PrayerName.DHUHR, it) }
-        SettingToggleCard("Ashar", settings.asrAdzanEnabled) { viewModel.setPrayerEnabled(PrayerName.ASR, it) }
-        SettingToggleCard("Maghrib", settings.maghribAdzanEnabled) { viewModel.setPrayerEnabled(PrayerName.MAGHRIB, it) }
-        SettingToggleCard("Isya", settings.ishaAdzanEnabled) { viewModel.setPrayerEnabled(PrayerName.ISHA, it) }
+        SanctuaryCard {
+            SectionHeader(
+                eyebrow = settings.pick("Bantuan cepat", "Quick help"),
+                title = settings.pick("Kenapa adzan tidak berbunyi?", "Why is adhan not playing?")
+            )
+            helpChecklist.forEach { item ->
+                Text(
+                    text = "- $item",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        SanctuaryCard {
+            SectionHeader(
+                eyebrow = settings.pick("Tips perangkat", "Device tips"),
+                title = settings.pick("Panduan per merek HP", "Vendor-specific guidance")
+            )
+            vendorTips.forEach { tip ->
+                Text(
+                    text = tip.vendor,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = if (isEnglish) {
+                        when (tip.title) {
+                            "Nonaktifkan pembatasan MIUI" -> "Disable MIUI restrictions"
+                            "Izinkan berjalan di background" -> "Allow background running"
+                            "Aktifkan autostart dan baterai tanpa batas" -> "Enable auto-start and unrestricted battery"
+                            "Keluarkan dari sleeping apps" -> "Remove from sleeping apps"
+                            "Izinkan startup manager" -> "Allow startup manager"
+                            else -> tip.title
+                        }
+                    } else {
+                        tip.title
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                tip.steps.forEach { step ->
+                    Text(
+                        text = "- $step",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+        SanctuaryCard {
+            SectionHeader(
+                eyebrow = settings.pick("Riwayat 7 hari", "7-day history"),
+                title = settings.pick("Jejak adzan terbaru", "Recent adhan events")
+            )
+            if (settings.adhanHistory.isEmpty()) {
+                Text(
+                    text = settings.pick(
+                        "Belum ada histori adzan. Jalankan tes manual atau tunggu waktu sholat berikutnya.",
+                        "There is no adhan history yet. Run a manual test or wait for the next prayer time."
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                settings.adhanHistory.take(12).forEach { entry ->
+                    Text(
+                        text = "${localizedPrayerName(entry.prayerName, settings.appLanguage)} | ${entry.status}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = listOf(entry.occurredAt, entry.details)
+                            .filter { it.isNotBlank() }
+                            .joinToString(" | "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+        SettingToggleCard(PrayerName.FAJR.displayName(settings.appLanguage), settings.fajrAdzanEnabled) { viewModel.setPrayerEnabled(PrayerName.FAJR, it) }
+        SettingToggleCard(PrayerName.DHUHR.displayName(settings.appLanguage), settings.dhuhrAdzanEnabled) { viewModel.setPrayerEnabled(PrayerName.DHUHR, it) }
+        SettingToggleCard(PrayerName.ASR.displayName(settings.appLanguage), settings.asrAdzanEnabled) { viewModel.setPrayerEnabled(PrayerName.ASR, it) }
+        SettingToggleCard(PrayerName.MAGHRIB.displayName(settings.appLanguage), settings.maghribAdzanEnabled) { viewModel.setPrayerEnabled(PrayerName.MAGHRIB, it) }
+        SettingToggleCard(PrayerName.ISHA.displayName(settings.appLanguage), settings.ishaAdzanEnabled) { viewModel.setPrayerEnabled(PrayerName.ISHA, it) }
     }
 }
 
 @Composable
 private fun SystemStatusLine(
+    appLanguage: AppLanguage,
     title: String,
     ready: Boolean,
     message: String? = null
 ) {
     Text(
-        text = if (ready) "Siap: $title" else "Perlu dicek: $title",
+        text = if (ready) {
+            appLanguage.pick("SIAP | $title", "READY | $title")
+        } else {
+            appLanguage.pick("CEK | $title", "CHECK | $title")
+        },
         style = MaterialTheme.typography.bodyMedium,
         color = if (ready) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
     )
@@ -500,22 +736,28 @@ fun AppearanceSettingsScreen(
     onBack: () -> Unit
 ) {
     OverlayShell(
-        title = "Appearance",
-        subtitle = "Tampilan Sajda",
+        title = settings.pick("Tampilan", "Appearance"),
+        subtitle = settings.pick("Tampilan Sajda", "Sajda appearance"),
         onBack = onBack
     ) {
-        SettingToggleCard("Dark mode", settings.darkMode) { viewModel.setDarkMode(it) }
-        SettingToggleCard("Night mode", settings.nightMode) { viewModel.setNightMode(it) }
-        SettingToggleCard("Focus mode default", settings.focusMode) { viewModel.setFocusMode(it) }
+        SettingToggleCard(settings.pick("Mode gelap", "Dark mode"), settings.darkMode) { viewModel.setDarkMode(it) }
+        SettingToggleCard(settings.pick("Mode malam", "Night mode"), settings.nightMode) { viewModel.setNightMode(it) }
+        SettingToggleCard(settings.pick("Mode fokus bawaan", "Default focus mode"), settings.focusMode) { viewModel.setFocusMode(it) }
         SanctuaryCard {
-            SectionHeader(eyebrow = "Reading Layout", title = "Kenyamanan tilawah")
+            SectionHeader(
+                eyebrow = settings.pick("Tata Letak Baca", "Reading layout"),
+                title = settings.pick("Kenyamanan tilawah", "Reading comfort")
+            )
             Text(
-                text = "Sesuaikan ukuran teks dan jarak antarayat agar sesi baca lebih lembut di mata dan nyaman untuk waktu yang lama.",
+                text = settings.pick(
+                    "Sesuaikan ukuran teks dan jarak antar ayat agar sesi baca lebih lembut di mata dan nyaman untuk waktu yang lama.",
+                    "Adjust text sizes and verse spacing so long reading sessions stay calm and comfortable for your eyes."
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Ukuran Arab",
+                text = settings.pick("Ukuran Arab", "Arabic size"),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -529,7 +771,7 @@ fun AppearanceSettingsScreen(
                 }
             }
             Text(
-                text = "Ukuran terjemahan",
+                text = settings.pick("Ukuran terjemahan", "Translation size"),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -543,7 +785,7 @@ fun AppearanceSettingsScreen(
                 }
             }
             Text(
-                text = "Jarak ayat",
+                text = settings.pick("Jarak ayat", "Verse spacing"),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -561,7 +803,10 @@ fun AppearanceSettingsScreen(
                 fontSize = settings.arabicFontSize
             )
             Text(
-                text = "Sesungguhnya bersama kesulitan ada kemudahan.",
+                text = settings.pick(
+                    "Sesungguhnya bersama kesulitan ada kemudahan.",
+                    "Indeed, with hardship comes ease."
+                ),
                 fontSize = settings.translationFontSize.sp,
                 lineHeight = (settings.translationFontSize + 8).sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -569,7 +814,10 @@ fun AppearanceSettingsScreen(
         }
         SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
             Text(
-                text = "Sajda memakai palet emerald lembut dengan layered surfaces agar pengalaman ibadah terasa tenang, ringan, dan fokus.",
+                text = settings.pick(
+                    "Sajda memakai palet emerald lembut dengan layered surfaces agar pengalaman ibadah terasa tenang, ringan, dan fokus.",
+                    "Sajda uses a soft emerald palette with layered surfaces so worship feels calm, light, and focused."
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -618,7 +866,10 @@ fun LocationSettingsScreen(
                         longitude = result.location.longitude,
                         automatic = markAuto
                     )
-                    locationStatus = "Lokasi aktif diperbarui ke ${result.location.label}."
+                    locationStatus = settings.pick(
+                        "Lokasi aktif diperbarui ke ${result.location.label}.",
+                        "Active location was updated to ${result.location.label}."
+                    )
                 }
 
                 is DeviceLocationResult.Error -> {
@@ -639,19 +890,22 @@ fun LocationSettingsScreen(
             refreshFromDevice(markAuto = true)
         } else {
             scope.launch { viewModel.setAutoLocation(false) }
-            locationStatus = "Izin lokasi ditolak. Aktifkan izin GPS agar jadwal sholat menyesuaikan lokasi Anda."
+            locationStatus = settings.pick(
+                "Izin lokasi ditolak. Aktifkan izin GPS agar jadwal sholat menyesuaikan lokasi Anda.",
+                "Location permission was denied. Enable GPS permission so prayer times can match your location."
+            )
         }
     }
 
     OverlayShell(
-        title = "Location",
+        title = settings.pick("Lokasi", "Location"),
         subtitle = settings.locationName,
         onBack = onBack
     ) {
-        SettingToggleCard("Auto GPS", settings.autoLocation) { enabled ->
+        SettingToggleCard(settings.pick("GPS otomatis", "Auto GPS"), settings.autoLocation) { enabled ->
             if (!enabled) {
                 viewModel.setAutoLocation(false)
-                locationStatus = "Mode GPS otomatis dimatikan."
+                locationStatus = settings.pick("Mode GPS otomatis dimatikan.", "Auto GPS mode was turned off.")
             } else if (DeviceLocationHelper.hasLocationPermission(context)) {
                 refreshFromDevice(markAuto = true)
             } else {
@@ -664,9 +918,16 @@ fun LocationSettingsScreen(
             }
         }
         SanctuaryCard {
-            SectionHeader(eyebrow = "GPS", title = "Lokasi perangkat")
+            SectionHeader(
+                eyebrow = "GPS",
+                title = settings.pick("Lokasi perangkat", "Device location")
+            )
             ChoiceChip(
-                label = if (isResolvingLocation) "Mengambil lokasi..." else "Gunakan lokasi saat ini",
+                label = if (isResolvingLocation) {
+                    settings.pick("Mengambil lokasi...", "Getting location...")
+                } else {
+                    settings.pick("Gunakan lokasi saat ini", "Use current location")
+                },
                 selected = settings.autoLocation,
                 onClick = {
                     if (!isResolvingLocation) {
@@ -700,30 +961,40 @@ fun LocationSettingsScreen(
             }
         }
         SanctuaryCard {
-            SectionHeader(eyebrow = "Manual", title = "Cari wilayah")
+            SectionHeader(
+                eyebrow = settings.pick("Manual", "Manual"),
+                title = settings.pick("Cari wilayah", "Search region")
+            )
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                placeholder = { Text("Cari provinsi, kota, atau kabupaten") }
+                placeholder = { Text(settings.pick("Cari provinsi, kota, atau kabupaten", "Search province, city, or regency")) }
             )
             filteredCities.take(if (normalizedQuery.isBlank()) 24 else 40).forEach { city ->
                 LocationSelectionRow(
+                    appLanguage = settings.appLanguage,
                     city = city,
                     isSelected = city.isSelectedLocation(),
                     isFavorite = city.isFavoriteLocation(),
                     onUse = {
                         viewModel.setLocation(city)
                         query = city.displayName
-                        locationStatus = "${city.displayName} dipakai untuk jadwal sholat."
+                        locationStatus = settings.pick(
+                            "${city.displayName} dipakai untuk jadwal sholat.",
+                            "${city.displayName} is now used for prayer times."
+                        )
                     },
                     onToggleFavorite = { viewModel.toggleFavoriteLocation(city.displayName) }
                 )
             }
             if (filteredCities.isEmpty()) {
                 Text(
-                    text = "Belum ada hasil yang cocok. Coba pakai nama provinsi, kota, atau kabupaten yang lebih lengkap.",
+                    text = settings.pick(
+                        "Belum ada hasil yang cocok. Coba pakai nama provinsi, kota, atau kabupaten yang lebih lengkap.",
+                        "No matching results yet. Try a fuller province, city, or regency name."
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -731,16 +1002,23 @@ fun LocationSettingsScreen(
         }
         if (favoriteCities.isNotEmpty()) {
             SanctuaryCard {
-                SectionHeader(eyebrow = "Favorites", title = "Lokasi favorit")
+                SectionHeader(
+                    eyebrow = settings.pick("Favorit", "Favorites"),
+                    title = settings.pick("Lokasi favorit", "Favorite locations")
+                )
                 favoriteCities.forEach { city ->
                     LocationSelectionRow(
+                        appLanguage = settings.appLanguage,
                         city = city,
                         isSelected = city.isSelectedLocation(),
                         isFavorite = true,
                         onUse = {
                             viewModel.setLocation(city)
                             query = city.displayName
-                            locationStatus = "${city.displayName} dipakai untuk jadwal sholat."
+                            locationStatus = settings.pick(
+                                "${city.displayName} dipakai untuk jadwal sholat.",
+                                "${city.displayName} is now used for prayer times."
+                            )
                         },
                         onToggleFavorite = { viewModel.toggleFavoriteLocation(city.displayName) }
                     )
@@ -748,7 +1026,10 @@ fun LocationSettingsScreen(
             }
         }
         SanctuaryCard {
-            SectionHeader(eyebrow = "Calculation", title = "Metode waktu sholat")
+            SectionHeader(
+                eyebrow = settings.pick("Perhitungan", "Calculation"),
+                title = settings.pick("Metode waktu sholat", "Prayer time method")
+            )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 com.sajda.app.domain.model.PrayerCalculationMethod.entries.forEach { method ->
                     ChoiceChip(
@@ -759,19 +1040,24 @@ fun LocationSettingsScreen(
                 }
             }
             Text(
-                text = settings.prayerCalculationMethod.description,
+                text = settings.prayerCalculationMethod.localizedDescription(settings.appLanguage),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 com.sajda.app.domain.model.AsrMadhhab.entries.forEach { madhhab ->
                     ChoiceChip(
-                        label = "Asar ${madhhab.label}",
+                        label = settings.pick("Asar ${madhhab.label}", "Asr ${madhhab.label}"),
                         selected = settings.asrMadhhab == madhhab,
                         onClick = { viewModel.setAsrMadhhab(madhhab) }
                     )
                 }
             }
+            Text(
+                text = settings.asrMadhhab.localizedDescription(settings.appLanguage),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -783,36 +1069,78 @@ fun LanguageSettingsScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit
 ) {
+    val isEnglish = settings.appLanguage.isEnglish()
     OverlayShell(
-        title = "Language",
-        subtitle = "App and Qur'an reading",
+        title = settings.pick("Bahasa", "Language"),
+        subtitle = settings.pick("Aplikasi dan mode baca Qur'an", "App and Qur'an reading"),
         onBack = onBack
     ) {
         SanctuaryCard {
-            SectionHeader(eyebrow = "App Language", title = "Pilih bahasa")
+            SectionHeader(
+                eyebrow = settings.pick("Bahasa Aplikasi", "App Language"),
+                title = settings.pick("Pilih bahasa utama", "Choose the primary language")
+            )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 AppLanguage.entries.forEach { language ->
                     ChoiceChip(
-                        label = language.name.lowercase().replaceFirstChar { it.uppercase() },
+                        label = when (language) {
+                            AppLanguage.INDONESIAN -> "Indonesia"
+                            AppLanguage.ENGLISH -> "English"
+                        },
                         selected = settings.appLanguage == language,
                         onClick = { viewModel.setAppLanguage(language) }
                     )
                 }
             }
         }
-        SettingToggleCard("Show translation", settings.showTranslation) { viewModel.setShowTranslation(it) }
-        SettingToggleCard("Arabic only mode", settings.arabicOnly) { viewModel.setArabicOnly(it) }
-        SettingToggleCard("Show transliteration", settings.showTransliteration) { viewModel.setShowTransliteration(it) }
+        SanctuaryCard {
+            SectionHeader(
+                eyebrow = settings.pick("Mode Baca Qur'an", "Qur'an reading mode"),
+                title = settings.pick("Atur tampilan ayat", "Control verse layout")
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                QuranReadingMode.entries.forEach { mode ->
+                    ChoiceChip(
+                        label = mode.displayLabel(settings.appLanguage),
+                        selected = settings.quranReadingMode == mode,
+                        onClick = { viewModel.setQuranReadingMode(mode) }
+                    )
+                }
+            }
+        }
+        SettingToggleCard(
+            settings.pick("Tampilkan transliterasi", "Show transliteration"),
+            settings.showTransliteration
+        ) { viewModel.setShowTransliteration(it) }
         SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
-            Text(text = "Preview", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                text = settings.pick("Pratinjau", "Preview"),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
             ArabicVerseText(text = "فَإِنَّ مَعَ الْعُسْرِ يُسْرًا", fontSize = 24)
             Text(
                 text = when (settings.appLanguage) {
                     AppLanguage.INDONESIAN -> "Sesungguhnya bersama kesulitan ada kemudahan."
                     AppLanguage.ENGLISH -> "Indeed, with hardship comes ease."
-                    AppLanguage.ARABIC -> "إِنَّ مَعَ الْعُسْرِ يُسْرًا"
                 },
                 style = MaterialTheme.typography.bodyLarge
+            )
+            if (settings.showTransliteration && settings.quranReadingMode != QuranReadingMode.ARABIC_ONLY) {
+                Text(
+                    text = "Fa inna ma'al 'usri yusra",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Text(
+                text = if (isEnglish) {
+                    "The app language controls the main interface. Qur'an reading mode controls which translation appears in the mushaf view."
+                } else {
+                    "Bahasa aplikasi mengatur teks utama antarmuka. Mode baca Qur'an mengatur terjemahan yang tampil di layar mushaf."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -821,6 +1149,7 @@ fun LanguageSettingsScreen(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun LocationSelectionRow(
+    appLanguage: AppLanguage,
     city: CityPreset,
     isSelected: Boolean,
     isFavorite: Boolean,
@@ -855,12 +1184,16 @@ private fun LocationSelectionRow(
                 IconButton(onClick = onToggleFavorite) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
-                        contentDescription = if (isFavorite) "Hapus favorit" else "Simpan favorit",
+                        contentDescription = if (isFavorite) {
+                            appLanguage.pick("Hapus favorit", "Remove favorite")
+                        } else {
+                            appLanguage.pick("Simpan favorit", "Save favorite")
+                        },
                         tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 ChoiceChip(
-                    label = if (isSelected) "Dipakai" else "Gunakan",
+                    label = if (isSelected) appLanguage.pick("Dipakai", "Active") else appLanguage.pick("Gunakan", "Use"),
                     selected = isSelected,
                     onClick = onUse
                 )
@@ -878,6 +1211,7 @@ fun OnboardingExperience(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val isEnglish = settings.appLanguage.isEnglish()
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var refreshKey by remember { mutableIntStateOf(0) }
     var isResolvingLocation by remember { mutableStateOf(false) }
@@ -896,7 +1230,10 @@ fun OnboardingExperience(
                         longitude = result.location.longitude,
                         automatic = true
                     )
-                    statusMessage = "Lokasi aktif disetel ke ${result.location.label}."
+                    statusMessage = settings.pick(
+                        "Lokasi aktif disetel ke ${result.location.label}.",
+                        "Active location was set to ${result.location.label}."
+                    )
                 }
 
                 is DeviceLocationResult.Error -> {
@@ -911,7 +1248,11 @@ fun OnboardingExperience(
         contract = ActivityResultContracts.RequestPermission()
     ) {
         refreshKey += 1
-        statusMessage = if (it) "Izin notifikasi aktif." else "Izin notifikasi ditolak."
+        statusMessage = if (it) {
+            settings.pick("Izin notifikasi aktif.", "Notification permission is active.")
+        } else {
+            settings.pick("Izin notifikasi ditolak.", "Notification permission was denied.")
+        }
     }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -920,30 +1261,36 @@ fun OnboardingExperience(
         if (permissions.any { it.value }) {
             refreshGps()
         } else {
-            statusMessage = "Izin lokasi belum diberikan."
+            statusMessage = settings.pick("Izin lokasi belum diberikan.", "Location permission has not been granted.")
         }
     }
 
     OverlayShell(
-        title = "Persiapan Sajda",
-        subtitle = "Aktifkan fitur penting sebelum mulai",
+        title = settings.pick("Persiapan Sajda", "Sajda setup"),
+        subtitle = settings.pick("Aktifkan fitur penting sebelum mulai", "Enable key features before you begin"),
         onBack = {
             viewModel.completeOnboarding()
             onFinish()
         }
     ) {
         SanctuaryCard {
-            SectionHeader(eyebrow = "Step 1", title = "Siapkan sistem adzan")
+            SectionHeader(
+                eyebrow = if (isEnglish) "Step 1" else "Langkah 1",
+                title = settings.pick("Siapkan sistem adzan", "Prepare the adhan system")
+            )
             SystemStatusLine(
-                title = "Notifikasi",
+                appLanguage = settings.appLanguage,
+                title = settings.pick("Notifikasi", "Notifications"),
                 ready = readiness.notificationPermissionGranted && readiness.appNotificationsEnabled
             )
             SystemStatusLine(
+                appLanguage = settings.appLanguage,
                 title = "Exact alarm",
                 ready = readiness.exactAlarmGranted
             )
             SystemStatusLine(
-                title = "Optimasi baterai",
+                appLanguage = settings.appLanguage,
+                title = settings.pick("Optimasi baterai", "Battery optimization"),
                 ready = readiness.batteryOptimizationIgnored
             )
             FlowRow(
@@ -951,7 +1298,7 @@ fun OnboardingExperience(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 ChoiceChip(
-                    label = "Notifikasi",
+                    label = settings.pick("Notifikasi", "Notifications"),
                     selected = readiness.notificationPermissionGranted && readiness.appNotificationsEnabled,
                     onClick = {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !readiness.notificationPermissionGranted) {
@@ -967,7 +1314,7 @@ fun OnboardingExperience(
                     onClick = { AdhanSystemHelper.openExactAlarmSettings(context) }
                 )
                 ChoiceChip(
-                    label = "Baterai",
+                    label = settings.pick("Baterai", "Battery"),
                     selected = readiness.batteryOptimizationIgnored,
                     onClick = { AdhanSystemHelper.openBatteryOptimizationSettings(context) }
                 )
@@ -975,14 +1322,20 @@ fun OnboardingExperience(
         }
 
         SanctuaryCard {
-            SectionHeader(eyebrow = "Step 2", title = "Lokasi dan hisab")
+            SectionHeader(
+                eyebrow = if (isEnglish) "Step 2" else "Langkah 2",
+                title = settings.pick("Lokasi dan hisab", "Location and calculation")
+            )
             Text(
-                text = "Lokasi aktif: ${settings.locationName}",
+                text = settings.pick("Lokasi aktif: ${settings.locationName}", "Active location: ${settings.locationName}"),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Metode ${settings.prayerCalculationMethod.label} • Asar ${settings.asrMadhhab.label}",
+                text = settings.pick(
+                    "Metode ${settings.prayerCalculationMethod.label} - Asar ${settings.asrMadhhab.label}",
+                    "Method ${settings.prayerCalculationMethod.label} - Asr ${settings.asrMadhhab.label}"
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -991,7 +1344,11 @@ fun OnboardingExperience(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 ChoiceChip(
-                    label = if (isResolvingLocation) "Mengambil GPS..." else "Gunakan GPS",
+                    label = if (isResolvingLocation) {
+                        settings.pick("Mengambil GPS...", "Getting GPS...")
+                    } else {
+                        settings.pick("Gunakan GPS", "Use GPS")
+                    },
                     selected = settings.autoLocation,
                     onClick = {
                         if (!isResolvingLocation) {
@@ -1022,9 +1379,15 @@ fun OnboardingExperience(
         }
 
         SanctuaryCard {
-            SectionHeader(eyebrow = "Step 3", title = "Tes suara adzan")
+            SectionHeader(
+                eyebrow = if (isEnglish) "Step 3" else "Langkah 3",
+                title = settings.pick("Tes suara adzan", "Test adhan audio")
+            )
             Text(
-                text = "Tes cepat ini membantu memastikan notifikasi dan audio berjalan sebelum Anda mulai memakai aplikasi setiap hari.",
+                text = settings.pick(
+                    "Tes cepat ini membantu memastikan notifikasi dan audio berjalan sebelum Anda mulai memakai aplikasi setiap hari.",
+                    "This quick test helps confirm that notifications and audio work before you start using the app every day."
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1033,12 +1396,12 @@ fun OnboardingExperience(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 ChoiceChip(
-                    label = "Tes Subuh",
+                    label = settings.pick("Tes Subuh", "Test Fajr"),
                     selected = false,
                     onClick = { AdzanService.play(context, PrayerName.FAJR.label) }
                 )
                 ChoiceChip(
-                    label = "Tes Reguler",
+                    label = settings.pick("Tes Reguler", "Test Regular"),
                     selected = false,
                     onClick = { AdzanService.play(context, PrayerName.DHUHR.label) }
                 )
@@ -1066,20 +1429,23 @@ fun OnboardingExperience(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "Masuk ke Sajda App",
+                        text = settings.pick("Masuk ke Sajda App", "Enter Sajda App"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Anda bisa mengubah semuanya lagi dari Settings kapan saja.",
+                        text = settings.pick(
+                            "Anda bisa mengubah semuanya lagi dari Settings kapan saja.",
+                            "You can change everything again from Settings at any time."
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Icon(
                     imageVector = Icons.Rounded.CheckCircle,
-                    contentDescription = "Selesai",
+                    contentDescription = settings.pick("Selesai", "Done"),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }

@@ -34,7 +34,7 @@ class PrayerScheduleWorker(
     }
 
     companion object {
-        private const val REPAIR_INTERVAL_HOURS = 6L
+        private const val REPAIR_INTERVAL_MINUTES = 15L
 
         fun enqueueImmediate(context: Context) {
             WorkManager.getInstance(context).enqueueUniqueWork(
@@ -49,8 +49,8 @@ class PrayerScheduleWorker(
                 Constants.PRAYER_SCHEDULE_WORK_NAME,
                 ExistingPeriodicWorkPolicy.UPDATE,
                 PeriodicWorkRequestBuilder<PrayerScheduleWorker>(
-                    REPAIR_INTERVAL_HOURS,
-                    TimeUnit.HOURS
+                    REPAIR_INTERVAL_MINUTES,
+                    TimeUnit.MINUTES
                 ).build()
             )
         }

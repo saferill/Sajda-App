@@ -25,6 +25,12 @@ data class AdhanReadiness(
     val alarmVolumeLevel: Int
 )
 
+data class AdhanVendorTip(
+    val vendor: String,
+    val title: String,
+    val steps: List<String>
+)
+
 object AdhanSystemHelper {
 
     fun hasNotificationPermission(context: Context): Boolean {
@@ -92,6 +98,68 @@ object AdhanSystemHelper {
         )
     }
 
+    fun helpChecklist(): List<String> = listOf(
+        "Pastikan notifikasi aplikasi diizinkan.",
+        "Pastikan izin exact alarm aktif.",
+        "Lepaskan pembatasan baterai untuk Sajda App.",
+        "Naikkan volume alarm perangkat di atas nol.",
+        "Aktifkan Override silent mode jika Anda ingin adzan tetap bersuara saat HP silent.",
+        "Buka aplikasi minimal sekali setelah reboot atau update bila vendor sangat agresif."
+    )
+
+    fun vendorTips(context: Context): List<AdhanVendorTip> {
+        val currentVendor = Build.MANUFACTURER.orEmpty().trim().replaceFirstChar { it.uppercase() }
+        val allTips = listOf(
+            AdhanVendorTip(
+                vendor = "Xiaomi",
+                title = "Nonaktifkan pembatasan MIUI",
+                steps = listOf(
+                    "Buka Security > Battery > App battery saver > Sajda App > No restrictions.",
+                    "Aktifkan Autostart untuk Sajda App.",
+                    "Kunci aplikasi di recent apps bila perlu."
+                )
+            ),
+            AdhanVendorTip(
+                vendor = "Oppo",
+                title = "Izinkan berjalan di background",
+                steps = listOf(
+                    "Buka App Management > Sajda App > Allow auto launch.",
+                    "Matikan Auto optimize battery untuk Sajda App.",
+                    "Izinkan notifikasi pop-up dan lock screen."
+                )
+            ),
+            AdhanVendorTip(
+                vendor = "Vivo",
+                title = "Aktifkan autostart dan baterai tanpa batas",
+                steps = listOf(
+                    "Buka Settings > Battery > Background high power consumption > aktifkan Sajda App.",
+                    "Buka Settings > Apps > All apps > Sajda App > Permissions dan cek notifikasi.",
+                    "Cari menu Auto start management lalu aktifkan Sajda App."
+                )
+            ),
+            AdhanVendorTip(
+                vendor = "Samsung",
+                title = "Keluarkan dari sleeping apps",
+                steps = listOf(
+                    "Buka Battery and device care > Battery > Background usage limits.",
+                    "Hapus Sajda App dari Sleeping apps dan Deep sleeping apps.",
+                    "Set App battery usage ke Unrestricted."
+                )
+            ),
+            AdhanVendorTip(
+                vendor = "Realme",
+                title = "Izinkan startup manager",
+                steps = listOf(
+                    "Buka App Management > Auto-launch > aktifkan Sajda App.",
+                    "Matikan Battery optimization untuk Sajda App.",
+                    "Izinkan notifikasi lock screen dan banner."
+                )
+            )
+        )
+
+        return allTips.sortedByDescending { it.vendor.equals(currentVendor, ignoreCase = true) }
+    }
+
     fun openNotificationSettings(context: Context) {
         val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
@@ -144,5 +212,13 @@ object AdhanSystemHelper {
         } catch (_: SecurityException) {
             context.startActivity(fallbackIntent)
         }
+    }
+
+    fun openAppDetailsSettings(context: Context) {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", context.packageName, null)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
     }
 }

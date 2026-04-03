@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.PrayerTime
 import com.sajda.app.domain.model.UserSettings
@@ -43,6 +44,8 @@ import com.sajda.app.ui.component.SectionHeader
 import com.sajda.app.ui.viewmodel.PrayerTimeViewModel
 import com.sajda.app.util.DateTimeUtils
 import com.sajda.app.util.PrayerTimeCalculator
+import com.sajda.app.util.displayName
+import com.sajda.app.util.localizedPrayerName
 import java.time.LocalDate
 
 @Composable
@@ -53,6 +56,7 @@ fun PrayerTimeScreen(
     onOpenLocationSettings: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val isEnglish = state.settings.appLanguage == AppLanguage.ENGLISH
 
     if (state.isRefreshing && state.weeklyPrayerTimes.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -76,7 +80,7 @@ fun PrayerTimeScreen(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "Prayer Times",
+                        text = if (isEnglish) "Prayer Times" else "Waktu Sholat",
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -87,7 +91,7 @@ fun PrayerTimeScreen(
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    SajdaTopAction(Icons.Rounded.LocationOn, "Lokasi", onOpenLocationSettings)
+                    SajdaTopAction(Icons.Rounded.LocationOn, if (isEnglish) "Location" else "Lokasi", onOpenLocationSettings)
                     SajdaTopAction(Icons.Rounded.Explore, "Qibla", onOpenQibla)
                 }
             }
@@ -105,16 +109,16 @@ fun PrayerTimeScreen(
 
         item {
             SectionHeader(
-                eyebrow = "Prayer Controls",
-                title = "Adzan per waktu",
-                actionLabel = "Mingguan",
+                eyebrow = if (isEnglish) "Prayer Controls" else "Kontrol Sholat",
+                title = if (isEnglish) "Adhan by prayer" else "Adzan per waktu",
+                actionLabel = if (isEnglish) "Weekly" else "Mingguan",
                 onAction = onOpenWeeklySchedule
             )
         }
 
         item {
             PrayerToggleCard(
-                title = "Subuh",
+                title = PrayerName.FAJR.displayName(state.settings.appLanguage),
                 subtitle = state.todayPrayerTime?.fajr ?: "--:--",
                 checked = state.settings.fajrAdzanEnabled,
                 onCheckedChange = { viewModel.togglePrayer(PrayerName.FAJR, it) }
@@ -123,7 +127,7 @@ fun PrayerTimeScreen(
 
         item {
             PrayerToggleCard(
-                title = "Dzuhur",
+                title = PrayerName.DHUHR.displayName(state.settings.appLanguage),
                 subtitle = state.todayPrayerTime?.dhuhr ?: "--:--",
                 checked = state.settings.dhuhrAdzanEnabled,
                 onCheckedChange = { viewModel.togglePrayer(PrayerName.DHUHR, it) }
@@ -132,7 +136,7 @@ fun PrayerTimeScreen(
 
         item {
             PrayerToggleCard(
-                title = "Ashar",
+                title = PrayerName.ASR.displayName(state.settings.appLanguage),
                 subtitle = state.todayPrayerTime?.asr ?: "--:--",
                 checked = state.settings.asrAdzanEnabled,
                 onCheckedChange = { viewModel.togglePrayer(PrayerName.ASR, it) }
@@ -141,7 +145,7 @@ fun PrayerTimeScreen(
 
         item {
             PrayerToggleCard(
-                title = "Maghrib",
+                title = PrayerName.MAGHRIB.displayName(state.settings.appLanguage),
                 subtitle = state.todayPrayerTime?.maghrib ?: "--:--",
                 checked = state.settings.maghribAdzanEnabled,
                 onCheckedChange = { viewModel.togglePrayer(PrayerName.MAGHRIB, it) }
@@ -150,7 +154,7 @@ fun PrayerTimeScreen(
 
         item {
             PrayerToggleCard(
-                title = "Isya",
+                title = PrayerName.ISHA.displayName(state.settings.appLanguage),
                 subtitle = state.todayPrayerTime?.isha ?: "--:--",
                 checked = state.settings.ishaAdzanEnabled,
                 onCheckedChange = { viewModel.togglePrayer(PrayerName.ISHA, it) }
@@ -158,11 +162,14 @@ fun PrayerTimeScreen(
         }
 
         item {
-            SectionHeader(eyebrow = "7 Day View", title = "Jadwal satu minggu")
+            SectionHeader(
+                eyebrow = if (isEnglish) "7 Day View" else "Tampilan 7 Hari",
+                title = if (isEnglish) "One-week schedule" else "Jadwal satu minggu"
+            )
         }
 
         items(state.weeklyPrayerTimes, key = { it.date }) { prayerTime ->
-            WeeklyPrayerCard(prayerTime = prayerTime)
+            WeeklyPrayerCard(prayerTime = prayerTime, appLanguage = state.settings.appLanguage)
         }
     }
 }
@@ -176,6 +183,7 @@ private fun DailyPrayerHero(
     onToggleAdzan: (Boolean) -> Unit,
     onOpenWeeklySchedule: () -> Unit
 ) {
+    val isEnglish = settings.appLanguage == AppLanguage.ENGLISH
     val nextPrayer = prayerTime?.let(DateTimeUtils::nextPrayer)
     val countdown = prayerTime?.let(DateTimeUtils::countdownClockToNextPrayer) ?: "--:--:--"
     val detailedTimes = prayerTime?.let {
@@ -197,15 +205,19 @@ private fun DailyPrayerHero(
         ) {
             PrayerHeroMetric(
                 modifier = Modifier.weight(1f),
-                title = "NEXT PRAYER",
-                primary = nextPrayer?.first?.label ?: "Subuh",
+                title = if (isEnglish) "NEXT PRAYER" else "SHOLAT BERIKUTNYA",
+                primary = nextPrayer?.first?.displayName(settings.appLanguage) ?: PrayerName.FAJR.displayName(settings.appLanguage),
                 secondary = nextPrayer?.second ?: "--:--"
             )
             PrayerHeroMetric(
                 modifier = Modifier.weight(1f),
-                title = "REMAINING",
+                title = if (isEnglish) "REMAINING" else "SISA WAKTU",
                 primary = countdown,
-                secondary = "Menuju ${nextPrayer?.first?.label ?: "Subuh"}"
+                secondary = if (isEnglish) {
+                    "Before ${nextPrayer?.first?.displayName(settings.appLanguage) ?: PrayerName.FAJR.displayName(settings.appLanguage)}"
+                } else {
+                    "Menuju ${nextPrayer?.first?.displayName(settings.appLanguage) ?: PrayerName.FAJR.displayName(settings.appLanguage)}"
+                }
             )
         }
 
@@ -219,18 +231,22 @@ private fun DailyPrayerHero(
             ) {
                 detailedTimes?.let { details ->
                     MetadataChip(text = "Imsak ${details.imsak}")
-                    MetadataChip(text = "Terbit ${details.sunrise}")
+                    MetadataChip(text = if (isEnglish) "Sunrise ${details.sunrise}" else "Terbit ${details.sunrise}")
                 }
                 prayerEntries.forEach { entry ->
                     val prayer = entry.first
                     val time = entry.second
-                    MetadataChip(text = "${prayer.label} $time", active = prayer == nextPrayer?.first)
+                    MetadataChip(text = "${prayer.displayName(settings.appLanguage)} $time", active = prayer == nextPrayer?.first)
                 }
             }
         }
 
         Text(
-            text = "${settings.prayerCalculationMethod.label} | Asar ${settings.asrMadhhab.label}",
+            text = if (isEnglish) {
+                "${settings.prayerCalculationMethod.label} | Asr ${settings.asrMadhhab.label}"
+            } else {
+                "${settings.prayerCalculationMethod.label} | Asar ${settings.asrMadhhab.label}"
+            },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.84f)
         )
@@ -241,7 +257,7 @@ private fun DailyPrayerHero(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Adzan otomatis",
+                text = if (isEnglish) "Automatic adhan" else "Adzan otomatis",
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onPrimary
             )
@@ -249,7 +265,7 @@ private fun DailyPrayerHero(
         }
 
         Text(
-            text = "Lihat jadwal mingguan",
+            text = if (isEnglish) "View weekly schedule" else "Lihat jadwal mingguan",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier
@@ -322,7 +338,8 @@ private fun PrayerToggleCard(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun WeeklyPrayerCard(prayerTime: PrayerTime) {
+private fun WeeklyPrayerCard(prayerTime: PrayerTime, appLanguage: AppLanguage) {
+    val isEnglish = appLanguage == AppLanguage.ENGLISH
     val nextPrayer = DateTimeUtils.nextPrayer(prayerTime)
 
     SanctuaryCard {
@@ -338,12 +355,20 @@ private fun WeeklyPrayerCard(prayerTime: PrayerTime) {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Arah kiblat ${prayerTime.qiblaDirection.toInt()} derajat",
+                    text = if (isEnglish) {
+                        "Qibla direction ${prayerTime.qiblaDirection.toInt()}°"
+                    } else {
+                        "Arah kiblat ${prayerTime.qiblaDirection.toInt()} derajat"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            MetadataChip(text = "Next ${nextPrayer.first.label}", active = true)
+            MetadataChip(text = if (isEnglish) {
+                "Next ${nextPrayer.first.displayName(appLanguage)}"
+            } else {
+                "Berikutnya ${nextPrayer.first.displayName(appLanguage)}"
+            }, active = true)
         }
 
         FlowRow(
@@ -352,11 +377,11 @@ private fun WeeklyPrayerCard(prayerTime: PrayerTime) {
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             listOf(
-                "Subuh" to prayerTime.fajr,
-                "Dzuhur" to prayerTime.dhuhr,
-                "Ashar" to prayerTime.asr,
-                "Maghrib" to prayerTime.maghrib,
-                "Isya" to prayerTime.isha
+                PrayerName.FAJR.displayName(appLanguage) to prayerTime.fajr,
+                PrayerName.DHUHR.displayName(appLanguage) to prayerTime.dhuhr,
+                PrayerName.ASR.displayName(appLanguage) to prayerTime.asr,
+                PrayerName.MAGHRIB.displayName(appLanguage) to prayerTime.maghrib,
+                PrayerName.ISHA.displayName(appLanguage) to prayerTime.isha
             ).forEach { entry ->
                 PrayerTimeColumn(entry.first, entry.second)
             }

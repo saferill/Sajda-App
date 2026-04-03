@@ -1,6 +1,7 @@
 package com.sajda.app.util
 
 import com.sajda.app.domain.model.Ayat
+import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.DailyDua
 import com.sajda.app.domain.model.HadithEntry
 import java.time.LocalDate
@@ -180,51 +181,63 @@ object SpiritualContent {
     val featuredHadiths = listOf(
         HadithEntry(
             id = "hadith_intention",
+            category = "Niat",
             title = "Niat Menentukan Nilai Amal",
             collection = "Sahih al-Bukhari",
             reference = "1",
             narrator = "Umar ibn al-Khattab",
-            text = "Sesungguhnya setiap amal tergantung niatnya, dan setiap orang akan mendapatkan sesuai niat yang ia tetapkan."
+            text = "Sesungguhnya setiap amal tergantung niatnya, dan setiap orang akan mendapatkan sesuai niat yang ia tetapkan.",
+            sourceLabel = "Sahih al-Bukhari"
         ),
         HadithEntry(
             id = "hadith_mercy",
+            category = "Akhlak",
             title = "Kasih Sayang",
             collection = "Sahih Muslim",
             reference = "2592",
             narrator = "Jarir ibn Abdullah",
-            text = "Allah merahmati hamba yang penyayang kepada manusia. Sikap lembut adalah jalan yang mengundang rahmat."
+            text = "Allah merahmati hamba yang penyayang kepada manusia. Sikap lembut adalah jalan yang mengundang rahmat.",
+            sourceLabel = "Sahih Muslim"
         ),
         HadithEntry(
             id = "hadith_quran",
+            category = "Ilmu",
             title = "Sebaik-baik Orang",
             collection = "Sahih al-Bukhari",
             reference = "5027",
             narrator = "Uthman ibn Affan",
-            text = "Sebaik-baik kalian adalah yang belajar Al-Qur'an lalu mengajarkannya."
+            text = "Sebaik-baik kalian adalah yang belajar Al-Qur'an lalu mengajarkannya.",
+            sourceLabel = "Sahih al-Bukhari"
         ),
         HadithEntry(
             id = "hadith_prayer_coolness",
+            category = "Shalat",
             title = "Ketenangan Dalam Shalat",
             collection = "Sunan an-Nasa'i",
             reference = "3940",
             narrator = "Anas ibn Malik",
-            text = "Ketenteraman hati Nabi dijadikan dalam shalat. Ini mengingatkan kita bahwa shalat adalah tempat pulang jiwa."
+            text = "Ketenteraman hati Nabi dijadikan dalam shalat. Ini mengingatkan kita bahwa shalat adalah tempat pulang jiwa.",
+            sourceLabel = "Sunan an-Nasa'i"
         ),
         HadithEntry(
             id = "hadith_kindness",
+            category = "Akhlak",
             title = "Lemah Lembut",
             collection = "Sahih Muslim",
             reference = "2594",
             narrator = "Aishah",
-            text = "Kelembutan tidak ada pada sesuatu kecuali ia menghiasinya, dan tidak dicabut dari sesuatu kecuali membuatnya terasa kasar."
+            text = "Kelembutan tidak ada pada sesuatu kecuali ia menghiasinya, dan tidak dicabut dari sesuatu kecuali membuatnya terasa kasar.",
+            sourceLabel = "Sahih Muslim"
         ),
         HadithEntry(
             id = "hadith_gratitude",
+            category = "Syukur",
             title = "Syukur Harian",
             collection = "Jami at-Tirmidhi",
             reference = "1954",
             narrator = "Abu Hurairah",
-            text = "Siapa yang tidak berterima kasih kepada manusia, ia belum sempurna bersyukur kepada Allah."
+            text = "Siapa yang tidak berterima kasih kepada manusia, ia belum sempurna bersyukur kepada Allah.",
+            sourceLabel = "Jami at-Tirmidhi"
         )
     )
 
@@ -234,20 +247,63 @@ object SpiritualContent {
         return featuredHadiths[index]
     }
 
-    fun buildTafsir(ayat: Ayat, surahName: String): List<String> {
-        val normalized = ayat.translation.trim()
-        val emphasis = when {
-            normalized.contains("rahmat", ignoreCase = true) -> "Ayat ini mengingatkan bahwa kasih sayang Allah selalu lebih luas daripada rasa takut kita."
-            normalized.contains("sabar", ignoreCase = true) -> "Pesan utamanya adalah keteguhan: tetap lurus, tenang, dan tidak tergesa-gesa saat diuji."
-            normalized.contains("shalat", ignoreCase = true) -> "Ayat ini menegaskan shalat sebagai poros ketenangan, disiplin, dan hubungan hamba dengan Rabb-nya."
-            normalized.contains("iman", ignoreCase = true) -> "Ayat ini menguatkan fondasi iman: percaya, taat, lalu membiarkan amal berbicara."
-            else -> "Ayat ini mengajak kita berhenti sejenak, membaca perlahan, lalu menanyakan apa yang harus dibenahi dalam hati hari ini."
+    fun groupedHadiths(): Map<String, List<HadithEntry>> {
+        return featuredHadiths.groupBy { it.category }
+    }
+
+    fun buildTafsir(
+        ayat: Ayat,
+        surahName: String,
+        appLanguage: AppLanguage = AppLanguage.INDONESIAN
+    ): List<String> {
+        val normalized = if (appLanguage == AppLanguage.ENGLISH) {
+            ayat.englishTranslation.ifBlank { ayat.translation }.trim()
+        } else {
+            ayat.translation.trim()
         }
 
-        return listOf(
-            "$surahName ayat ${ayat.ayatNumber} menegaskan makna: $normalized",
-            emphasis,
-            "Amalan ringan hari ini: baca ulang ayat ini beberapa kali, lalu hubungkan maknanya dengan keadaan yang sedang Anda jalani."
-        )
+        val emphasis = if (appLanguage == AppLanguage.ENGLISH) {
+            when {
+                normalized.contains("mercy", ignoreCase = true) ->
+                    "This verse reminds us that Allah's mercy is always greater than our fear."
+                normalized.contains("patient", ignoreCase = true) ||
+                    normalized.contains("patience", ignoreCase = true) ->
+                    "Its central message is steadfastness: stay grounded, calm, and unhurried when you are tested."
+                normalized.contains("prayer", ignoreCase = true) ->
+                    "This verse places prayer at the center of calm, discipline, and our bond with Allah."
+                normalized.contains("faith", ignoreCase = true) ||
+                    normalized.contains("believe", ignoreCase = true) ->
+                    "This verse strengthens the foundation of faith: believe, obey, and let your actions speak."
+                else ->
+                    "This verse invites us to pause, read slowly, and ask what needs to be softened or repaired in our heart today."
+            }
+        } else {
+            when {
+                normalized.contains("rahmat", ignoreCase = true) ->
+                    "Ayat ini mengingatkan bahwa kasih sayang Allah selalu lebih luas daripada rasa takut kita."
+                normalized.contains("sabar", ignoreCase = true) ->
+                    "Pesan utamanya adalah keteguhan: tetap lurus, tenang, dan tidak tergesa-gesa saat diuji."
+                normalized.contains("shalat", ignoreCase = true) ->
+                    "Ayat ini menegaskan shalat sebagai poros ketenangan, disiplin, dan hubungan hamba dengan Rabb-nya."
+                normalized.contains("iman", ignoreCase = true) ->
+                    "Ayat ini menguatkan fondasi iman: percaya, taat, lalu membiarkan amal berbicara."
+                else ->
+                    "Ayat ini mengajak kita berhenti sejenak, membaca perlahan, lalu menanyakan apa yang harus dibenahi dalam hati hari ini."
+            }
+        }
+
+        return if (appLanguage == AppLanguage.ENGLISH) {
+            listOf(
+                "$surahName verse ${ayat.ayatNumber} highlights this meaning: $normalized",
+                emphasis,
+                "A simple practice for today: read this verse a few more times and connect its meaning to what you are living through right now."
+            )
+        } else {
+            listOf(
+                "$surahName ayat ${ayat.ayatNumber} menegaskan makna: $normalized",
+                emphasis,
+                "Amalan ringan hari ini: baca ulang ayat ini beberapa kali, lalu hubungkan maknanya dengan keadaan yang sedang Anda jalani."
+            )
+        }
     }
 }

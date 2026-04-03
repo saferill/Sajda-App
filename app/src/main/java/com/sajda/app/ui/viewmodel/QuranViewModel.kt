@@ -9,6 +9,7 @@ import com.sajda.app.domain.model.AudioDownloadState
 import com.sajda.app.domain.model.Ayat
 import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.Bookmark
+import com.sajda.app.domain.model.QuranReadingMode
 import com.sajda.app.domain.model.Surah
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +24,7 @@ data class QuranUiState(
     val downloadStates: Map<Int, AudioDownloadState> = emptyMap(),
     val focusMode: Boolean = false,
     val appLanguage: AppLanguage = AppLanguage.INDONESIAN,
+    val quranReadingMode: QuranReadingMode = QuranReadingMode.ARABIC_INDONESIAN,
     val showTranslation: Boolean = true,
     val arabicOnly: Boolean = false,
     val showTransliteration: Boolean = false,
@@ -88,6 +90,7 @@ class QuranViewModel(
                     it.copy(
                         focusMode = settings.focusMode,
                         appLanguage = settings.appLanguage,
+                        quranReadingMode = settings.quranReadingMode,
                         showTranslation = settings.showTranslation,
                         arabicOnly = settings.arabicOnly,
                         showTransliteration = settings.showTransliteration,

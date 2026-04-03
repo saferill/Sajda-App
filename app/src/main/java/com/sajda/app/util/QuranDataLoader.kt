@@ -9,6 +9,9 @@ import com.sajda.app.domain.model.Surah
 
 object QuranDataLoader {
 
+    private var englishSurahTranslations: Map<Int, String> = emptyMap()
+    private var englishAyatTranslations: Map<Pair<Int, Int>, String> = emptyMap()
+
     fun loadQuranData(context: Context): Pair<List<Surah>, List<Ayat>> {
         val gson = Gson()
         val listType = object : TypeToken<List<QuranAssetSurah>>() {}.type
@@ -20,6 +23,7 @@ object QuranDataLoader {
             readAsset(context, Constants.QURAN_TRANSLITERATION_ASSET),
             listType
         ).associateBy { it.id }
+        ensureEnglishTranslationsLoaded(context, gson)
 
         val surahs = translatedSurahs.map { asset ->
             Surah(
@@ -27,6 +31,7 @@ object QuranDataLoader {
                 nameArabic = asset.name,
                 transliteration = asset.transliteration,
                 translation = asset.translation,
+                englishTranslation = englishSurahTranslations[asset.id].orEmpty(),
                 revelationPlace = asset.type.replaceFirstChar { it.uppercase() },
                 totalVerses = asset.totalVerses,
                 audioUrl = Constants.buildMurattalUrl(asset.id)
@@ -46,12 +51,41 @@ object QuranDataLoader {
                     ayatNumber = verse.id,
                     textArabic = verse.text,
                     translation = verse.translation.orEmpty(),
+                    englishTranslation = englishAyatTranslations[asset.id to verse.id].orEmpty(),
                     transliteration = transliterationLookup[verse.id]?.transliteration.orEmpty()
                 )
             }
         }
 
         return surahs to ayats
+    }
+
+    fun prepareSupportingData(context: Context) {
+        ensureEnglishTranslationsLoaded(context, Gson())
+    }
+
+    fun englishSurahTranslation(surahNumber: Int): String = englishSurahTranslations[surahNumber].orEmpty()
+
+    fun englishAyatTranslation(surahNumber: Int, ayatNumber: Int): String =
+        englishAyatTranslations[surahNumber to ayatNumber].orEmpty()
+
+    private fun ensureEnglishTranslationsLoaded(context: Context, gson: Gson) {
+        if (englishSurahTranslations.isNotEmpty() && englishAyatTranslations.isNotEmpty()) return
+
+        val listType = object : TypeToken<List<QuranEnglishAssetSurah>>() {}.type
+        val englishSurahs = runCatching {
+            gson.fromJson<List<QuranEnglishAssetSurah>>(
+                readAsset(context, Constants.QURAN_ENGLISH_ASSET),
+                listType
+            )
+        }.getOrDefault(emptyList())
+
+        englishSurahTranslations = englishSurahs.associate { it.id to it.translation }
+        englishAyatTranslations = englishSurahs.flatMap { surah ->
+            surah.verses.map { verse ->
+                (surah.id to verse.id) to verse.translation
+            }
+        }.toMap()
     }
 
     private fun readAsset(context: Context, fileName: String): String {
@@ -75,4 +109,15 @@ private data class QuranAssetVerse(
     val text: String,
     val translation: String? = null,
     val transliteration: String? = null
+)
+
+private data class QuranEnglishAssetSurah(
+    val id: Int,
+    val translation: String,
+    val verses: List<QuranEnglishAssetVerse>
+)
+
+private data class QuranEnglishAssetVerse(
+    val id: Int,
+    val translation: String
 )

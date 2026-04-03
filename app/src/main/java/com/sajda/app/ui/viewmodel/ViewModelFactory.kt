@@ -7,6 +7,7 @@ import com.sajda.app.data.repository.AppUpdateRepository
 import com.sajda.app.data.repository.AudioRepository
 import com.sajda.app.data.repository.PrayerTimeRepository
 import com.sajda.app.data.repository.QuranRepository
+import com.sajda.app.data.repository.SpiritualContentRepository
 import com.sajda.app.service.AdzanScheduler
 
 class HomeViewModelFactory(
@@ -56,5 +57,15 @@ class SettingsViewModelFactory(
             adzanScheduler,
             appUpdateRepository
         ) as T
+    }
+}
+
+class SpiritualContentViewModelFactory(
+    private val repository: SpiritualContentRepository,
+    private val preferencesDataStore: PreferencesDataStore
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        return SpiritualContentViewModel(repository, preferencesDataStore) as T
     }
 }
