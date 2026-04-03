@@ -222,9 +222,7 @@ Sajda App/
 ### Command Line
 ```bash
 cd "Sajda App"
-./gradlew assembleDebug      # Build APK
-./gradlew installDebug        # Install to device
-./gradlew runDebug            # Run on device
+./gradlew assembleRelease     # Build signed release APK
 ```
 
 ---

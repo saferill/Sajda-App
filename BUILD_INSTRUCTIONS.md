@@ -90,11 +90,8 @@ cd "c:\Users\Hype AMD\Downloads\Sajda App"
 # Sync gradle
 ./gradlew sync
 
-# Build debug APK
-./gradlew assembleDebug
-
-# Build dan install ke device
-./gradlew installDebug
+# Build release APK
+./gradlew assembleRelease
 
 # Run aplikasi
 adb shell am start -n com.sajda.app/.MainActivity
@@ -106,7 +103,7 @@ adb shell am start -n com.sajda.app/.MainActivity
 # Build release APK (memerlukan signing config)
 ./gradlew assembleRelease
 
-# APK akan ada di: app/build/outputs/apk/release/app-release.apk
+# APK akan ada di: app/build/outputs/apk/release/Sajda-App-v1.1.0.apk
 ```
 
 ## 📋 Checklist Sebelum Compile

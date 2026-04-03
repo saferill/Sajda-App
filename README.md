@@ -123,16 +123,16 @@ app/src/main/
 - JDK
 - Gradle support for Android builds
 
-### Build Debug APK
+### Build Release APK
 
 ```bash
-./gradlew assembleDebug
+./gradlew assembleRelease
 ```
 
 Output:
 
 ```text
-app/build/outputs/apk/debug/app-debug.apk
+app/build/outputs/apk/release/Sajda-App-v1.1.0.apk
 ```
 
 ## App Permissions

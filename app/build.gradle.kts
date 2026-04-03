@@ -6,6 +6,9 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+val appVersionCode = 2
+val appVersionName = "1.1.0"
+
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val hasReleaseKeystore = keystorePropertiesFile.exists()
@@ -33,8 +36,8 @@ android {
         applicationId = "com.sajda.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -83,6 +86,16 @@ android {
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
+    }
+}
+
+android.applicationVariants.configureEach {
+    if (buildType.name == "release") {
+        outputs.configureEach {
+            @Suppress("UNCHECKED_CAST")
+            (this as com.android.build.gradle.internal.api.ApkVariantOutputImpl).outputFileName =
+                "Sajda-App-v$appVersionName.apk"
+        }
     }
 }
 
