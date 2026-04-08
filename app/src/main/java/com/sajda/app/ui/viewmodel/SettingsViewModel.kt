@@ -9,9 +9,11 @@ import com.sajda.app.data.repository.PrayerTimeRepository
 import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.AppUpdateInfo
 import com.sajda.app.domain.model.AsrMadhhab
+import com.sajda.app.domain.model.CalendarDisplayMode
 import com.sajda.app.domain.model.CityPreset
 import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.PrayerCalculationMethod
+import com.sajda.app.domain.model.QuranReciter
 import com.sajda.app.domain.model.QuranReadingMode
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.service.AdzanScheduler
@@ -133,6 +135,18 @@ class SettingsViewModel @Inject constructor(
 
     fun setAdzanSound(style: com.sajda.app.domain.model.AdhanStyle) {
         viewModelScope.launch { preferencesDataStore.setAdzanSound(style) }
+    }
+
+    fun setFajrAdzanSound(style: com.sajda.app.domain.model.AdhanStyle) {
+        viewModelScope.launch { preferencesDataStore.setFajrAdzanSound(style) }
+    }
+
+    fun setSelectedQuranReciter(reciter: QuranReciter) {
+        viewModelScope.launch { preferencesDataStore.setSelectedQuranReciter(reciter) }
+    }
+
+    fun setCalendarDisplayMode(mode: CalendarDisplayMode) {
+        viewModelScope.launch { preferencesDataStore.setCalendarDisplayMode(mode) }
     }
 
     fun setPrayerCalculationMethod(method: PrayerCalculationMethod) {

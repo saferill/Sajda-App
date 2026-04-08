@@ -1,19 +1,19 @@
 package com.sajda.app.ui.screen
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
@@ -22,21 +22,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sajda.app.BuildConfig
-import com.sajda.app.domain.model.AdhanStyle
 import com.sajda.app.domain.model.AppLanguage
-import com.sajda.app.domain.model.QuranReadingMode
+import com.sajda.app.domain.model.CalendarDisplayMode
+import com.sajda.app.domain.model.QuranReciter
 import com.sajda.app.ui.component.SajdaTopAction
 import com.sajda.app.ui.component.SajdaTopBar
 import com.sajda.app.ui.component.SanctuaryCard
+import com.sajda.app.ui.component.SectionHeader
 import com.sajda.app.ui.viewmodel.AppUpdateUiState
 import com.sajda.app.ui.viewmodel.SettingsViewModel
+import com.sajda.app.util.displayName
+import com.sajda.app.util.displayLabel
+import com.sajda.app.util.isEnglish
+import com.sajda.app.util.pick
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
@@ -55,7 +60,7 @@ fun SettingsScreen(
     onBack: (() -> Unit)? = null
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
-    val isEnglish = settings.appLanguage == AppLanguage.ENGLISH
+    val isEnglish = settings.appLanguage.isEnglish()
 
     androidx.compose.foundation.lazy.LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -64,23 +69,19 @@ fun SettingsScreen(
     ) {
         item {
             SajdaTopBar(
-                title = "NurApp",
-                subtitle = if (onBack != null) {
-                    if (isEnglish) "Settings" else "Pengaturan"
-                } else {
-                    null
-                },
-                leading = onBack?.let {
+                title = if (isEnglish) "Settings" else "Pengaturan",
+                subtitle = "NurApp",
+                leading = onBack?.let { backAction ->
                     {
                         SajdaTopAction(
                             icon = Icons.Rounded.ArrowBack,
-                            label = if (isEnglish) "Back" else "Kembali",
-                            onClick = it
+                            label = settings.pick("Kembali", "Back"),
+                            onClick = backAction
                         )
                     }
                 },
                 trailing = {
-                    androidx.compose.material3.Icon(
+                    Icon(
                         imageVector = Icons.Rounded.AccountCircle,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
@@ -90,34 +91,97 @@ fun SettingsScreen(
         }
 
         item {
-            SectionLabel(if (isEnglish) "Adhan & Notifications" else "Adzan & Notifikasi")
             SanctuaryCard {
+                SectionHeader(
+                    eyebrow = settings.pick("Adzan", "Adhan"),
+                    title = settings.pick("Suara, jadwal, dan perilaku alarm", "Sound, schedule, and alarm behavior")
+                )
                 ToggleRow(
-                    title = if (isEnglish) "Automatic Adhan" else "Suara Adzan",
-                    subtitle = settings.adzanSound.title,
+                    title = settings.pick("Adzan otomatis", "Automatic adhan"),
+                    subtitle = settings.pick("Aktifkan alarm adzan offline", "Enable offline adhan alarms"),
                     checked = settings.adzanEnabled,
                     onCheckedChange = viewModel::setAdzanEnabled
                 )
                 ActionRow(
-                    title = if (isEnglish) "Advanced Adhan Settings" else "Pengaturan Adzan Lengkap",
-                    subtitle = if (isEnglish) "Sound, snooze, vibration" else "Suara, snooze, getaran",
+                    title = settings.pick("Suara adzan reguler", "Regular adhan sound"),
+                    subtitle = settings.adzanSound.title,
                     onClick = onOpenAdhanSettings
                 )
-                SliderRow(
-                    title = if (isEnglish) "Notification Volume" else "Volume Notifikasi",
-                    value = settings.adhanSnoozeMinutes.toFloat(),
-                    valueRange = 5f..30f,
-                    onValueChange = { viewModel.setAdhanSnoozeMinutes(it.toInt()) }
+                ActionRow(
+                    title = settings.pick("Suara adzan Subuh", "Fajr adhan sound"),
+                    subtitle = settings.fajrAdzanSound.title,
+                    onClick = onOpenAdhanSettings
+                )
+                ActionRow(
+                    title = settings.pick("Pengaturan adzan lengkap", "Full adhan settings"),
+                    subtitle = settings.pick("Per-prayer toggle, getaran, snooze, dan diagnosa", "Per-prayer toggles, vibration, snooze, and diagnostics"),
+                    onClick = onOpenAdhanSettings
                 )
             }
         }
 
         item {
-            SectionLabel(if (isEnglish) "Appearance" else "Tampilan")
             SanctuaryCard {
+                SectionHeader(
+                    eyebrow = "Al-Qur'an",
+                    title = settings.pick("Bacaan, audio, dan qari", "Reading, audio, and reciters")
+                )
+                ActionRow(
+                    title = settings.pick("Mode terjemahan", "Translation mode"),
+                    subtitle = settings.quranReadingMode.displayLabel(settings.appLanguage),
+                    onClick = onOpenLanguageSettings
+                )
+                Text(
+                    text = settings.pick("Qari aktif", "Active reciter"),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    QuranReciter.entries.forEach { reciter ->
+                        ChoiceChip(
+                            label = reciter.title,
+                            selected = settings.selectedQuranReciter == reciter,
+                            onClick = { viewModel.setSelectedQuranReciter(reciter) }
+                        )
+                    }
+                }
+                ActionRow(
+                    title = settings.pick("Audio offline", "Offline audio"),
+                    subtitle = settings.pick("Kelola hasil unduhan murattal", "Manage downloaded murattal files"),
+                    onClick = onOpenAudioManagement
+                )
+            }
+        }
+
+        item {
+            SanctuaryCard {
+                SectionHeader(
+                    eyebrow = settings.pick("Bahasa & Tampilan", "Language & Appearance"),
+                    title = settings.pick("Rapikan pengalaman aplikasi", "Clean up the app experience")
+                )
+                Text(
+                    text = settings.pick("Bahasa aplikasi", "App language"),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AppLanguage.entries.forEach { language ->
+                        ChoiceChip(
+                            label = language.displayName(),
+                            selected = settings.appLanguage == language,
+                            onClick = { viewModel.setAppLanguage(language) }
+                        )
+                    }
+                }
                 ToggleRow(
-                    title = if (isEnglish) "Dark Mode" else "Mode Gelap",
-                    subtitle = if (isEnglish) "Follow your preference" else "Ikuti pengaturan sistem",
+                    title = settings.pick("Mode gelap", "Dark mode"),
+                    subtitle = settings.pick("Gunakan tampilan malam untuk aplikasi", "Use the darker app appearance"),
                     checked = settings.darkMode || settings.nightMode,
                     onCheckedChange = {
                         viewModel.setDarkMode(it)
@@ -125,88 +189,82 @@ fun SettingsScreen(
                     }
                 )
                 SliderRow(
-                    title = if (isEnglish) "Font Size" else "Ukuran Font",
+                    title = settings.pick("Ukuran font Arab", "Arabic font size"),
                     value = settings.arabicFontSize.toFloat(),
                     valueRange = 24f..40f,
                     onValueChange = { viewModel.setArabicFontSize(it.toInt()) }
                 )
                 ActionRow(
-                    title = if (isEnglish) "Appearance Details" else "Detail Tampilan",
-                    subtitle = if (isEnglish) "Theme, focus mode, spacing" else "Tema, mode fokus, spacing",
+                    title = settings.pick("Tampilan detail", "Appearance details"),
+                    subtitle = settings.pick("Spacing, fokus, dan opsi baca", "Spacing, focus mode, and reading options"),
                     onClick = onOpenAppearanceSettings
                 )
             }
         }
 
         item {
-            SectionLabel("Al-Qur'an")
             SanctuaryCard {
-                ActionRow(
-                    title = if (isEnglish) "Translation Type" else "Tipe Terjemahan",
-                    subtitle = when (settings.quranReadingMode) {
-                        QuranReadingMode.ARABIC_ONLY -> if (isEnglish) "Arabic Only" else "Arab Saja"
-                        QuranReadingMode.ARABIC_INDONESIAN -> if (isEnglish) "Arabic + Indonesian" else "Arab + Indonesia"
-                        QuranReadingMode.ARABIC_ENGLISH -> if (isEnglish) "Arabic + English" else "Arab + English"
-                        QuranReadingMode.ALL -> if (isEnglish) "Complete" else "Lengkap"
-                    },
-                    onClick = onOpenLanguageSettings
+                SectionHeader(
+                    eyebrow = settings.pick("Lokasi & Kalender", "Location & Calendar"),
+                    title = settings.pick("Waktu sholat dan tampilan tanggal", "Prayer times and calendar display")
                 )
-                ActionRow(
-                    title = if (isEnglish) "Audio Quality" else "Kualitas Audio",
-                    subtitle = if (isEnglish) "Standard (64 kbps)" else "Standar (64 kbps)",
-                    onClick = onOpenAudioManagement
-                )
-                ActionRow(
-                    title = if (isEnglish) "Select Qari" else "Pilih Qari",
-                    subtitle = when (settings.adzanSound) {
-                        AdhanStyle.MISHARY -> "Mishary Rashid Alafasy"
-                        AdhanStyle.ABDULBASET -> "Abdul Baset Abdussamad"
-                        AdhanStyle.MAKKAH -> "Makkah"
-                        AdhanStyle.MADINAH -> "Madinah"
-                        AdhanStyle.DEFAULT -> if (isEnglish) "System Default" else "Default Android"
-                    },
-                    onClick = onOpenAudioManagement
-                )
-            }
-        }
-
-        item {
-            SectionLabel(if (isEnglish) "Location & Time" else "Lokasi & Waktu")
-            SanctuaryCard {
                 ToggleRow(
-                    title = if (isEnglish) "Auto Detect Location" else "Deteksi Lokasi Otomatis",
+                    title = settings.pick("Deteksi lokasi otomatis", "Auto detect location"),
                     subtitle = settings.locationName,
                     checked = settings.autoLocation,
                     onCheckedChange = viewModel::setAutoLocation
                 )
                 ActionRow(
-                    title = if (isEnglish) "Calculation Method" else "Metode Perhitungan (Mazhab)",
+                    title = settings.pick("Metode perhitungan", "Calculation method"),
                     subtitle = "${settings.prayerCalculationMethod.label} • ${settings.asrMadhhab.label}",
                     onClick = onOpenLocationSettings
                 )
+                Text(
+                    text = settings.pick("Mode kalender", "Calendar mode"),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ChoiceChip(
+                        label = settings.pick("Hijriah", "Hijri"),
+                        selected = settings.calendarDisplayMode == CalendarDisplayMode.HIJRI,
+                        onClick = { viewModel.setCalendarDisplayMode(CalendarDisplayMode.HIJRI) }
+                    )
+                    ChoiceChip(
+                        label = settings.pick("Masehi", "Gregorian"),
+                        selected = settings.calendarDisplayMode == CalendarDisplayMode.GREGORIAN,
+                        onClick = { viewModel.setCalendarDisplayMode(CalendarDisplayMode.GREGORIAN) }
+                    )
+                }
             }
         }
 
         item {
-            SectionLabel(if (isEnglish) "Other" else "Lainnya")
             SanctuaryCard {
+                SectionHeader(
+                    eyebrow = settings.pick("Lainnya", "More"),
+                    title = settings.pick("Tools, update, dan produktivitas", "Tools, updates, and productivity")
+                )
                 ActionRow(
-                    title = if (isEnglish) "App Updates" else "Pembaruan Aplikasi",
+                    title = settings.pick("Pembaruan aplikasi", "App updates"),
                     subtitle = if (updateState.hasUpdate) {
-                        if (isEnglish) "Version ${updateState.latestVersionName} available" else "Versi ${updateState.latestVersionName} tersedia"
+                        settings.pick("Versi ${updateState.latestVersionName} tersedia", "Version ${updateState.latestVersionName} is available")
                     } else {
-                        if (isEnglish) "Already on the latest build" else "Sudah di versi terbaru"
+                        settings.pick("Sudah di versi terbaru", "Already on the latest version")
                     },
                     onClick = onOpenUpdateCenter
                 )
                 ActionRow(
-                    title = if (isEnglish) "Reminders & Goals" else "Reminder & Target",
-                    subtitle = if (isEnglish) "Daily routine and worship flow" else "Rutinitas harian dan progres ibadah",
+                    title = settings.pick("Reminder & target ibadah", "Reminder & worship goals"),
+                    subtitle = settings.pick("Atur rutinitas Qur'an dan dzikir", "Set Qur'an and dhikr routines"),
                     onClick = onOpenSmartReminders
                 )
                 ActionRow(
-                    title = if (isEnglish) "More Tools" else "Fitur Tambahan",
-                    subtitle = if (isEnglish) "Audio info, widget preview, and states" else "Info audio, pratinjau widget, dan empty state",
+                    title = settings.pick("Widget dan audio", "Widgets and audio"),
+                    subtitle = settings.pick("Info audio latar dan preview widget", "Background audio info and widget preview"),
                     onClick = onOpenBackgroundAudioInfo
                 )
             }
@@ -214,7 +272,7 @@ fun SettingsScreen(
 
         item {
             Text(
-                text = "NurApp Version ${BuildConfig.VERSION_NAME} (${if (updateState.hasUpdate) "Update Ready" else "Stable"})",
+                text = "NurApp ${BuildConfig.VERSION_NAME}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
@@ -222,16 +280,6 @@ fun SettingsScreen(
             )
         }
     }
-}
-
-@Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text = text.uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 4.dp)
-    )
 }
 
 @Composable
@@ -246,7 +294,10 @@ private fun ToggleRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        androidx.compose.foundation.layout.Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
             Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -261,7 +312,7 @@ private fun SliderRow(
     valueRange: ClosedFloatingPointRange<Float>,
     onValueChange: (Float) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    androidx.compose.foundation.layout.Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Slider(value = value, onValueChange = onValueChange, valueRange = valueRange)
     }
@@ -280,10 +331,17 @@ private fun ActionRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        androidx.compose.foundation.layout.Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
             Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        androidx.compose.material3.Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.outline)
+        Icon(
+            imageVector = Icons.Rounded.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.outline
+        )
     }
 }

@@ -161,9 +161,16 @@ class QuranRepository @Inject constructor(private val database: SajdaDatabase) {
         surahNumber: Int,
         isDownloaded: Boolean,
         localAudioPath: String?,
-        downloadedAt: Long?
+        downloadedAt: Long?,
+        downloadedReciterId: String?
     ) {
-        surahDao.updateAudioState(surahNumber, isDownloaded, localAudioPath, downloadedAt)
+        surahDao.updateAudioState(
+            surahNumber = surahNumber,
+            isDownloaded = isDownloaded,
+            localAudioPath = localAudioPath,
+            downloadedAt = downloadedAt,
+            downloadedReciterId = downloadedReciterId
+        )
     }
 
     suspend fun getLastDownloadedSurah(): Surah? = surahDao.getLastDownloadedSurah()?.toModel()
@@ -189,7 +196,8 @@ class QuranRepository @Inject constructor(private val database: SajdaDatabase) {
             audioUrl = audioUrl,
             isDownloaded = isDownloaded,
             localAudioPath = localAudioPath,
-            downloadedAt = downloadedAt
+            downloadedAt = downloadedAt,
+            downloadedReciterId = downloadedReciterId
         )
     }
 
@@ -204,7 +212,8 @@ class QuranRepository @Inject constructor(private val database: SajdaDatabase) {
             audioUrl = audioUrl,
             isDownloaded = isDownloaded,
             localAudioPath = localAudioPath,
-            downloadedAt = downloadedAt
+            downloadedAt = downloadedAt,
+            downloadedReciterId = downloadedReciterId
         )
     }
 

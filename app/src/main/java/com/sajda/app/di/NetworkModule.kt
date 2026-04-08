@@ -2,6 +2,7 @@ package com.sajda.app.di
 
 import com.sajda.app.BuildConfig
 import com.sajda.app.data.api.DuaApi
+import com.sajda.app.data.api.EquranApi
 import com.sajda.app.data.api.GithubUpdateApi
 import com.sajda.app.data.api.HadithApi
 import dagger.Module
@@ -31,6 +32,12 @@ object NetworkModule {
                 val request = chain.request().newBuilder()
                     .addHeader("Accept", "application/json")
                     .addHeader("User-Agent", "NurApp/${BuildConfig.VERSION_NAME}")
+                    .apply {
+                        if (BuildConfig.HADITH_API_KEY.isNotBlank()) {
+                            addHeader("x-api-key", BuildConfig.HADITH_API_KEY)
+                            addHeader("apikey", BuildConfig.HADITH_API_KEY)
+                        }
+                    }
                     .build()
                 chain.proceed(request)
             }
@@ -60,6 +67,10 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideDuaApi(retrofit: Retrofit): DuaApi = retrofit.create(DuaApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideEquranApi(retrofit: Retrofit): EquranApi = retrofit.create(EquranApi::class.java)
 
     @Provides
     @Singleton

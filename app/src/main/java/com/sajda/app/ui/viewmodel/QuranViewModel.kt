@@ -9,6 +9,7 @@ import com.sajda.app.domain.model.AudioDownloadState
 import com.sajda.app.domain.model.Ayat
 import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.Bookmark
+import com.sajda.app.domain.model.QuranReciter
 import com.sajda.app.domain.model.QuranReadingMode
 import com.sajda.app.domain.model.Surah
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,6 +27,7 @@ data class QuranUiState(
     val downloadStates: Map<Int, AudioDownloadState> = emptyMap(),
     val focusMode: Boolean = false,
     val appLanguage: AppLanguage = AppLanguage.INDONESIAN,
+    val selectedQuranReciter: QuranReciter = QuranReciter.MISYARI_RASYID_AL_AFASI,
     val quranReadingMode: QuranReadingMode = QuranReadingMode.ARABIC_INDONESIAN,
     val showTranslation: Boolean = true,
     val arabicOnly: Boolean = false,
@@ -93,6 +95,7 @@ class QuranViewModel @Inject constructor(
                     it.copy(
                         focusMode = settings.focusMode,
                         appLanguage = settings.appLanguage,
+                        selectedQuranReciter = settings.selectedQuranReciter,
                         quranReadingMode = settings.quranReadingMode,
                         showTranslation = settings.showTranslation,
                         arabicOnly = settings.arabicOnly,

@@ -15,7 +15,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         LastReadEntity::class,
         PrayerTimeEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class SajdaDatabase : RoomDatabase() {
@@ -44,6 +44,14 @@ abstract class SajdaDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE surah ADD COLUMN downloadedReciterId TEXT"
+                )
+            }
+        }
+
         @Volatile
         private var INSTANCE: SajdaDatabase? = null
 
@@ -54,7 +62,7 @@ abstract class SajdaDatabase : RoomDatabase() {
                     SajdaDatabase::class.java,
                     "sajda_database"
                 )
-                    .addMigrations(MIGRATION_2_3)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

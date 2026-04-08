@@ -28,7 +28,8 @@ interface SurahDao {
         UPDATE surah
         SET isDownloaded = :isDownloaded,
             localAudioPath = :localAudioPath,
-            downloadedAt = :downloadedAt
+            downloadedAt = :downloadedAt,
+            downloadedReciterId = :downloadedReciterId
         WHERE number = :surahNumber
         """
     )
@@ -36,7 +37,8 @@ interface SurahDao {
         surahNumber: Int,
         isDownloaded: Boolean,
         localAudioPath: String?,
-        downloadedAt: Long?
+        downloadedAt: Long?,
+        downloadedReciterId: String?
     )
 
     @Query("SELECT * FROM surah WHERE isDownloaded = 1 ORDER BY downloadedAt DESC LIMIT 1")

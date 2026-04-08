@@ -7,7 +7,20 @@ import com.sajda.app.domain.model.PrayerCalculationMethod
 import com.sajda.app.domain.model.QuranReadingMode
 import com.sajda.app.domain.model.UserSettings
 
-fun AppLanguage.isEnglish(): Boolean = this == AppLanguage.ENGLISH
+fun AppLanguage.isEnglish(): Boolean = this != AppLanguage.INDONESIAN
+
+fun AppLanguage.displayName(): String {
+    return when (this) {
+        AppLanguage.INDONESIAN -> "Indonesia"
+        AppLanguage.ENGLISH -> "English"
+        AppLanguage.ARABIC -> "Arabic"
+        AppLanguage.TURKISH -> "Turkish"
+        AppLanguage.URDU -> "Urdu"
+        AppLanguage.FRENCH -> "French"
+        AppLanguage.MALAY -> "Malay"
+        AppLanguage.HINDI -> "Hindi"
+    }
+}
 
 fun AppLanguage.pick(indonesian: String, english: String): String {
     return if (isEnglish()) english else indonesian

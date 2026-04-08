@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -26,6 +27,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -39,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import com.sajda.app.data.repository.TafsirRepository
 import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.Ayat
 import com.sajda.app.domain.model.CityPreset
@@ -47,6 +50,7 @@ import com.sajda.app.domain.model.HadithEntry
 import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.QuranReadingMode
 import com.sajda.app.domain.model.Surah
+import com.sajda.app.domain.model.TafsirEntry
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.ui.component.ArabicVerseText
 import com.sajda.app.ui.component.SanctuaryCard
@@ -244,28 +248,63 @@ fun TafsirScreen(
     surah: Surah,
     ayat: Ayat,
     appLanguage: AppLanguage,
+    tafsirRepository: TafsirRepository,
     onBack: () -> Unit
 ) {
-    val tafsirItems = remember(surah.number, ayat.id, appLanguage) {
-        SpiritualContent.buildTafsir(ayat, surah.transliteration, appLanguage)
+    val tafsirEntry by produceState(
+        initialValue = null as TafsirEntry?,
+        surah.number,
+        ayat.id,
+        appLanguage
+    ) {
+        value = tafsirRepository.getTafsirForAyat(
+            surahNumber = surah.number,
+            ayat = ayat,
+            appLanguage = appLanguage
+        )
     }
 
     OverlayShell(
-        title = appLanguage.pick("Tafsir Ringkas", "Light Tafsir"),
+        title = appLanguage.pick("Tafsir Al-Qur'an", "Qur'an Tafsir"),
         subtitle = "${surah.transliteration} - ${appLanguage.pick("Ayat", "Verse")} ${ayat.ayatNumber}",
         onBack = onBack
     ) {
         SanctuaryCard {
             ArabicVerseText(text = ayat.textArabic)
             Text(
-                text = if (appLanguage == AppLanguage.ENGLISH) ayat.englishTranslation.ifBlank { ayat.translation } else ayat.translation,
+                text = appLanguage.pick(ayat.translation, ayat.englishTranslation.ifBlank { ayat.translation }),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        tafsirItems.forEach { paragraph ->
+        if (tafsirEntry == null) {
             SanctuaryCard {
-                Text(text = paragraph, style = MaterialTheme.typography.bodyLarge)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                Text(
+                    text = appLanguage.pick("Sedang memuat tafsir penuh...", "Loading full tafsir..."),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        } else {
+            SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+                Text(
+                    text = tafsirEntry?.sourceName.orEmpty(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                if (!tafsirEntry?.sourceDescription.isNullOrBlank()) {
+                    Text(
+                        text = tafsirEntry?.sourceDescription.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            SanctuaryCard {
+                Text(
+                    text = tafsirEntry?.text.orEmpty(),
+                    style = MaterialTheme.typography.bodyLarge
+                )
             }
         }
     }
@@ -426,7 +465,12 @@ fun AdhanSettingsScreen(
         SanctuaryCard {
             SectionHeader(
                 eyebrow = settings.pick("Suara Adzan", "Adhan Audio"),
-                title = settings.pick("Pilih muadzin / gaya adzan", "Select adhan style")
+                title = settings.pick("Atur suara reguler dan Subuh secara terpisah", "Set regular and Fajr sounds separately")
+            )
+            Text(
+                text = settings.pick("Adzan reguler", "Regular adhan"),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
             )
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -442,8 +486,33 @@ fun AdhanSettingsScreen(
             }
             Text(
                 text = settings.pick(
-                    "Pilihan akan diterapkan pada adzan reguler maupun subuh (bila tersedia). Gunakan 'Tes Manual' di bawah untuk mengecek suara.",
-                    "The selected style applies to both regular and Fajr adhan (where available). Use 'Manual Test' below to preview the sound."
+                    "Suara ini dipakai untuk Dzuhur, Ashar, Maghrib, dan Isya.",
+                    "This sound is used for Dhuhr, Asr, Maghrib, and Isha."
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = settings.pick("Adzan Subuh", "Fajr adhan"),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                com.sajda.app.domain.model.AdhanStyle.entries.forEach { style ->
+                    ChoiceChip(
+                        label = style.title,
+                        selected = settings.fajrAdzanSound == style,
+                        onClick = { viewModel.setFajrAdzanSound(style) }
+                    )
+                }
+            }
+            Text(
+                text = settings.pick(
+                    "Suara ini khusus untuk Subuh agar bisa dibedakan dari jadwal lain.",
+                    "This sound is dedicated to Fajr so it can feel different from the other prayers."
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1111,10 +1180,7 @@ fun LanguageSettingsScreen(
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 AppLanguage.entries.forEach { language ->
                     ChoiceChip(
-                        label = when (language) {
-                            AppLanguage.INDONESIAN -> "Indonesia"
-                            AppLanguage.ENGLISH -> "English"
-                        },
+                        label = language.displayName(),
                         selected = settings.appLanguage == language,
                         onClick = { viewModel.setAppLanguage(language) }
                     )
@@ -1148,10 +1214,10 @@ fun LanguageSettingsScreen(
             )
             ArabicVerseText(text = "فَإِنَّ مَعَ الْعُسْرِ يُسْرًا", fontSize = 24)
             Text(
-                text = when (settings.appLanguage) {
-                    AppLanguage.INDONESIAN -> "Sesungguhnya bersama kesulitan ada kemudahan."
-                    AppLanguage.ENGLISH -> "Indeed, with hardship comes ease."
-                },
+                text = settings.pick(
+                    "Sesungguhnya bersama kesulitan ada kemudahan.",
+                    "Indeed, with hardship comes ease."
+                ),
                 style = MaterialTheme.typography.bodyLarge
             )
             if (settings.showTransliteration && settings.quranReadingMode != QuranReadingMode.ARABIC_ONLY) {

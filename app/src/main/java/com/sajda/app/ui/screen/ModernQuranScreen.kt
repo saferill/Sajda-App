@@ -2,10 +2,11 @@ package com.sajda.app.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,15 +18,20 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.ChevronLeft
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -42,29 +48,37 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.QuranReadingMode
+import com.sajda.app.domain.model.QuranReciter
 import com.sajda.app.domain.model.Surah
 import com.sajda.app.ui.component.ArabicVerseText
+import com.sajda.app.ui.component.MetadataChip
 import com.sajda.app.ui.component.SanctuaryCard
+import com.sajda.app.ui.component.SectionHeader
 import com.sajda.app.ui.theme.surfaceContainerLow
-import com.sajda.app.ui.theme.surfaceContainerLowest
 import com.sajda.app.ui.viewmodel.QuranViewModel
+import com.sajda.app.ui.viewmodel.SettingsViewModel
+import com.sajda.app.util.hasDownloadedAudioFor
+import com.sajda.app.util.isEnglish
+import com.sajda.app.util.pick
 
 private enum class QuranFilter { ALL, MAKKIYAH, MADANIYAH }
 
 private enum class ReaderMode { MUSHAF, TRANSLATION, TAFSIR }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ModernQuranScreen(
     viewModel: QuranViewModel,
+    settingsViewModel: SettingsViewModel,
     onPlayAudio: (Surah) -> Unit,
     onOpenBookmarks: () -> Unit,
     onOpenSearch: () -> Unit,
     onOpenTafsir: (Surah, com.sajda.app.domain.model.Ayat) -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val isEnglish = state.appLanguage == AppLanguage.ENGLISH
+    val isEnglish = state.appLanguage.isEnglish()
+    val selectedReciter = state.selectedQuranReciter
     var query by rememberSaveable { mutableStateOf("") }
     var filter by rememberSaveable { mutableStateOf(QuranFilter.ALL) }
     var readerMode by rememberSaveable(state.selectedSurah?.number) { mutableStateOf(ReaderMode.TRANSLATION) }
@@ -76,19 +90,19 @@ fun ModernQuranScreen(
         return
     }
 
-    val filtered = remember(state.surahList, query, filter) {
+    val filteredSurah = remember(state.surahList, query, filter) {
         state.surahList.filter { surah ->
-            val queryMatch = query.isBlank() ||
-                surah.transliteration.contains(query, true) ||
-                surah.translation.contains(query, true) ||
-                surah.englishTranslation.contains(query, true) ||
+            val matchesQuery = query.isBlank() ||
+                surah.transliteration.contains(query, ignoreCase = true) ||
+                surah.translation.contains(query, ignoreCase = true) ||
+                surah.englishTranslation.contains(query, ignoreCase = true) ||
                 surah.nameArabic.contains(query)
-            val filterMatch = when (filter) {
+            val matchesFilter = when (filter) {
                 QuranFilter.ALL -> true
                 QuranFilter.MAKKIYAH -> surah.revelationPlace.contains("meccan", true) || surah.revelationPlace.contains("mak", true)
                 QuranFilter.MADANIYAH -> surah.revelationPlace.contains("medinan", true) || surah.revelationPlace.contains("mad", true)
             }
-            queryMatch && filterMatch
+            matchesQuery && matchesFilter
         }
     }
 
@@ -96,7 +110,7 @@ fun ModernQuranScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 20.dp, top = 14.dp, end = 20.dp, bottom = 150.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
                 Row(
@@ -104,12 +118,22 @@ fun ModernQuranScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Al-Qur'an",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.ExtraBold
-                    )
+                    Column {
+                        Text(
+                            text = "Al-Qur'an",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = state.appLanguage.pick(
+                                "Murattal dengan banyak qari dan audio offline",
+                                "Multiple reciters with offline murattal audio"
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     Row {
                         IconButton(onClick = onOpenSearch) {
                             Icon(Icons.Rounded.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -122,32 +146,56 @@ fun ModernQuranScreen(
             }
 
             item {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                    placeholder = { Text(if (isEnglish) "Search surah or ayah..." else "Cari surah atau ayat...") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(22.dp)
-                )
-            }
-
-            item {
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    FilterChip("Semua", filter == QuranFilter.ALL) { filter = QuranFilter.ALL }
-                    FilterChip("Makkiyah", filter == QuranFilter.MAKKIYAH) { filter = QuranFilter.MAKKIYAH }
-                    FilterChip("Madaniyah", filter == QuranFilter.MADANIYAH) { filter = QuranFilter.MADANIYAH }
+                SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+                    SectionHeader(
+                        eyebrow = state.appLanguage.pick("Pencarian", "Search"),
+                        title = state.appLanguage.pick("Cari surah dan pilih qari", "Search surah and choose a reciter")
+                    )
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                        placeholder = {
+                            Text(
+                                if (isEnglish) "Search surah or meaning" else "Cari surah atau arti"
+                            )
+                        },
+                        singleLine = true
+                    )
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(state.appLanguage.pick("Semua", "All"), filter == QuranFilter.ALL) { filter = QuranFilter.ALL }
+                        FilterChip("Makkiyah", filter == QuranFilter.MAKKIYAH) { filter = QuranFilter.MAKKIYAH }
+                        FilterChip("Madaniyah", filter == QuranFilter.MADANIYAH) { filter = QuranFilter.MADANIYAH }
+                    }
+                    Text(
+                        text = state.appLanguage.pick("Pilih qari", "Choose reciter"),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        QuranReciter.entries.forEach { reciter ->
+                            ChoiceChip(
+                                label = reciter.title,
+                                selected = selectedReciter == reciter,
+                                onClick = { settingsViewModel.setSelectedQuranReciter(reciter) }
+                            )
+                        }
+                    }
                 }
             }
 
-            items(filtered, key = { it.number }) { surah ->
+            items(filteredSurah, key = { it.number }) { surah ->
+                val downloadState = state.downloadStates[surah.number]
+                val hasSelectedAudio = surah.hasDownloadedAudioFor(selectedReciter)
                 SanctuaryCard(
-                    modifier = Modifier.clickable { viewModel.openSurah(surah) },
-                    contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp)
+                    modifier = Modifier.clickable { viewModel.openSurah(surah) }
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -160,8 +208,8 @@ fun ModernQuranScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(RoundedCornerShape(12.dp))
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(14.dp))
                                     .background(MaterialTheme.colorScheme.surfaceContainerLow),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -171,32 +219,68 @@ fun ModernQuranScreen(
                                     color = MaterialTheme.colorScheme.primary
                                 )
                             }
-                            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(
                                     text = surah.transliteration,
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.ExtraBold
                                 )
                                 Text(
-                                    text = "${if (isEnglish) surah.englishTranslation.ifBlank { surah.translation } else surah.translation} • ${surah.totalVerses} ayat",
+                                    text = surah.nameArabic,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "${state.appLanguage.pick(surah.translation, surah.englishTranslation.ifBlank { surah.translation })} • ${surah.totalVerses} ${state.appLanguage.pick("ayat", "verses")}",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = surah.nameArabic,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                textAlign = TextAlign.End
-                            )
-                            Icon(
-                                imageVector = if (surah.isDownloaded) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
-                                contentDescription = null,
-                                tint = if (surah.isDownloaded) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant
-                            )
+                        Row {
+                            if (hasSelectedAudio) {
+                                IconButton(onClick = { onPlayAudio(surah) }) {
+                                    Icon(Icons.Rounded.Headphones, contentDescription = null)
+                                }
+                                IconButton(onClick = { viewModel.deleteAudio(surah.number) }) {
+                                    Icon(Icons.Rounded.Delete, contentDescription = null)
+                                }
+                            } else {
+                                IconButton(onClick = { viewModel.downloadAudio(surah) }) {
+                                    Icon(Icons.Rounded.Download, contentDescription = null)
+                                }
+                            }
                         }
+                    }
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        MetadataChip(text = selectedReciter.title, active = true)
+                        MetadataChip(
+                            text = if (hasSelectedAudio) {
+                                state.appLanguage.pick("Sudah diunduh", "Downloaded")
+                            } else {
+                                state.appLanguage.pick("Butuh unduhan", "Needs download")
+                            },
+                            active = hasSelectedAudio
+                        )
+                    }
+
+                    if (downloadState?.isDownloading == true) {
+                        LinearProgressIndicator(
+                            progress = downloadState.progress / 100f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            text = state.appLanguage.pick(
+                                "Mengunduh ${downloadState.progress}%",
+                                "Downloading ${downloadState.progress}%"
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
@@ -206,6 +290,9 @@ fun ModernQuranScreen(
         val bookmarkMap = remember(state.bookmarks, surah.number) {
             state.bookmarks.filter { it.surahNumber == surah.number }.associateBy { it.ayatNumber }
         }
+        val hasSelectedAudio = surah.hasDownloadedAudioFor(selectedReciter)
+        val downloadState = state.downloadStates[surah.number]
+
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 20.dp, top = 14.dp, end = 20.dp, bottom = 150.dp),
@@ -216,7 +303,7 @@ fun ModernQuranScreen(
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Top
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             IconButton(onClick = viewModel::closeSurah) {
@@ -229,32 +316,77 @@ fun ModernQuranScreen(
                                     fontWeight = FontWeight.ExtraBold
                                 )
                                 Text(
-                                    text = "${surah.totalVerses} ayat",
+                                    text = "${surah.totalVerses} ${state.appLanguage.pick("ayat", "verses")}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-                        IconButton(onClick = { onPlayAudio(surah) }) {
-                            Icon(Icons.Rounded.Bookmark, contentDescription = null)
+                        Row {
+                            if (hasSelectedAudio) {
+                                IconButton(onClick = { onPlayAudio(surah) }) {
+                                    Icon(Icons.Rounded.Headphones, contentDescription = null)
+                                }
+                                IconButton(onClick = { viewModel.deleteAudio(surah.number) }) {
+                                    Icon(Icons.Rounded.Delete, contentDescription = null)
+                                }
+                            } else {
+                                IconButton(onClick = { viewModel.downloadAudio(surah) }) {
+                                    Icon(Icons.Rounded.Download, contentDescription = null)
+                                }
+                            }
+                        }
+                    }
+
+                    Text(
+                        text = surah.nameArabic,
+                        style = MaterialTheme.typography.displaySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = state.appLanguage.pick(
+                            "Qari aktif: ${selectedReciter.title}",
+                            "Current reciter: ${selectedReciter.title}"
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        QuranReciter.entries.forEach { reciter ->
+                            ChoiceChip(
+                                label = reciter.title,
+                                selected = selectedReciter == reciter,
+                                onClick = { settingsViewModel.setSelectedQuranReciter(reciter) }
+                            )
                         }
                     }
 
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(24.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                            .background(MaterialTheme.colorScheme.background)
                             .padding(4.dp)
                     ) {
-                        FilterChip(if (isEnglish) "Mushaf" else "Mushaf", readerMode == ReaderMode.MUSHAF) {
+                        FilterChip(state.appLanguage.pick("Mushaf", "Mushaf"), readerMode == ReaderMode.MUSHAF) {
                             readerMode = ReaderMode.MUSHAF
                         }
-                        FilterChip(if (isEnglish) "Translation" else "Terjemahan", readerMode == ReaderMode.TRANSLATION) {
+                        FilterChip(state.appLanguage.pick("Terjemahan", "Translation"), readerMode == ReaderMode.TRANSLATION) {
                             readerMode = ReaderMode.TRANSLATION
                         }
                         FilterChip("Tafsir", readerMode == ReaderMode.TAFSIR) {
                             readerMode = ReaderMode.TAFSIR
                         }
+                    }
+
+                    if (downloadState?.isDownloading == true) {
+                        LinearProgressIndicator(
+                            progress = downloadState.progress / 100f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }
@@ -264,14 +396,16 @@ fun ModernQuranScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "بِسْمِ ٱللّٰهِ ٱلرَّحْمٰنِ ٱلرَّحِيْمِ",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                    ArabicVerseText(
+                        text = "بِسْمِ ٱللّٰهِ ٱلرَّحْمٰنِ ٱلرَّحِيمِ",
+                        fontSize = 30,
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = if (isEnglish) "In the name of Allah, Most Gracious, Most Merciful" else "Dengan nama Allah Yang Maha Pengasih lagi Maha Penyayang",
+                        text = state.appLanguage.pick(
+                            "Dengan nama Allah Yang Maha Pengasih lagi Maha Penyayang",
+                            "In the name of Allah, Most Compassionate, Most Merciful"
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -286,7 +420,7 @@ fun ModernQuranScreen(
                     containerColor = if (bookmarked) {
                         MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.18f)
                     } else {
-                        MaterialTheme.colorScheme.surfaceContainerLowest
+                        MaterialTheme.colorScheme.surfaceContainerLow
                     }
                 ) {
                     Row(
@@ -299,15 +433,17 @@ fun ModernQuranScreen(
                                 .size(36.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (bookmarked) MaterialTheme.colorScheme.primaryContainer
-                                    else MaterialTheme.colorScheme.surfaceContainerLow
+                                    if (bookmarked) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.background
+                                    }
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = ayat.ayatNumber.toString(),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = if (bookmarked) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                                style = MaterialTheme.typography.labelLarge
                             )
                         }
                         Row {
@@ -324,11 +460,25 @@ fun ModernQuranScreen(
                         }
                     }
 
-                    ArabicVerseText(text = ayat.textArabic, fontSize = if (readerMode == ReaderMode.MUSHAF) state.arabicFontSize + 6 else state.arabicFontSize)
+                    ArabicVerseText(
+                        text = ayat.textArabic,
+                        fontSize = if (readerMode == ReaderMode.MUSHAF) state.arabicFontSize + 4 else state.arabicFontSize
+                    )
+
+                    if (state.showTransliteration && state.quranReadingMode != QuranReadingMode.ARABIC_ONLY && ayat.transliteration.isNotBlank()) {
+                        Text(
+                            text = ayat.transliteration,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
 
                     if (readerMode != ReaderMode.MUSHAF && state.quranReadingMode != QuranReadingMode.ARABIC_ONLY) {
                         Text(
-                            text = if (isEnglish) ayat.englishTranslation.ifBlank { ayat.translation } else ayat.translation,
+                            text = state.appLanguage.pick(
+                                ayat.translation,
+                                ayat.englishTranslation.ifBlank { ayat.translation }
+                            ),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -336,7 +486,7 @@ fun ModernQuranScreen(
 
                     if (readerMode == ReaderMode.TAFSIR) {
                         Text(
-                            text = if (isEnglish) "Open quick tafsir" else "Buka tafsir ringkas",
+                            text = state.appLanguage.pick("Buka tafsir lengkap", "Open full tafsir"),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.clickable { onOpenTafsir(surah, ayat) }
@@ -358,6 +508,6 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
             .clip(RoundedCornerShape(18.dp))
             .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerLow)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .padding(horizontal = 14.dp, vertical = 10.dp)
     )
 }

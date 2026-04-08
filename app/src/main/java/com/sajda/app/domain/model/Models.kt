@@ -11,7 +11,8 @@ data class Surah(
     val audioUrl: String,
     val isDownloaded: Boolean = false,
     val localAudioPath: String? = null,
-    val downloadedAt: Long? = null
+    val downloadedAt: Long? = null,
+    val downloadedReciterId: String? = null
 )
 
 data class Ayat(
@@ -78,6 +79,27 @@ enum class AdhanStyle(
     companion object {
         fun fromId(id: String): AdhanStyle = entries.find { it.id == id } ?: DEFAULT
     }
+}
+
+enum class QuranReciter(
+    val id: String,
+    val title: String
+) {
+    ABDULLAH_AL_JUHANY("01", "Abdullah Al-Juhany"),
+    ABDUL_MUHSIN_AL_QASIM("02", "Abdul Muhsin Al-Qasim"),
+    ABDURRAHMAN_AS_SUDAIS("03", "Abdurrahman as-Sudais"),
+    IBRAHIM_AL_DOSSARI("04", "Ibrahim Al-Dossari"),
+    MISYARI_RASYID_AL_AFASI("05", "Misyari Rasyid Al-Afasi"),
+    YASSER_AL_DOSARI("06", "Yasser Al-Dosari");
+
+    companion object {
+        fun fromId(id: String): QuranReciter = entries.find { it.id == id } ?: MISYARI_RASYID_AL_AFASI
+    }
+}
+
+enum class CalendarDisplayMode {
+    HIJRI,
+    GREGORIAN
 }
 
 enum class PrayerCalculationMethod(
@@ -150,6 +172,9 @@ data class UserSettings(
     val latitude: Double = -6.2088,
     val longitude: Double = 106.8456,
     val adzanSound: AdhanStyle = AdhanStyle.DEFAULT,
+    val fajrAdzanSound: AdhanStyle = AdhanStyle.DEFAULT,
+    val selectedQuranReciter: QuranReciter = QuranReciter.MISYARI_RASYID_AL_AFASI,
+    val calendarDisplayMode: CalendarDisplayMode = CalendarDisplayMode.HIJRI,
     val prayerCalculationMethod: PrayerCalculationMethod = PrayerCalculationMethod.KEMENAG,
     val asrMadhhab: AsrMadhhab = AsrMadhhab.SHAFII,
     val lastPlayedSurah: Int = 0,
@@ -257,7 +282,13 @@ data class CityPreset(
 
 enum class AppLanguage {
     INDONESIAN,
-    ENGLISH
+    ENGLISH,
+    ARABIC,
+    TURKISH,
+    URDU,
+    FRENCH,
+    MALAY,
+    HINDI
 }
 
 enum class QuranReadingMode {
@@ -287,6 +318,29 @@ data class HadithEntry(
     val text: String,
     val arabicText: String = "",
     val sourceLabel: String = ""
+)
+
+enum class HadithBook(
+    val apiId: String,
+    val title: String
+) {
+    BUKHARI("bukhari", "Shahih Bukhari"),
+    MUSLIM("muslim", "Shahih Muslim"),
+    TIRMIDZI("tirmidzi", "Sunan Tirmidzi"),
+    NASAI("nasai", "Sunan Nasai"),
+    ABU_DAUD("abu-daud", "Sunan Abu Daud"),
+    IBNU_MAJAH("ibnu-majah", "Sunan Ibnu Majah"),
+    AHMAD("ahmad", "Musnad Ahmad"),
+    DARIMI("darimi", "Sunan Darimi"),
+    MALIK("malik", "Muwatha Malik");
+}
+
+data class TafsirEntry(
+    val surahNumber: Int,
+    val ayatNumber: Int,
+    val sourceName: String,
+    val sourceDescription: String = "",
+    val text: String
 )
 
 data class AdhanLogEntry(

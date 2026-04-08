@@ -14,7 +14,8 @@ data class SurahEntity(
     val audioUrl: String,
     val isDownloaded: Boolean = false,
     val localAudioPath: String? = null,
-    val downloadedAt: Long? = null
+    val downloadedAt: Long? = null,
+    val downloadedReciterId: String? = null
 )
 
 @Entity(tableName = "ayat")

@@ -6,10 +6,12 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.media.AudioFocusRequest
-import android.graphics.BitmapFactory
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
 import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.Drawable
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.MediaPlayer
@@ -321,7 +323,7 @@ class AdzanService : Service() {
             .setAutoCancel(!isPlaying)
             .setColor(Color.parseColor("#0F5238"))
             .setColorized(true)
-            .setLargeIcon(BitmapFactory.decodeResource(resources, R.drawable.sajda_logo_mark))
+            .setLargeIcon(renderBrandBitmap())
             .setCustomContentView(compactView)
             .setCustomBigContentView(expandedView)
             .setCustomHeadsUpContentView(compactView)
@@ -485,7 +487,7 @@ class AdzanService : Service() {
     private fun resolveAdzanAudio(prayerKey: String, settings: com.sajda.app.domain.model.UserSettings): AdzanAudioSource {
         val isFajr = prayerKey.equals(PrayerName.FAJR.key, ignoreCase = true)
         val preferredName = if (isFajr) {
-            settings.adzanSound.subuhResName
+            settings.fajrAdzanSound.subuhResName
         } else {
             settings.adzanSound.regularResName
         }
@@ -590,7 +592,7 @@ class AdzanService : Service() {
         val language = currentLanguage()
         val displayName = displayPrayerName(prayerName, language)
         return RemoteViews(packageName, R.layout.notification_adhan_compact).apply {
-            setImageViewResource(R.id.logoView, R.drawable.sajda_logo_mark)
+            setImageViewResource(R.id.logoView, R.drawable.nurapp_logo_mark)
             setTextViewText(R.id.badgeView, "ADHAN")
             setTextViewText(R.id.titleView, language.pick("Waktu $displayName", "$displayName time"))
             setTextViewText(R.id.statusView, statusLine)
@@ -609,7 +611,7 @@ class AdzanService : Service() {
         val displayName = displayPrayerName(prayerName, language)
         val locationLabel = resolveLocationLabel()
         return RemoteViews(packageName, R.layout.notification_adhan_expanded).apply {
-            setImageViewResource(R.id.logoView, R.drawable.sajda_logo_mark)
+            setImageViewResource(R.id.logoView, R.drawable.nurapp_logo_mark)
             setTextViewText(R.id.badgeView, "NURAPP")
             setTextViewText(R.id.titleView, language.pick("Waktu $displayName telah tiba", "$displayName time has arrived"))
             setTextViewText(R.id.metaView, currentPrayerTime.ifBlank { language.pick("Sekarang", "Now") })
@@ -630,6 +632,19 @@ class AdzanService : Service() {
                 }
             )
         }
+    }
+
+    private fun renderBrandBitmap(sizePx: Int = 192): Bitmap? {
+        val drawable = ContextCompat.getDrawable(this, R.drawable.nurapp_logo_mark) ?: return null
+        return drawable.toBitmap(sizePx, sizePx)
+    }
+
+    private fun Drawable.toBitmap(width: Int, height: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        setBounds(0, 0, width, height)
+        draw(canvas)
+        return bitmap
     }
 
     private fun requestAudioFocus() {

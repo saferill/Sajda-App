@@ -17,8 +17,10 @@ import com.sajda.app.domain.model.AdhanLogEntry
 import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.AsrMadhhab
 import com.sajda.app.domain.model.AdhanStyle
+import com.sajda.app.domain.model.CalendarDisplayMode
 import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.PrayerCalculationMethod
+import com.sajda.app.domain.model.QuranReciter
 import com.sajda.app.domain.model.QuranReadingMode
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.util.DateTimeUtils
@@ -54,6 +56,9 @@ class PreferencesDataStore(private val context: Context) {
         private val LONGITUDE = doublePreferencesKey("longitude")
         private val LOCATION = stringPreferencesKey("location")
         private val ADZAN_SOUND = stringPreferencesKey("adzan_sound")
+        private val FAJR_ADZAN_SOUND = stringPreferencesKey("fajr_adzan_sound")
+        private val QURAN_RECITER = stringPreferencesKey("quran_reciter")
+        private val CALENDAR_DISPLAY_MODE = stringPreferencesKey("calendar_display_mode")
         private val PRAYER_CALCULATION_METHOD = stringPreferencesKey("prayer_calculation_method")
         private val ASR_MADHHAB = stringPreferencesKey("asr_madhhab")
         private val LAST_PLAYED_SURAH = intPreferencesKey("last_played_surah")
@@ -112,6 +117,12 @@ class PreferencesDataStore(private val context: Context) {
             latitude = preferences[LATITUDE] ?: LocationConstants.DEFAULT_LATITUDE,
             longitude = preferences[LONGITUDE] ?: LocationConstants.DEFAULT_LONGITUDE,
             adzanSound = preferences[ADZAN_SOUND]?.let { AdhanStyle.fromId(it) } ?: AdhanStyle.DEFAULT,
+            fajrAdzanSound = preferences[FAJR_ADZAN_SOUND]?.let { AdhanStyle.fromId(it) } ?: AdhanStyle.DEFAULT,
+            selectedQuranReciter = preferences[QURAN_RECITER]?.let { QuranReciter.fromId(it) }
+                ?: QuranReciter.MISYARI_RASYID_AL_AFASI,
+            calendarDisplayMode = preferences[CALENDAR_DISPLAY_MODE]?.let {
+                runCatching { CalendarDisplayMode.valueOf(it) }.getOrDefault(CalendarDisplayMode.HIJRI)
+            } ?: CalendarDisplayMode.HIJRI,
             prayerCalculationMethod = preferences[PRAYER_CALCULATION_METHOD]?.let {
                 runCatching { PrayerCalculationMethod.valueOf(it) }.getOrDefault(PrayerCalculationMethod.KEMENAG)
             } ?: PrayerCalculationMethod.KEMENAG,
@@ -225,6 +236,16 @@ class PreferencesDataStore(private val context: Context) {
     }
 
     suspend fun setAdzanSound(style: AdhanStyle) = context.dataStore.edit { it[ADZAN_SOUND] = style.id }
+
+    suspend fun setFajrAdzanSound(style: AdhanStyle) = context.dataStore.edit { it[FAJR_ADZAN_SOUND] = style.id }
+
+    suspend fun setSelectedQuranReciter(reciter: QuranReciter) = context.dataStore.edit {
+        it[QURAN_RECITER] = reciter.id
+    }
+
+    suspend fun setCalendarDisplayMode(mode: CalendarDisplayMode) = context.dataStore.edit {
+        it[CALENDAR_DISPLAY_MODE] = mode.name
+    }
 
     suspend fun setPrayerCalculationMethod(method: PrayerCalculationMethod) = context.dataStore.edit {
         it[PRAYER_CALCULATION_METHOD] = method.name

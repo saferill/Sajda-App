@@ -15,8 +15,8 @@ configurations.all {
     )
 }
 
-val appVersionCode = 5
-val appVersionName = "1.1.3"
+val appVersionCode = 6
+val appVersionName = "1.2.0"
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("keystore.properties")

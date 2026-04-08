@@ -33,7 +33,7 @@ import com.sajda.app.ui.theme.surfaceContainerLow
 fun OverlayShell(
     title: String,
     subtitle: String? = null,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -41,8 +41,10 @@ fun OverlayShell(
         SajdaTopBar(
             title = title,
             subtitle = subtitle,
-            leading = {
-                SajdaTopAction(Icons.Rounded.ArrowBack, "Kembali", onBack)
+            leading = onBack?.let { backAction ->
+                {
+                    SajdaTopAction(Icons.Rounded.ArrowBack, "Kembali", backAction)
+                }
             },
             trailing = trailing
         )

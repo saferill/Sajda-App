@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.sajda.app.domain.model.AppLanguage
+import com.sajda.app.domain.model.CalendarDisplayMode
 import com.sajda.app.domain.model.HadithEntry
 import com.sajda.app.domain.model.PrayerTime
 import com.sajda.app.domain.model.UserSettings
@@ -50,6 +51,7 @@ import com.sajda.app.util.currentHijriSummary
 import com.sajda.app.util.daysUntil
 import com.sajda.app.util.hijriRangeLabel
 import com.sajda.app.util.hijriWeekdayHeaders
+import com.sajda.app.util.isEnglish
 import com.sajda.app.util.nextRamadanStart
 import com.sajda.app.util.ramadanProgress
 import com.sajda.app.util.upcomingIslamicEvents
@@ -234,20 +236,41 @@ private fun HadithCard(index: Int, hadith: HadithEntry) {
 @Composable
 fun IslamicCalendarScreen(
     appLanguage: AppLanguage,
-    onBack: () -> Unit
+    displayMode: CalendarDisplayMode,
+    onDisplayModeChange: (CalendarDisplayMode) -> Unit,
+    onBack: (() -> Unit)? = null
 ) {
-    val isEnglish = appLanguage == AppLanguage.ENGLISH
+    val isEnglish = appLanguage.isEnglish()
     var monthOffset by rememberSaveable { mutableIntStateOf(0) }
     val month = remember(monthOffset) { YearMonth.now().plusMonths(monthOffset.toLong()) }
     val cells = remember(month) { buildHijriCalendarCells(month) }
     val events = remember(month, appLanguage) { upcomingIslamicEvents(appLanguage) }
 
     OverlayShell(
-        title = if (isEnglish) "Islamic Calendar" else "Kalender Hijriah",
+        title = if (displayMode == CalendarDisplayMode.HIJRI) {
+            if (isEnglish) "Hijri Calendar" else "Kalender Hijriah"
+        } else {
+            if (isEnglish) "Gregorian Calendar" else "Kalender Masehi"
+        },
         subtitle = hijriRangeLabel(appLanguage, month),
         onBack = onBack
     ) {
         SanctuaryCard {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ChoiceChip(
+                    label = if (isEnglish) "Hijri" else "Hijriah",
+                    selected = displayMode == CalendarDisplayMode.HIJRI,
+                    onClick = { onDisplayModeChange(CalendarDisplayMode.HIJRI) }
+                )
+                ChoiceChip(
+                    label = if (isEnglish) "Gregorian" else "Masehi",
+                    selected = displayMode == CalendarDisplayMode.GREGORIAN,
+                    onClick = { onDisplayModeChange(CalendarDisplayMode.GREGORIAN) }
+                )
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -278,7 +301,7 @@ fun IslamicCalendarScreen(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     repeat(7) { col ->
                         val cell = cells[row * 7 + col]
-                        CalendarCell(cell, appLanguage)
+                        CalendarCell(cell, appLanguage, displayMode)
                     }
                 }
             }
@@ -319,7 +342,8 @@ fun IslamicCalendarScreen(
 @Composable
 private fun RowScope.CalendarCell(
     cell: com.sajda.app.util.HijriCalendarCell,
-    appLanguage: AppLanguage
+    appLanguage: AppLanguage,
+    displayMode: CalendarDisplayMode
 ) {
     Column(
         modifier = Modifier
@@ -337,12 +361,20 @@ private fun RowScope.CalendarCell(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = cell.gregorianDay.toString(),
-            style = MaterialTheme.typography.labelLarge,
+            text = if (displayMode == CalendarDisplayMode.HIJRI) {
+                cell.hijriDay.toString()
+            } else {
+                cell.gregorianDay.toString()
+            },
+            style = MaterialTheme.typography.titleMedium,
             color = if (cell.isCurrentMonth) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outlineVariant
         )
         Text(
-            text = cell.hijriDay.toString(),
+            text = if (displayMode == CalendarDisplayMode.HIJRI) {
+                cell.gregorianDay.toString()
+            } else {
+                cell.hijriDay.toString()
+            },
             style = MaterialTheme.typography.labelSmall,
             color = if (cell.isCurrentMonth) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
         )
@@ -356,9 +388,9 @@ fun RamadanModeScreen(
     prayerTime: PrayerTime?,
     onOpenPrayer: () -> Unit,
     onOpenQuran: () -> Unit,
-    onBack: () -> Unit
+    onBack: (() -> Unit)? = null
 ) {
-    val isEnglish = settings.appLanguage == AppLanguage.ENGLISH
+    val isEnglish = settings.appLanguage.isEnglish()
     val today = LocalDate.now()
     val progress = ramadanProgress(today)
 

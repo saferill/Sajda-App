@@ -124,11 +124,10 @@ fun SajdaLogoTile(
             ),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = Icons.Rounded.Mosque,
+        Image(
+            painter = painterResource(R.drawable.nurapp_logo_mark),
             contentDescription = "NurApp",
-            tint = MaterialTheme.colorScheme.secondaryContainer,
-            modifier = Modifier.size((size * 0.52f).dp)
+            modifier = Modifier.size((size * 0.56f).dp)
         )
     }
 }
@@ -240,11 +239,10 @@ fun AnimatedSajdaSplashOverlay(
                         .clip(RoundedCornerShape(52.dp))
                         .background(Color.White.copy(alpha = 0.12f))
                 )
-                Icon(
-                    imageVector = Icons.Rounded.Mosque,
+                Image(
+                    painter = painterResource(R.drawable.nurapp_logo_mark),
                     contentDescription = "NurApp",
-                    tint = Color(0xFFFFB16A),
-                    modifier = Modifier.size(88.dp)
+                    modifier = Modifier.size(96.dp)
                 )
             }
             Text(

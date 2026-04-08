@@ -58,7 +58,10 @@ object Constants {
         return "https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/$paddedNumber.mp3"
     }
 
-    fun formatAudioFileName(surahNumber: Int): String = "surah_${surahNumber.toString().padStart(3, '0')}.mp3"
+    fun formatAudioFileName(surahNumber: Int, reciterId: String = "05"): String {
+        val paddedNumber = surahNumber.toString().padStart(3, '0')
+        return "surah_${paddedNumber}_$reciterId.mp3"
+    }
 }
 
 object LocationConstants {
