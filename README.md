@@ -1,86 +1,100 @@
 <p align="center">
-  <img src="app/src/main/res/drawable-nodpi/sajda_logo_full.png" alt="NurApp" width="220" />
+  <img src="docs/nurapp-logo.svg" alt="NurApp logo" width="180" />
 </p>
 
 <h1 align="center">NurApp</h1>
 
 <p align="center">
-  A modern Islamic Android app for Qur'an reading, prayer times, adhan alerts, qibla, and daily spiritual content.
+  A modern Islamic Android app for Qur'an reading, adhan reminders, hadith search, Ramadan tools, and daily worship.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Kotlin-Native%20Android-0F5238?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin Native Android" />
   <img src="https://img.shields.io/badge/Jetpack-Compose-2D6A4F?style=for-the-badge&logo=jetpackcompose&logoColor=white" alt="Jetpack Compose" />
-  <img src="https://img.shields.io/badge/Hilt-Room%20%2B%20DataStore-D6B66A?style=for-the-badge&logo=google&logoColor=1A1A1A" alt="Hilt Room DataStore" />
-  <img src="https://img.shields.io/badge/Offline-First-4B6359?style=for-the-badge&logo=android&logoColor=white" alt="Offline First" />
+  <img src="https://img.shields.io/badge/Hilt-Retrofit%20%2B%20Room-D6B66A?style=for-the-badge&logo=google&logoColor=1A1A1A" alt="Hilt Retrofit Room" />
+  <img src="https://img.shields.io/badge/Media3-Offline%20Audio-4B6359?style=for-the-badge&logo=android&logoColor=white" alt="Media3 Offline Audio" />
 </p>
 
 <p align="center">
-  <a href="https://github.com/saferill/Sajda-App/releases/tag/v1.1.3">
-    <img src="https://img.shields.io/badge/Latest%20Release-v1.1.3-0F5238?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v1.1.3" />
+  <a href="https://github.com/saferill/Sajda-App/releases/tag/v1.2.0">
+    <img src="https://img.shields.io/badge/Latest%20Release-v1.2.0-0F5238?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release v1.2.0" />
   </a>
-  <a href="https://github.com/saferill/Sajda-App/releases/download/v1.1.3/NurApp-v1.1.3.apk">
-    <img src="https://img.shields.io/badge/Download%20APK-NurApp%20v1.1.3-D6B66A?style=for-the-badge&logo=android&logoColor=1A1A1A" alt="Download NurApp v1.1.3 APK" />
+  <a href="https://github.com/saferill/Sajda-App/releases/download/v1.2.0/NurApp-v1.2.0.apk">
+    <img src="https://img.shields.io/badge/Download%20APK-NurApp%20v1.2.0-D6B66A?style=for-the-badge&logo=android&logoColor=1A1A1A" alt="Download NurApp v1.2.0 APK" />
   </a>
 </p>
 
-## About
+## Overview
 
-NurApp is the current product name of this project. The repository name and Android package still use the older `Sajda App` / `com.sajda.app` identifiers for continuity with the existing codebase, signing setup, and release history.
+NurApp is the current product direction for this repository. The GitHub repo name and Android package still use the older `Sajda App` and `com.sajda.app` identifiers to preserve signing, package continuity, and existing release history.
 
-The app is built as an offline-first Android experience: core Qur'an reading, bookmarks, reading progress, downloaded audio, and scheduled prayer reminders remain available locally, while spiritual content and update checks can refresh from remote sources when the network is available.
+The app is built as an offline-first Android experience. Core worship flows such as Qur'an reading, bookmarks, downloaded audio, and scheduled adhan alerts remain usable locally, while hadith, doa, tafsir, prayer data, and release checks can refresh from public APIs when the network is available.
 
-## Current Feature Set
+## Current Experience
 
-### Home and Navigation
+### Main Navigation
 
-- Five-tab shell: Home, Qur'an, Prayer, Qibla, More
-- Onboarding flow for first-time setup
-- Floating mini player for ongoing audio playback
-- Overlay-based secondary screens instead of fragmented multi-activity navigation
+- Six bottom tabs: Beranda, Qur'an, Adzan, Hadist, Ramadhan, Pengaturan
+- Home dashboard with quick access to calendar and qibla from the top-right area
+- Overlay-based secondary flows instead of fragmented multi-activity navigation
+- Floating mini-player for active Qur'an audio playback
 
-### Qur'an Experience
+### Home
+
+- Daily worship summary and quick actions
+- Calendar panel with Hijri or Gregorian toggle
+- Qibla compass shortcut beside the calendar entry point
+- Prayer highlights, recent reading, and shortcut cards
+
+### Qur'an
 
 - Local Qur'an database seeded from bundled assets
-- Surah list and detailed reading screen
-- Arabic text, translation, and reading controls
-- Search across Qur'an content
-- Last-read tracking and bookmarks
-- Tafsir overlay flow from the current reader experience
-- Per-surah audio download and playback support
+- Surah reading with Arabic text, translation, bookmarks, and progress tracking
+- Multiple qari choices for streaming and download
+- Per-surah audio actions for play, download, and local removal
+- Tafsir access with full tafsir content, not shortened summaries
+- Search and reader overlay flows integrated into the main Qur'an experience
 
-### Prayer and Adhan
+### Adzan
 
-- Prayer times with automatic or saved location
-- Weekly prayer schedule and qibla screen
-- Per-prayer adhan preferences and manual adhan testing
-- Exact alarm scheduling with boot reschedule support
-- Foreground adhan playback service
-- Device-focused reliability improvements:
-  - wake lock during alarm handling
-  - duplicate playback guard
-  - fallback alert if the adhan service fails to start
-  - emergency next-day fallback scheduling if repair fails
-  - notification permission and battery-related guidance flows
+- Prayer times using saved or detected location
+- Stronger exact-alarm scheduling and reboot rescheduling
+- Foreground adhan playback service with duplicate-playback guard
+- Fallback alert if the adhan service fails to start
+- Emergency next-day fallback scheduling if normal repair fails
+- Separate adhan sound selection for regular prayers and Subuh
 
-### Spiritual Content
+### Hadith and Spiritual Content
 
-- Daily dua screen
-- Hadith library screen
-- Islamic calendar and Ramadan mode screens
-- Mixed remote/offline content strategy
-- Remote content sources currently integrated in the app:
-  - `EQuran.id`
-  - `MyQuran`
-  - `Hadith Gading`
+- Hadith search screen with kitab selection
+- Hadith data sourced from public API integrations
+- Daily doa content and remote/offline fallback strategy
+- Tafsir and supporting Islamic content sourced from integrated APIs
 
-### Settings and Utilities
+### Ramadan and Utilities
 
-- Appearance, language, and location settings
-- Adhan sound selection and playback controls
-- Downloaded audio management
-- Widget preview screen
-- Update center screen with GitHub release checks
+- Ramadan screen and supporting Islamic calendar flow
+- Update center with GitHub release checks
+- Widget and playback utility flows
+
+### Settings
+
+- Language preferences for app UI
+- Adhan voice settings for regular prayers and Subuh
+- Audio and qari preferences
+- Appearance, location, and playback-related settings
+
+## Data Sources
+
+The app currently integrates or is prepared for these public sources:
+
+- `AlQuran Cloud`
+- `EQuran.id`
+- `MyQuran`
+- `Hadith Gading`
+- `Quran.com` tafsir endpoints
+
+Additional source notes are documented in [docs/CONTENT_SOURCES.md](docs/CONTENT_SOURCES.md).
 
 ## Tech Stack
 
@@ -93,13 +107,13 @@ The app is built as an offline-first Android experience: core Qur'an reading, bo
 | Local Data | Room |
 | Preferences | DataStore |
 | Networking | Retrofit + Gson + OkHttp |
-| Audio | Media3 / ExoPlayer + Android media APIs |
+| Audio | Media3 / ExoPlayer |
 | Background Work | Foreground Service, AlarmManager, WorkManager |
 
 ## Build Requirements
 
 - Android Studio with Android SDK installed
-- JDK 17
+- JDK 17 or JDK 21
 - Android SDK platform available for `compileSdk = 36`
 - Existing signing config in `keystore.properties` for release builds
 
@@ -115,39 +129,38 @@ dua.content.url=https://raw.githubusercontent.com/wafaaelmaandy/Hisn-Muslim-Json
 
 If you do not override them, the app uses the defaults defined in [app/build.gradle.kts](app/build.gradle.kts).
 
-## Getting Started
+## Build
 
-### Debug build
+### Debug
 
 ```bash
 ./gradlew assembleDebug
 ```
 
-Debug APK output:
+Debug APK:
 
 ```text
 app/build/outputs/apk/debug/app-debug.apk
 ```
 
-### Release build
+### Release
 
-Release builds require the existing signing setup in `keystore.properties`.
+Release builds require the signing setup in `keystore.properties`.
 
 ```bash
 ./gradlew assembleRelease
 ```
 
-Release APK output:
+Release APK:
 
 ```text
-app/build/outputs/apk/release/NurApp-v1.1.3.apk
+app/build/outputs/apk/release/NurApp-v1.2.0.apk
 ```
 
 ## Latest Release
 
-- Release page: [v1.1.3](https://github.com/saferill/Sajda-App/releases/tag/v1.1.3)
-- Direct APK: [NurApp-v1.1.3.apk](https://github.com/saferill/Sajda-App/releases/download/v1.1.3/NurApp-v1.1.3.apk)
-- Changelog: [CHANGELOG.md](CHANGELOG.md)
+- Release page: [v1.2.0](https://github.com/saferill/Sajda-App/releases/tag/v1.2.0)
+- Direct APK: [NurApp-v1.2.0.apk](https://github.com/saferill/Sajda-App/releases/download/v1.2.0/NurApp-v1.2.0.apk)
 
 ## Project Structure
 
@@ -189,23 +202,9 @@ app/src/main/
 | `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Guidance for stronger reminder reliability |
 | `RECEIVE_BOOT_COMPLETED` | Reschedule alarms after reboot |
 
-## Development Notes
-
-- The codebase is actively evolving from the original Sajda App foundation into the current NurApp product direction.
-- Core worship flows are intended to stay useful without forcing account creation or cloud sync.
-- Remote content is used as an enhancement layer, not as a hard dependency for the entire app.
-
 ## Contributing
 
 Contribution guidelines are available in [CONTRIBUTING.md](CONTRIBUTING.md).
-
-Useful contribution areas:
-
-- Adhan reliability across more devices
-- Compose UI polish and cleanup
-- Qur'an reader improvements
-- Qibla, prayer, and location UX refinement
-- Documentation and release process improvements
 
 ## License
 

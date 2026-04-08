@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">NurApp Logo</title>
+  <desc id="desc">Teal and gold droplet-inspired NurApp mark.</desc>
+  <path fill="#E8B86B" d="M256 44c-44 52-102 100-120 184v136c0 78 50 130 120 148 70-18 120-70 120-148V228c-18-84-76-132-120-184Z"/>
+  <path fill="#FFF5DD" d="m256 96 38 36-38 36-38-36Z"/>
+  <path fill="#0A3A3D" d="M256 156c-30 34-60 78-60 142 0 58 22 110 60 150 38-40 60-92 60-150 0-64-30-108-60-142Z"/>
+  <path fill="#2F7B80" fill-opacity=".35" d="M256 198c-20 28-36 60-36 106 0 40 12 74 36 102 24-28 36-62 36-102 0-46-16-78-36-106Z"/>
+</svg>
