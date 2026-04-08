@@ -42,6 +42,7 @@ class AdzanService : Service() {
     private var fallbackRingtone: android.media.Ringtone? = null
     private var audioFocusRequest: AudioFocusRequest? = null
     private var currentPrayerName: String = "Subuh"
+    private var currentPrayerKey: String = "fajr"
     private var currentPrayerTime: String = ""
     private var currentPrayerDate: String = ""
     private var currentLocationName: String = ""
@@ -59,25 +60,33 @@ class AdzanService : Service() {
             }
             Constants.ACTION_SNOOZE_ADZAN -> {
                 currentPrayerName = intent.getStringExtra(Constants.EXTRA_PRAYER_NAME) ?: currentPrayerName
-                snoozeAdzan(currentPrayerName, intent.getIntExtra(Constants.EXTRA_SNOOZE_MINUTES, 10))
+                currentPrayerKey = intent.getStringExtra(Constants.EXTRA_PRAYER_KEY) ?: currentPrayerKey
+                snoozeAdzan(currentPrayerName, currentPrayerKey, intent.getIntExtra(Constants.EXTRA_SNOOZE_MINUTES, 10))
                 return START_NOT_STICKY
             }
             else -> {
                 currentPrayerName = intent?.getStringExtra(Constants.EXTRA_PRAYER_NAME) ?: PrayerName.FAJR.label
+                currentPrayerKey = intent?.getStringExtra(Constants.EXTRA_PRAYER_KEY) ?: PrayerName.FAJR.key
                 currentPrayerTime = intent?.getStringExtra(Constants.EXTRA_PRAYER_TIME).orEmpty()
                 currentPrayerDate = intent?.getStringExtra(Constants.EXTRA_PRAYER_DATE).orEmpty()
                 currentLocationName = intent?.getStringExtra(Constants.EXTRA_LOCATION_NAME).orEmpty()
+                if (isServiceRunning) {
+                    Log.d(TAG, "Ignoring duplicate adhan start for $currentPrayerName at $currentPrayerTime")
+                    return START_NOT_STICKY
+                }
+                isServiceRunning = true
                 if (currentLocationName.isBlank()) {
                     currentLocationName = resolveLocationLabel()
                 }
                 startForeground(Constants.ADZAN_NOTIFICATION_ID, createNotification(currentPrayerName))
-                triggerAdzan(currentPrayerName)
+                triggerAdzan(currentPrayerName, currentPrayerKey)
                 return START_REDELIVER_INTENT
             }
         }
     }
 
     override fun onDestroy() {
+        isServiceRunning = false
         releasePlayer()
         releaseFallbackRingtone()
         abandonAudioFocus()
@@ -86,7 +95,7 @@ class AdzanService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun triggerAdzan(prayerName: String) {
+    private fun triggerAdzan(prayerName: String, prayerKey: String) {
         val preferencesDataStore = PreferencesDataStore(this@AdzanService)
         val settings = runBlocking { preferencesDataStore.settingsFlow.first() }
         currentLocationName = currentLocationName.ifBlank { resolveLocationLabel(settings) }
@@ -121,7 +130,7 @@ class AdzanService : Service() {
         }
 
         releasePlayer()
-        val audioSource = resolveAdzanAudio(prayerName)
+        val audioSource = resolveAdzanAudio(prayerKey, settings)
         val adzanUri = audioSource.uri ?: run {
             playShortFallbackAlert(prayerName, "Sumber audio tidak ditemukan")
             return
@@ -210,6 +219,7 @@ class AdzanService : Service() {
         val openAppIntent = Intent(this, MainActivity::class.java).apply {
             action = Constants.ACTION_OPEN_PRAYER_TAB
             putExtra(Constants.EXTRA_OPEN_TAB, "prayer")
+            putExtra("is_adhan", true)
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val pendingIntent = PendingIntent.getActivity(
@@ -240,6 +250,7 @@ class AdzanService : Service() {
         val snoozeIntent = Intent(this, AdzanService::class.java).apply {
             action = Constants.ACTION_SNOOZE_ADZAN
             putExtra(Constants.EXTRA_PRAYER_NAME, prayerName)
+            putExtra(Constants.EXTRA_PRAYER_KEY, currentPrayerKey)
             putExtra(Constants.EXTRA_SNOOZE_MINUTES, snoozeMinutes)
         }
         val snoozePendingIntent = PendingIntent.getService(
@@ -284,6 +295,19 @@ class AdzanService : Service() {
             soundDisabled = soundDisabled
         )
 
+        val fullScreenIntent = Intent(this, MainActivity::class.java).apply {
+            action = Constants.ACTION_OPEN_PRAYER_TAB
+            putExtra(Constants.EXTRA_OPEN_TAB, "prayer")
+            putExtra("is_adhan", true)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val fullScreenPendingIntent = PendingIntent.getActivity(
+            this,
+            205,
+            fullScreenIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         return NotificationCompat.Builder(this, Constants.ADZAN_NOTIFICATION_CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(language.pick("Waktu $displayName telah tiba", "$displayName time has arrived"))
@@ -324,6 +348,7 @@ class AdzanService : Service() {
                     stopPendingIntent
                 )
             )
+            .setFullScreenIntent(fullScreenPendingIntent, true)
             .build()
     }
 
@@ -332,10 +357,10 @@ class AdzanService : Service() {
             val manager = getSystemService(NotificationManager::class.java)
             val channel = NotificationChannel(
                 Constants.ADZAN_NOTIFICATION_CHANNEL,
-                "Sajda Adhan",
+                "NurApp Adhan",
                 NotificationManager.IMPORTANCE_HIGH
             )
-            channel.description = "Sajda adhan alerts and controls"
+            channel.description = "NurApp adhan alerts and controls"
             channel.enableVibration(true)
             channel.vibrationPattern = longArrayOf(0, 250, 180, 250, 180, 300)
             channel.lockscreenVisibility = Notification.VISIBILITY_PUBLIC
@@ -382,7 +407,7 @@ class AdzanService : Service() {
         stopSelf()
     }
 
-    private fun snoozeAdzan(prayerName: String, minutes: Int) {
+    private fun snoozeAdzan(prayerName: String, prayerKey: String, minutes: Int) {
         val safeMinutes = minutes.coerceIn(5, 30)
         runBlocking {
             PreferencesDataStore(this@AdzanService).updateAdhanLastEvent(
@@ -395,7 +420,7 @@ class AdzanService : Service() {
             )
         }
         releaseFallbackRingtone()
-        scheduleSnoozeAlarm(this, prayerName, safeMinutes)
+        scheduleSnoozeAlarm(this, prayerName, prayerKey, safeMinutes)
         releasePlayer()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -457,11 +482,12 @@ class AdzanService : Service() {
         }, 3_500L)
     }
 
-    private fun resolveAdzanAudio(prayerName: String): AdzanAudioSource {
-        val preferredName = if (prayerName.equals(PrayerName.FAJR.label, ignoreCase = true)) {
-            "adzan_subuh"
+    private fun resolveAdzanAudio(prayerKey: String, settings: com.sajda.app.domain.model.UserSettings): AdzanAudioSource {
+        val isFajr = prayerKey.equals(PrayerName.FAJR.key, ignoreCase = true)
+        val preferredName = if (isFajr) {
+            settings.adzanSound.subuhResName
         } else {
-            "adzan_regular"
+            settings.adzanSound.regularResName
         }
 
         val bundledResId = resources.getIdentifier(preferredName, "raw", packageName)
@@ -490,13 +516,18 @@ class AdzanService : Service() {
 
     companion object {
         private const val TAG = "SajdaAdhan"
+        @Volatile
+        private var isServiceRunning = false
 
-        private fun scheduleSnoozeAlarm(context: Context, prayerName: String, minutes: Int) {
+        fun isRunning(): Boolean = isServiceRunning
+
+        private fun scheduleSnoozeAlarm(context: Context, prayerName: String, prayerKey: String, minutes: Int) {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
             val triggerAtMillis = System.currentTimeMillis() + minutes * 60_000L
             val intent = Intent(context, AdzanReceiver::class.java).apply {
                 action = Constants.ACTION_TRIGGER_ADZAN
                 putExtra(Constants.EXTRA_PRAYER_NAME, prayerName)
+                putExtra(Constants.EXTRA_PRAYER_KEY, prayerKey)
             }
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
@@ -516,10 +547,11 @@ class AdzanService : Service() {
             }
         }
 
-        fun play(context: android.content.Context, prayerName: String) {
+        fun play(context: android.content.Context, prayerName: String, prayerKey: String = "fajr") {
             val intent = Intent(context, AdzanService::class.java).apply {
                 action = Constants.ACTION_TRIGGER_ADZAN
                 putExtra(Constants.EXTRA_PRAYER_NAME, prayerName)
+                putExtra(Constants.EXTRA_PRAYER_KEY, prayerKey)
             }
             ContextCompat.startForegroundService(context, intent)
         }
@@ -578,7 +610,7 @@ class AdzanService : Service() {
         val locationLabel = resolveLocationLabel()
         return RemoteViews(packageName, R.layout.notification_adhan_expanded).apply {
             setImageViewResource(R.id.logoView, R.drawable.sajda_logo_mark)
-            setTextViewText(R.id.badgeView, "SAJDA APP")
+            setTextViewText(R.id.badgeView, "NURAPP")
             setTextViewText(R.id.titleView, language.pick("Waktu $displayName telah tiba", "$displayName time has arrived"))
             setTextViewText(R.id.metaView, currentPrayerTime.ifBlank { language.pick("Sekarang", "Now") })
             if (locationLabel.isBlank()) {

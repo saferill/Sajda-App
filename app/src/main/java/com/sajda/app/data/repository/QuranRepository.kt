@@ -17,7 +17,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 
-class QuranRepository(private val database: SajdaDatabase) {
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class QuranRepository @Inject constructor(private val database: SajdaDatabase) {
 
     private val surahDao = database.surahDao()
     private val ayatDao = database.ayatDao()

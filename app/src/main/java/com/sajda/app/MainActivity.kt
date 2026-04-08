@@ -13,10 +13,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.MenuBook
-import androidx.compose.material.icons.rounded.Mosque
-import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -29,17 +30,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.activity.viewModels
 import com.sajda.app.data.local.PreferencesDataStore
-import com.sajda.app.data.local.SajdaDatabase
-import com.sajda.app.data.repository.AppUpdateRepository
-import com.sajda.app.data.repository.AudioRepository
 import com.sajda.app.data.repository.PrayerTimeRepository
 import com.sajda.app.data.repository.QuranRepository
-import com.sajda.app.data.repository.SpiritualContentRepository
 import com.sajda.app.domain.model.Ayat
 import com.sajda.app.domain.model.Bookmark
 import com.sajda.app.domain.model.QuranSearchResult
@@ -63,14 +60,19 @@ import com.sajda.app.ui.screen.BackgroundAudioInfoScreen
 import com.sajda.app.ui.screen.BookmarksScreen
 import com.sajda.app.ui.screen.DailyDuaScreen
 import com.sajda.app.ui.screen.EmptyStateScreen
+import com.sajda.app.ui.screen.HadithLibraryScreen
 import com.sajda.app.ui.screen.FullAudioPlayerScreen
 import com.sajda.app.ui.screen.HomeScreen
+import com.sajda.app.ui.screen.IslamicCalendarScreen
 import com.sajda.app.ui.screen.LanguageSettingsScreen
 import com.sajda.app.ui.screen.LocationSettingsScreen
-import com.sajda.app.ui.screen.OnboardingExperience
+import com.sajda.app.ui.screen.ModernQuranScreen
+import com.sajda.app.ui.screen.MoreHubScreen
+import com.sajda.app.ui.screen.NurAppOnboardingScreen
+import com.sajda.app.ui.screen.PermissionSetupScreen
 import com.sajda.app.ui.screen.PrayerTimeScreen
 import com.sajda.app.ui.screen.QiblaScreen
-import com.sajda.app.ui.screen.QuranScreen
+import com.sajda.app.ui.screen.RamadanModeScreen
 import com.sajda.app.ui.screen.SearchScreen
 import com.sajda.app.ui.screen.SettingsScreen
 import com.sajda.app.ui.screen.SmartReminderScreen
@@ -80,29 +82,27 @@ import com.sajda.app.ui.screen.WeeklyPrayerScheduleScreen
 import com.sajda.app.ui.screen.WidgetPreviewScreen
 import com.sajda.app.ui.screen.WorshipProgressScreen
 import com.sajda.app.ui.theme.SajdaAppTheme
-import com.sajda.app.ui.viewmodel.HomeViewModel
-import com.sajda.app.ui.viewmodel.HomeViewModelFactory
-import com.sajda.app.ui.viewmodel.PrayerTimeViewModel
-import com.sajda.app.ui.viewmodel.PrayerTimeViewModelFactory
-import com.sajda.app.ui.viewmodel.QuranViewModel
-import com.sajda.app.ui.viewmodel.QuranViewModelFactory
-import com.sajda.app.ui.viewmodel.SettingsViewModel
-import com.sajda.app.ui.viewmodel.SettingsViewModelFactory
-import com.sajda.app.ui.viewmodel.SpiritualContentViewModel
-import com.sajda.app.ui.viewmodel.SpiritualContentViewModelFactory
 import com.sajda.app.util.AdhanSystemHelper
 import com.sajda.app.util.DeviceLocationHelper
 import com.sajda.app.util.DeviceLocationResult
 import com.sajda.app.util.pick
+import com.sajda.app.ui.viewmodel.HomeViewModel
+import com.sajda.app.ui.viewmodel.QuranViewModel
+import com.sajda.app.ui.viewmodel.PrayerTimeViewModel
+import com.sajda.app.ui.viewmodel.SettingsViewModel
+import com.sajda.app.ui.viewmodel.SpiritualContentViewModel
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 private enum class RootTab {
     HOME,
     QURAN,
     PRAYER,
-    SETTINGS
+    QIBLA,
+    MORE
 }
 
 private sealed interface OverlayDestination {
@@ -110,10 +110,15 @@ private sealed interface OverlayDestination {
     data object Bookmarks : OverlayDestination
     data object AudioManager : OverlayDestination
     data object DailyDua : OverlayDestination
+    data object Hadith : OverlayDestination
+    data object Calendar : OverlayDestination
+    data object Ramadan : OverlayDestination
     data object WeeklyPrayer : OverlayDestination
     data object WorshipProgress : OverlayDestination
     data object SmartReminder : OverlayDestination
     data object Qibla : OverlayDestination
+    data object PermissionSetup : OverlayDestination
+    data object Settings : OverlayDestination
     data object AdhanSettings : OverlayDestination
     data object AppearanceSettings : OverlayDestination
     data object LocationSettings : OverlayDestination
@@ -126,63 +131,29 @@ private sealed interface OverlayDestination {
     data class Tafsir(val surah: Surah, val ayat: Ayat) : OverlayDestination
 }
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    private val database by lazy { SajdaDatabase.getDatabase(this) }
-    private val preferencesDataStore by lazy { PreferencesDataStore(this) }
-    private val quranRepository by lazy { QuranRepository(database) }
-    private val prayerTimeRepository by lazy { PrayerTimeRepository(database) }
-    private val audioRepository by lazy { AudioRepository(this, quranRepository) }
-    private val appUpdateRepository by lazy { AppUpdateRepository(this) }
-    private val spiritualContentRepository by lazy { SpiritualContentRepository(this) }
-    private val adzanScheduler by lazy { AdzanScheduler(this) }
+    @Inject lateinit var preferencesDataStore: PreferencesDataStore
+    @Inject lateinit var quranRepository: QuranRepository
+    @Inject lateinit var prayerTimeRepository: PrayerTimeRepository
+    @Inject lateinit var adzanScheduler: AdzanScheduler
 
-    private val homeViewModel by lazy {
-        ViewModelProvider(
-            this,
-            HomeViewModelFactory(quranRepository, prayerTimeRepository, preferencesDataStore)
-        )[HomeViewModel::class.java]
-    }
-
-    private val quranViewModel by lazy {
-        ViewModelProvider(
-            this,
-            QuranViewModelFactory(quranRepository, audioRepository, preferencesDataStore)
-        )[QuranViewModel::class.java]
-    }
-
-    private val prayerTimeViewModel by lazy {
-        ViewModelProvider(
-            this,
-            PrayerTimeViewModelFactory(prayerTimeRepository, preferencesDataStore, adzanScheduler)
-        )[PrayerTimeViewModel::class.java]
-    }
-
-    private val settingsViewModel by lazy {
-        ViewModelProvider(
-            this,
-            SettingsViewModelFactory(
-                preferencesDataStore,
-                prayerTimeRepository,
-                adzanScheduler,
-                appUpdateRepository
-            )
-        )[SettingsViewModel::class.java]
-    }
-
-    private val spiritualContentViewModel by lazy {
-        ViewModelProvider(
-            this,
-            SpiritualContentViewModelFactory(
-                spiritualContentRepository,
-                preferencesDataStore
-            )
-        )[SpiritualContentViewModel::class.java]
-    }
+    private val homeViewModel: HomeViewModel by viewModels()
+    private val quranViewModel: QuranViewModel by viewModels()
+    private val prayerTimeViewModel: PrayerTimeViewModel by viewModels()
+    private val settingsViewModel: SettingsViewModel by viewModels()
+    private val spiritualContentViewModel: SpiritualContentViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+
+        if (intent?.getBooleanExtra("is_adhan", false) == true) {
+            volumeControlStream = android.media.AudioManager.STREAM_ALARM
+        } else {
+            volumeControlStream = android.media.AudioManager.STREAM_MUSIC
+        }
 
         lifecycleScope.launch {
             quranRepository.seedIfNeeded(this@MainActivity)
@@ -278,7 +249,7 @@ class MainActivity : ComponentActivity() {
                     SajdaScreenBackground {
                         Box(modifier = Modifier.fillMaxSize()) {
                             if (!settingsState.onboardingCompleted) {
-                                OnboardingExperience(
+                                NurAppOnboardingScreen(
                                     settings = settingsState,
                                     viewModel = settingsViewModel,
                                     onFinish = { }
@@ -290,21 +261,21 @@ class MainActivity : ComponentActivity() {
                                         onNavigateToQuran = { selectedTabIndex = RootTab.QURAN.ordinal },
                                         onNavigateToPrayer = { selectedTabIndex = RootTab.PRAYER.ordinal },
                                         onOpenBookmarks = { overlay = OverlayDestination.Bookmarks },
-                                        onOpenAudioManager = { overlay = OverlayDestination.AudioManager },
-                                        onOpenDua = { overlay = OverlayDestination.DailyDua },
-                                        onOpenQibla = { overlay = OverlayDestination.Qibla },
+                                        onOpenHadith = { overlay = OverlayDestination.Hadith },
+                                        onOpenCalendar = { overlay = OverlayDestination.Calendar },
+                                        onOpenRamadan = { overlay = OverlayDestination.Ramadan },
+                                        onOpenQibla = { selectedTabIndex = RootTab.QIBLA.ordinal },
                                         onOpenSearch = { overlay = OverlayDestination.Search },
                                         onOpenReminders = { overlay = OverlayDestination.SmartReminder },
                                         onOpenProgress = { overlay = OverlayDestination.WorshipProgress },
                                         onPlayLastAudio = ::playSurahAudio
                                     )
 
-                                    RootTab.QURAN -> QuranScreen(
+                                    RootTab.QURAN -> ModernQuranScreen(
                                         viewModel = quranViewModel,
                                         onPlayAudio = ::playSurahAudio,
                                         onOpenBookmarks = { overlay = OverlayDestination.Bookmarks },
                                         onOpenSearch = { overlay = OverlayDestination.Search },
-                                        onOpenAudioManager = { overlay = OverlayDestination.AudioManager },
                                         onOpenTafsir = { surah, ayat ->
                                             overlay = OverlayDestination.Tafsir(surah, ayat)
                                         }
@@ -313,24 +284,24 @@ class MainActivity : ComponentActivity() {
                                     RootTab.PRAYER -> PrayerTimeScreen(
                                         viewModel = prayerTimeViewModel,
                                         onOpenWeeklySchedule = { overlay = OverlayDestination.WeeklyPrayer },
-                                        onOpenQibla = { overlay = OverlayDestination.Qibla },
+                                        onOpenQibla = { selectedTabIndex = RootTab.QIBLA.ordinal },
                                         onOpenLocationSettings = { overlay = OverlayDestination.LocationSettings }
                                     )
 
-                                    RootTab.SETTINGS -> SettingsScreen(
-                                        viewModel = settingsViewModel,
+                                    RootTab.QIBLA -> QiblaScreen(
+                                        prayerTime = prayerState.todayPrayerTime,
+                                        appLanguage = settingsState.appLanguage
+                                    )
+
+                                    RootTab.MORE -> MoreHubScreen(
+                                        settings = settingsState,
                                         updateState = appUpdateState,
-                                        onOpenAdhanSettings = { overlay = OverlayDestination.AdhanSettings },
-                                        onOpenAppearanceSettings = { overlay = OverlayDestination.AppearanceSettings },
-                                        onOpenLocationSettings = { overlay = OverlayDestination.LocationSettings },
-                                        onOpenLanguageSettings = { overlay = OverlayDestination.LanguageSettings },
-                                        onOpenUpdateCenter = { overlay = OverlayDestination.UpdateCenter },
-                                        onOpenAudioManagement = { overlay = OverlayDestination.AudioManager },
-                                        onOpenWorshipProgress = { overlay = OverlayDestination.WorshipProgress },
-                                        onOpenSmartReminders = { overlay = OverlayDestination.SmartReminder },
-                                        onOpenBackgroundAudioInfo = { overlay = OverlayDestination.BackgroundAudioInfo },
-                                        onOpenWidgetPreview = { overlay = OverlayDestination.WidgetPreview },
-                                        onOpenEmptyState = { overlay = OverlayDestination.EmptyState }
+                                        onOpenHadith = { overlay = OverlayDestination.Hadith },
+                                        onOpenCalendar = { overlay = OverlayDestination.Calendar },
+                                        onOpenRamadhan = { overlay = OverlayDestination.Ramadan },
+                                        onOpenBookmarks = { overlay = OverlayDestination.Bookmarks },
+                                        onOpenSettings = { overlay = OverlayDestination.Settings },
+                                        onOpenPermissionSetup = { overlay = OverlayDestination.PermissionSetup }
                                     )
                                 }
                             } else {
@@ -381,6 +352,32 @@ class MainActivity : ComponentActivity() {
                                             }
                                         )
 
+                                        OverlayDestination.Hadith -> HadithLibraryScreen(
+                                            settings = settingsState,
+                                            spiritualState = spiritualState,
+                                            onRefresh = { spiritualContentViewModel.refresh(settingsState.appLanguage) },
+                                            onBack = { overlay = null }
+                                        )
+
+                                        OverlayDestination.Calendar -> IslamicCalendarScreen(
+                                            appLanguage = settingsState.appLanguage,
+                                            onBack = { overlay = null }
+                                        )
+
+                                        OverlayDestination.Ramadan -> RamadanModeScreen(
+                                            settings = settingsState,
+                                            prayerTime = prayerState.todayPrayerTime,
+                                            onOpenPrayer = {
+                                                selectedTabIndex = RootTab.PRAYER.ordinal
+                                                overlay = null
+                                            },
+                                            onOpenQuran = {
+                                                selectedTabIndex = RootTab.QURAN.ordinal
+                                                overlay = null
+                                            },
+                                            onBack = { overlay = null }
+                                        )
+
                                         OverlayDestination.WeeklyPrayer -> WeeklyPrayerScheduleScreen(
                                             weeklyPrayerTimes = prayerState.weeklyPrayerTimes,
                                             monthlyPrayerTimes = prayerState.monthlyPrayerTimes,
@@ -402,6 +399,29 @@ class MainActivity : ComponentActivity() {
                                         OverlayDestination.Qibla -> QiblaScreen(
                                             prayerTime = prayerState.todayPrayerTime,
                                             appLanguage = settingsState.appLanguage,
+                                            onBack = { overlay = null }
+                                        )
+
+                                        OverlayDestination.PermissionSetup -> PermissionSetupScreen(
+                                            settings = settingsState,
+                                            viewModel = settingsViewModel,
+                                            onBack = { overlay = null }
+                                        )
+
+                                        OverlayDestination.Settings -> SettingsScreen(
+                                            viewModel = settingsViewModel,
+                                            updateState = appUpdateState,
+                                            onOpenAdhanSettings = { overlay = OverlayDestination.AdhanSettings },
+                                            onOpenAppearanceSettings = { overlay = OverlayDestination.AppearanceSettings },
+                                            onOpenLocationSettings = { overlay = OverlayDestination.LocationSettings },
+                                            onOpenLanguageSettings = { overlay = OverlayDestination.LanguageSettings },
+                                            onOpenUpdateCenter = { overlay = OverlayDestination.UpdateCenter },
+                                            onOpenAudioManagement = { overlay = OverlayDestination.AudioManager },
+                                            onOpenWorshipProgress = { overlay = OverlayDestination.WorshipProgress },
+                                            onOpenSmartReminders = { overlay = OverlayDestination.SmartReminder },
+                                            onOpenBackgroundAudioInfo = { overlay = OverlayDestination.BackgroundAudioInfo },
+                                            onOpenWidgetPreview = { overlay = OverlayDestination.WidgetPreview },
+                                            onOpenEmptyState = { overlay = OverlayDestination.EmptyState },
                                             onBack = { overlay = null }
                                         )
 
@@ -493,8 +513,9 @@ class MainActivity : ComponentActivity() {
                                     items = listOf(
                                         DockItem(settingsState.pick("Beranda", "Home"), Icons.Rounded.Home),
                                         DockItem("Qur'an", Icons.Rounded.MenuBook),
-                                        DockItem(settingsState.pick("Sholat", "Prayer"), Icons.Rounded.Mosque),
-                                        DockItem(settingsState.pick("Pengaturan", "Settings"), Icons.Rounded.Settings)
+                                        DockItem(settingsState.pick("Adzan", "Adhan"), Icons.Rounded.NotificationsActive),
+                                        DockItem(settingsState.pick("Kiblat", "Qibla"), Icons.Rounded.Explore),
+                                        DockItem(settingsState.pick("Lainnya", "More"), Icons.Rounded.MoreHoriz)
                                     ),
                                     selectedIndex = selectedTabIndex,
                                     modifier = Modifier
@@ -564,7 +585,8 @@ class MainActivity : ComponentActivity() {
         return when (intent?.getStringExtra(com.sajda.app.util.Constants.EXTRA_OPEN_TAB)) {
             "quran" -> RootTab.QURAN
             "prayer" -> RootTab.PRAYER
-            "settings" -> RootTab.SETTINGS
+            "qibla" -> RootTab.QIBLA
+            "settings", "more" -> RootTab.MORE
             else -> RootTab.HOME
         }
     }

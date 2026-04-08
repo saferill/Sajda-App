@@ -11,10 +11,12 @@ import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.Bookmark
 import com.sajda.app.domain.model.QuranReadingMode
 import com.sajda.app.domain.model.Surah
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class QuranUiState(
     val surahList: List<Surah> = emptyList(),
@@ -35,7 +37,8 @@ data class QuranUiState(
     val errorMessage: String? = null
 )
 
-class QuranViewModel(
+@HiltViewModel
+class QuranViewModel @Inject constructor(
     private val quranRepository: QuranRepository,
     private val audioRepository: AudioRepository,
     private val preferencesDataStore: PreferencesDataStore

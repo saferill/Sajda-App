@@ -215,7 +215,7 @@ fun WorshipProgressScreen(
 fun QiblaScreen(
     prayerTime: PrayerTime?,
     appLanguage: AppLanguage,
-    onBack: () -> Unit
+    onBack: (() -> Unit)? = null
 ) {
     val direction = prayerTime?.qiblaDirection ?: 294.0
     val compassState = rememberCompassState()
@@ -230,8 +230,14 @@ fun QiblaScreen(
         SajdaTopBar(
             title = appLanguage.pick("Kiblat", "Qibla"),
             subtitle = prayerTime?.locationName,
-            leading = {
-                SajdaTopAction(Icons.Rounded.ArrowBack, appLanguage.pick("Kembali", "Back"), onBack)
+            leading = onBack?.let { backAction ->
+                {
+                    SajdaTopAction(
+                        Icons.Rounded.ArrowBack,
+                        appLanguage.pick("Kembali", "Back"),
+                        backAction
+                    )
+                }
             }
         )
 
@@ -448,7 +454,7 @@ fun BackgroundAudioInfoScreen(
             Text(
                 text = appLanguage.pick(
                     "Kontrol utama tersedia dari notifikasi dan mini player Sajda.",
-                    "Main controls remain available from the notification and the Sajda mini player."
+                    "Main controls remain available from the notification and the NurApp mini player."
                 ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

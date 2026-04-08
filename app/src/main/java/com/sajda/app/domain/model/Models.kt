@@ -63,6 +63,23 @@ enum class PrayerName(val label: String, val key: String) {
     ISHA("Isya", "isha");
 }
 
+enum class AdhanStyle(
+    val id: String,
+    val title: String,
+    val regularResName: String,
+    val subuhResName: String
+) {
+    DEFAULT("system_default", "Default Android", "adzan_regular", "adzan_subuh"),
+    MAKKAH("makkah", "Makkah", "adzan_makkah", "adzan_subuh"),
+    MADINAH("madinah", "Madinah", "adzan_madinah", "adzan_subuh"),
+    MISHARY("mishary", "Mishary Rashid Alafasy", "adzan_mishary", "adzan_subuh"),
+    ABDULBASET("abdulbaset", "Abdul Baset Abdussamad", "adzan_abdulbasit", "adzan_subuh");
+
+    companion object {
+        fun fromId(id: String): AdhanStyle = entries.find { it.id == id } ?: DEFAULT
+    }
+}
+
 enum class PrayerCalculationMethod(
     val label: String,
     val description: String,
@@ -132,7 +149,7 @@ data class UserSettings(
     val locationName: String = "Jakarta",
     val latitude: Double = -6.2088,
     val longitude: Double = 106.8456,
-    val adzanSound: String = "system_default",
+    val adzanSound: AdhanStyle = AdhanStyle.DEFAULT,
     val prayerCalculationMethod: PrayerCalculationMethod = PrayerCalculationMethod.KEMENAG,
     val asrMadhhab: AsrMadhhab = AsrMadhhab.SHAFII,
     val lastPlayedSurah: Int = 0,

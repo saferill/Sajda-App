@@ -3,7 +3,7 @@ package com.sajda.app.util
 import com.sajda.app.domain.model.CityPreset
 
 object Constants {
-    const val APP_NAME = "Sajda App"
+    const val APP_NAME = "NurApp"
     const val DATABASE_NAME = "sajda_database"
     const val QURAN_TRANSLATION_ASSET = "quran_id.json"
     const val QURAN_ENGLISH_ASSET = "quran_en.json"
@@ -12,6 +12,7 @@ object Constants {
     const val AUDIO_DOWNLOAD_DIR = "murattal"
     const val AUDIO_NOTIFICATION_CHANNEL = "audio_playback_channel"
     const val ADZAN_NOTIFICATION_CHANNEL = "adzan_channel"
+    const val ADZAN_ALERT_NOTIFICATION_CHANNEL = "adzan_alert_channel"
     const val UPDATE_NOTIFICATION_CHANNEL = "app_update_channel"
     const val AUDIO_NOTIFICATION_ID = 1201
     const val ADZAN_NOTIFICATION_ID = 1202
@@ -33,6 +34,7 @@ object Constants {
     const val EXTRA_SURAH_TITLE = "surah_title"
     const val EXTRA_AUDIO_PATH = "audio_path"
     const val EXTRA_PRAYER_NAME = "prayer_name"
+    const val EXTRA_PRAYER_KEY = "prayer_key"
     const val EXTRA_PRAYER_TIME = "prayer_time"
     const val EXTRA_PRAYER_DATE = "prayer_date"
     const val EXTRA_LOCATION_NAME = "location_name"
@@ -47,7 +49,7 @@ object Constants {
 
     const val PRAYER_SCHEDULE_WORK_NAME = "prayer_schedule_refresh"
     const val APP_UPDATE_WORK_NAME = "app_update_check"
-    const val UPDATE_DOWNLOAD_TITLE = "Sajda App update"
+    const val UPDATE_DOWNLOAD_TITLE = "NurApp update"
     const val UPDATE_RELEASES_URL = "https://api.github.com/repos/saferill/Sajda-App/releases/latest"
     const val UPDATE_RELEASES_PAGE_URL = "https://github.com/saferill/Sajda-App/releases"
 

@@ -16,6 +16,7 @@ import com.google.gson.reflect.TypeToken
 import com.sajda.app.domain.model.AdhanLogEntry
 import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.AsrMadhhab
+import com.sajda.app.domain.model.AdhanStyle
 import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.PrayerCalculationMethod
 import com.sajda.app.domain.model.QuranReadingMode
@@ -110,7 +111,7 @@ class PreferencesDataStore(private val context: Context) {
             locationName = preferences[LOCATION] ?: LocationConstants.DEFAULT_LOCATION,
             latitude = preferences[LATITUDE] ?: LocationConstants.DEFAULT_LATITUDE,
             longitude = preferences[LONGITUDE] ?: LocationConstants.DEFAULT_LONGITUDE,
-            adzanSound = preferences[ADZAN_SOUND] ?: "system_default",
+            adzanSound = preferences[ADZAN_SOUND]?.let { AdhanStyle.fromId(it) } ?: AdhanStyle.DEFAULT,
             prayerCalculationMethod = preferences[PRAYER_CALCULATION_METHOD]?.let {
                 runCatching { PrayerCalculationMethod.valueOf(it) }.getOrDefault(PrayerCalculationMethod.KEMENAG)
             } ?: PrayerCalculationMethod.KEMENAG,
@@ -223,7 +224,7 @@ class PreferencesDataStore(private val context: Context) {
         }
     }
 
-    suspend fun setAdzanSound(sound: String) = context.dataStore.edit { it[ADZAN_SOUND] = sound }
+    suspend fun setAdzanSound(style: AdhanStyle) = context.dataStore.edit { it[ADZAN_SOUND] = style.id }
 
     suspend fun setPrayerCalculationMethod(method: PrayerCalculationMethod) = context.dataStore.edit {
         it[PRAYER_CALCULATION_METHOD] = method.name

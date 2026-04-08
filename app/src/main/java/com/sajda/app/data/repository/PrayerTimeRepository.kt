@@ -10,7 +10,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 
-class PrayerTimeRepository(private val database: SajdaDatabase) {
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class PrayerTimeRepository @Inject constructor(private val database: SajdaDatabase) {
 
     private val prayerTimeDao = database.prayerTimeDao()
 

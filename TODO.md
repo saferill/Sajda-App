@@ -133,7 +133,7 @@ Fase ini fokus pada fondasi kepercayaan aplikasi: adzan harus reliabel, konten Q
 
 ---
 
-## v1.3 Priority
+## v1.4 Priority
 
 Fase ini berfokus pada peningkatan kualitas pengalaman penggunaan. Setelah fondasi lebih stabil, Sajda App perlu terasa lebih kaya, lebih nyaman, dan lebih kuat untuk pemakaian jangka panjang.
 

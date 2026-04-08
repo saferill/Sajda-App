@@ -18,11 +18,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
 
-class AudioRepository(
-    context: Context,
+import javax.inject.Inject
+import javax.inject.Singleton
+import dagger.hilt.android.qualifiers.ApplicationContext
+
+@Singleton
+class AudioRepository @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val quranRepository: QuranRepository
 ) {
-    private val appContext = context.applicationContext
     private val downloadManager = appContext.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 

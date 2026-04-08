@@ -101,7 +101,7 @@ object AdhanSystemHelper {
     fun helpChecklist(): List<String> = listOf(
         "Pastikan notifikasi aplikasi diizinkan.",
         "Pastikan izin exact alarm aktif.",
-        "Lepaskan pembatasan baterai untuk Sajda App.",
+        "Lepaskan pembatasan baterai untuk NurApp.",
         "Naikkan volume alarm perangkat di atas nol.",
         "Aktifkan Override silent mode jika Anda ingin adzan tetap bersuara saat HP silent.",
         "Buka aplikasi minimal sekali setelah reboot atau update bila vendor sangat agresif."
@@ -114,8 +114,8 @@ object AdhanSystemHelper {
                 vendor = "Xiaomi",
                 title = "Nonaktifkan pembatasan MIUI",
                 steps = listOf(
-                    "Buka Security > Battery > App battery saver > Sajda App > No restrictions.",
-                    "Aktifkan Autostart untuk Sajda App.",
+                    "Buka Security > Battery > App battery saver > NurApp > No restrictions.",
+                    "Aktifkan Autostart untuk NurApp.",
                     "Kunci aplikasi di recent apps bila perlu."
                 )
             ),
@@ -123,8 +123,8 @@ object AdhanSystemHelper {
                 vendor = "Oppo",
                 title = "Izinkan berjalan di background",
                 steps = listOf(
-                    "Buka App Management > Sajda App > Allow auto launch.",
-                    "Matikan Auto optimize battery untuk Sajda App.",
+                    "Buka App Management > NurApp > Allow auto launch.",
+                    "Matikan Auto optimize battery untuk NurApp.",
                     "Izinkan notifikasi pop-up dan lock screen."
                 )
             ),
@@ -132,9 +132,9 @@ object AdhanSystemHelper {
                 vendor = "Vivo",
                 title = "Aktifkan autostart dan baterai tanpa batas",
                 steps = listOf(
-                    "Buka Settings > Battery > Background high power consumption > aktifkan Sajda App.",
-                    "Buka Settings > Apps > All apps > Sajda App > Permissions dan cek notifikasi.",
-                    "Cari menu Auto start management lalu aktifkan Sajda App."
+                    "Buka Settings > Battery > Background high power consumption > aktifkan NurApp.",
+                    "Buka Settings > Apps > All apps > NurApp > Permissions dan cek notifikasi.",
+                    "Cari menu Auto start management lalu aktifkan NurApp."
                 )
             ),
             AdhanVendorTip(
@@ -142,7 +142,7 @@ object AdhanSystemHelper {
                 title = "Keluarkan dari sleeping apps",
                 steps = listOf(
                     "Buka Battery and device care > Battery > Background usage limits.",
-                    "Hapus Sajda App dari Sleeping apps dan Deep sleeping apps.",
+                    "Hapus NurApp dari Sleeping apps dan Deep sleeping apps.",
                     "Set App battery usage ke Unrestricted."
                 )
             ),
@@ -150,8 +150,8 @@ object AdhanSystemHelper {
                 vendor = "Realme",
                 title = "Izinkan startup manager",
                 steps = listOf(
-                    "Buka App Management > Auto-launch > aktifkan Sajda App.",
-                    "Matikan Battery optimization untuk Sajda App.",
+                    "Buka App Management > Auto-launch > aktifkan NurApp.",
+                    "Matikan Battery optimization untuk NurApp.",
                     "Izinkan notifikasi lock screen dan banner."
                 )
             )

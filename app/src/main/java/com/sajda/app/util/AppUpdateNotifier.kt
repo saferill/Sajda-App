@@ -47,7 +47,7 @@ object AppUpdateNotifier {
         val bodyText = buildString {
             append("Versi ")
             append(updateInfo.versionName)
-            append(" sudah tersedia. Tekan Unduh untuk memperbarui Sajda App.")
+            append(" sudah tersedia. Tekan Unduh untuk memperbarui NurApp.")
             if (updateInfo.notes.isNotBlank()) {
                 append("\n\n")
                 append(updateInfo.notes.lineSequence().take(4).joinToString("\n"))
@@ -56,7 +56,7 @@ object AppUpdateNotifier {
 
         val notification = NotificationCompat.Builder(context, Constants.UPDATE_NOTIFICATION_CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Update Sajda App tersedia")
+            .setContentTitle("Update NurApp tersedia")
             .setContentText("Versi ${updateInfo.versionName} siap diunduh.")
             .setStyle(NotificationCompat.BigTextStyle().bigText(bodyText))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -72,7 +72,7 @@ object AppUpdateNotifier {
         ensureChannel(context)
         val notification = NotificationCompat.Builder(context, Constants.UPDATE_NOTIFICATION_CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Mengunduh update Sajda App")
+            .setContentTitle("Mengunduh update NurApp")
             .setContentText("Versi $versionName sedang diunduh.")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
@@ -109,10 +109,10 @@ object AppUpdateNotifier {
 
         val builder = NotificationCompat.Builder(context, Constants.UPDATE_NOTIFICATION_CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Update Sajda App siap dipasang")
+            .setContentTitle("Update NurApp siap dipasang")
             .setContentText(
                 if (needsInstallPermission) {
-                    "Izinkan instalasi dari Sajda App, lalu lanjutkan memasang $versionLabel."
+                    "Izinkan instalasi dari NurApp, lalu lanjutkan memasang $versionLabel."
                 } else {
                     "Tekan untuk memasang $versionLabel sekarang."
                 }
@@ -150,7 +150,7 @@ object AppUpdateNotifier {
                 "App Updates",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Notifications for Sajda App updates and installation prompts."
+                description = "Notifications for NurApp updates and installation prompts."
             }
             manager.createNotificationChannel(channel)
         }

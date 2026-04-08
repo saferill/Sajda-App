@@ -1,19 +1,19 @@
 package com.sajda.app.data.repository
 
-import android.content.Context
-import android.net.Uri
+import com.google.gson.JsonArray
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import com.google.gson.JsonParser
-import com.sajda.app.BuildConfig
+import com.sajda.app.data.api.DuaApi
+import com.sajda.app.data.api.HadithApi
 import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.DailyDua
 import com.sajda.app.domain.model.HadithEntry
 import com.sajda.app.util.SpiritualContent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
 import java.time.LocalDate
+import javax.inject.Inject
+import javax.inject.Singleton
 
 data class SpiritualContentBundle(
     val duas: List<DailyDua>,
@@ -23,10 +23,23 @@ data class SpiritualContentBundle(
     val sourceLabel: String
 )
 
-class SpiritualContentRepository(private val appContext: Context) {
+@Singleton
+class SpiritualContentRepository @Inject constructor(
+    private val hadithApi: HadithApi,
+    private val duaApi: DuaApi
+) {
+    private val hadithSources = linkedMapOf(
+        "Niat" to ("bukhari" to "1-5"),
+        "Ibadah" to ("muslim" to "1-5"),
+        "Akhlak" to ("tirmidzi" to "1-5"),
+        "Ilmu" to ("nasai" to "1-5")
+    )
+
+    private val equranDoaUrl = "https://equran.id/api/doa"
+    private val myQuranDoaUrl = "https://api.myquran.com/v2/doa/all"
 
     suspend fun load(language: AppLanguage): SpiritualContentBundle = withContext(Dispatchers.IO) {
-        if (language == AppLanguage.ENGLISH) {
+        if (language != AppLanguage.ENGLISH) {
             val remoteDuas = fetchRemoteDuas()
             val remoteHadiths = fetchRemoteHadithCategories()
             if (remoteDuas.isNotEmpty() || remoteHadiths.isNotEmpty()) {
@@ -36,7 +49,7 @@ class SpiritualContentRepository(private val appContext: Context) {
                     hadithOfDay = pickHadithOfDay(flattenedHadiths),
                     hadithCategories = remoteHadiths.ifEmpty { SpiritualContent.groupedHadiths() },
                     isRemote = true,
-                    sourceLabel = "Hadith API + Hisn Muslim"
+                    sourceLabel = "EQuran.id + Hadith Gading"
                 )
             }
         }
@@ -52,116 +65,90 @@ class SpiritualContentRepository(private val appContext: Context) {
     }
 
     private suspend fun fetchRemoteHadithCategories(): Map<String, List<HadithEntry>> {
-        if (BuildConfig.HADITH_API_KEY.isBlank()) return emptyMap()
-
-        val categories = linkedMapOf(
-            "Intention" to "intention",
-            "Prayer" to "prayer",
-            "Character" to "kindness",
-            "Patience" to "patience",
-            "Gratitude" to "gratitude",
-            "Knowledge" to "knowledge"
-        )
-
-        return categories.mapValues { (label, query) ->
-            fetchHadithCategory(label, query)
+        return hadithSources.mapValues { (label, source) ->
+            fetchHadithCategory(label, source.first, source.second)
         }.filterValues { it.isNotEmpty() }
     }
 
-    private fun fetchHadithCategory(
+    private suspend fun fetchHadithCategory(
         label: String,
-        query: String
+        bookId: String,
+        range: String
     ): List<HadithEntry> {
-        val uri = Uri.parse(BuildConfig.HADITH_API_BASE_URL.trimEnd('/') + "/hadiths").buildUpon()
-            .appendQueryParameter("apiKey", BuildConfig.HADITH_API_KEY)
-            .appendQueryParameter("hadithEnglish", query)
-            .appendQueryParameter("paginate", "5")
-            .build()
+        val root = try {
+            hadithApi.getHadithBook(
+                url = "https://api.hadith.gading.dev/books/$bookId",
+                range = range
+            )
+        } catch (e: Exception) {
+            return emptyList()
+        }
 
-        val root = getJson(uri.toString()) ?: return emptyList()
-        val data = root.getAsJsonObject("hadiths")
-            ?.getAsJsonArray("data")
+        val data = root.getAsJsonObject("data")
+            ?.getAsJsonArray("hadiths")
+            ?: root.getAsJsonArray("hadiths")
             ?: return emptyList()
+        val collection = root.getAsJsonObject("data")?.stringValue("name").orEmpty()
+            .ifBlank { bookId.replace('-', ' ').replaceFirstChar(Char::uppercase) }
 
         return data.mapNotNull { element ->
             val item = element.asJsonObject
-            val englishText = item.stringValue("hadithEnglish")
-            if (englishText.isBlank()) return@mapNotNull null
+            val text = item.stringValue("id")
+                .ifBlank { item.stringValue("translation") }
+                .ifBlank { item.stringValue("text") }
+            if (text.isBlank()) return@mapNotNull null
 
-            val book = item.getAsJsonObject("book")
-            val chapter = item.getAsJsonObject("chapter")
+            val reference = item.stringValue("number")
             HadithEntry(
-                id = "remote_${label.lowercase()}_${item.stringValue("id")}",
+                id = "remote_${bookId}_${reference.ifBlank { item.stringValue("id") }}",
                 category = label,
-                title = chapter?.stringValue("chapterEnglish")
-                    ?.takeIf { it.isNotBlank() }
-                    ?: label,
-                collection = book?.stringValue("bookName").orEmpty().ifBlank { "Hadith API" },
-                reference = item.stringValue("hadithNumber"),
-                narrator = item.stringValue("englishNarrator").ifBlank { "Hadith API" },
-                text = englishText,
-                arabicText = item.stringValue("hadithArabic"),
-                sourceLabel = "Hadith API"
+                title = label,
+                collection = collection,
+                reference = reference,
+                narrator = collection,
+                text = text,
+                arabicText = item.stringValue("arab"),
+                sourceLabel = "Hadith Gading"
             )
         }
     }
 
-    private fun fetchRemoteDuas(): List<DailyDua> {
-        val root = getJson(BuildConfig.DUA_CONTENT_URL) ?: return emptyList()
-        val englishCollections = root.getAsJsonArray("English") ?: return emptyList()
-        val selectedTitles = setOf(
-            "Words of remembrance for morning and evening",
-            "The supplication before sleeping",
-            "The supplication when waking up",
-            "Words of remembrance after the athan",
-            "The excellence of remembering Allah",
-            "When leaving the home",
-            "When entering the home",
-            "The supplication of the traveler",
-            "Remembrance after the salam of the prayer was said"
-        )
-
-        return englishCollections.mapNotNull { collectionElement ->
-            val collection = collectionElement.asJsonObject
-            val title = collection.stringValue("TITLE")
-            if (title !in selectedTitles) return@mapNotNull null
-            title to collection.getAsJsonArray("TEXT")
-        }.flatMap { (title, texts) ->
-            texts.mapNotNull { duaElement ->
-                val item = duaElement.asJsonObject
-                val arabicText = item.stringValue("ARABIC_TEXT").ifBlank { item.stringValue("Text") }
-                val translation = item.stringValue("TRANSLATED_TEXT")
-                if (arabicText.isBlank() || translation.isBlank()) return@mapNotNull null
-
-                DailyDua(
-                    id = "remote_dua_${item.stringValue("ID")}",
-                    category = normalizeDuaCategory(title),
-                    title = buildDuaTitle(title, item),
-                    arabic = arabicText,
-                    transliteration = item.stringValue("LANGUAGE_ARABIC_TRANSLATED_TEXT"),
-                    translation = translation,
-                    sourceLabel = "Hisn Muslim"
-                )
-            }
-        }
-    }
-
-    private fun getJson(url: String): JsonObject? {
-        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 15_000
-            readTimeout = 15_000
-            setRequestProperty("Accept", "application/json")
-            setRequestProperty("User-Agent", "Sajda-App/${BuildConfig.VERSION_NAME}")
-        }
+    private suspend fun fetchRemoteDuas(): List<DailyDua> {
+        val primary = runCatching {
+            parseDuaResponse(duaApi.getDuas(equranDoaUrl), "EQuran.id")
+        }.getOrDefault(emptyList())
+        if (primary.isNotEmpty()) return primary
 
         return runCatching {
-            if (connection.responseCode !in 200..299) return null
-            val body = connection.inputStream.bufferedReader().use { it.readText() }
-                .removePrefix("\uFEFF")
-            JsonParser.parseString(body).asJsonObject
-        }.getOrNull().also {
-            connection.disconnect()
+            parseDuaResponse(duaApi.getDuas(myQuranDoaUrl), "MyQuran")
+        }.getOrDefault(emptyList())
+    }
+
+    private fun parseDuaResponse(root: JsonElement, sourceLabel: String): List<DailyDua> {
+        val items = root.findArray("data")
+            ?: root.findArray("result")
+            ?: root.asJsonArrayOrNull()
+            ?: return emptyList()
+
+        return items.mapNotNull { element ->
+            val item = element.asJsonObjectOrNull() ?: return@mapNotNull null
+            val title = item.firstString("judul", "title", "nama", "name")
+            val rawCategory = item.firstString("grup", "group", "kategori", "category", "tag")
+            val arabic = item.firstString("arab", "arabic", "arabic_text", "doa")
+            val translation = item.firstString("arti", "translation", "terjemah", "indo")
+            if (arabic.isBlank() || translation.isBlank()) return@mapNotNull null
+
+            DailyDua(
+                id = item.firstString("id", "nomor").ifBlank {
+                    "${sourceLabel.lowercase()}_${title.ifBlank { translation.take(24) }}"
+                },
+                category = normalizeDuaCategory(title, rawCategory),
+                title = buildDuaTitle(title, translation, rawCategory),
+                arabic = arabic,
+                transliteration = item.firstString("latin", "transliterasi", "transliteration"),
+                translation = translation,
+                sourceLabel = sourceLabel
+            )
         }
     }
 
@@ -171,38 +158,56 @@ class SpiritualContentRepository(private val appContext: Context) {
         return entries[index]
     }
 
-    private fun normalizeDuaCategory(title: String): String {
-        val normalized = title.lowercase()
+    private fun normalizeDuaCategory(title: String, rawCategory: String): String {
+        val normalized = "$title $rawCategory".lowercase()
         return when {
-            "morning" in normalized || "evening" in normalized -> "Morning & Evening"
-            "sleep" in normalized || "waking" in normalized -> "Sleep"
-            "athan" in normalized || "prayer" in normalized -> "Prayer"
-            "home" in normalized || "traveler" in normalized -> "Daily Life"
-            "remembering allah" in normalized -> "Remembrance"
-            else -> "Daily Life"
+            "pagi" in normalized || "petang" in normalized || "dzikir" in normalized -> "Dzikir"
+            "tidur" in normalized || "bangun" in normalized -> "Tidur"
+            "azan" in normalized || "shalat" in normalized || "doa sholat" in normalized -> "Sholat"
+            "rumah" in normalized || "perjalanan" in normalized || "safar" in normalized -> "Harian"
+            rawCategory.isNotBlank() -> rawCategory
+            else -> "Harian"
         }
     }
 
-    private fun buildDuaTitle(categoryTitle: String, item: JsonObject): String {
-        val transliterated = item.stringValue("LANGUAGE_ARABIC_TRANSLATED_TEXT")
-            .substringBefore('(')
+    private fun buildDuaTitle(title: String, translation: String, rawCategory: String): String {
+        val normalizedTitle = title
             .substringBefore('.')
             .trim()
-        if (transliterated.isNotBlank()) {
-            return transliterated.take(56)
+        if (normalizedTitle.isNotBlank()) {
+            return normalizedTitle.take(56)
         }
 
-        val translation = item.stringValue("TRANSLATED_TEXT")
+        val translationTitle = translation
             .substringBefore('.')
             .trim()
-        if (translation.isNotBlank()) {
-            return translation.take(56)
+        if (translationTitle.isNotBlank()) {
+            return translationTitle.take(56)
         }
 
-        return categoryTitle
+        return rawCategory.ifBlank { "Doa Harian" }
     }
 
     private fun JsonObject.stringValue(key: String): String {
         return get(key)?.takeUnless { it.isJsonNull }?.asString.orEmpty().trim()
+    }
+
+    private fun JsonObject.firstString(vararg keys: String): String {
+        return keys.firstNotNullOfOrNull { key ->
+            get(key)?.takeUnless { it.isJsonNull }?.asString?.trim()?.takeIf { it.isNotBlank() }
+        }.orEmpty()
+    }
+
+    private fun JsonElement.findArray(key: String): JsonArray? {
+        val rootObject = asJsonObjectOrNull() ?: return null
+        return rootObject.getAsJsonArray(key)
+    }
+
+    private fun JsonElement.asJsonArrayOrNull(): JsonArray? {
+        return if (isJsonArray) asJsonArray else null
+    }
+
+    private fun JsonElement.asJsonObjectOrNull(): JsonObject? {
+        return if (isJsonObject) asJsonObject else null
     }
 }

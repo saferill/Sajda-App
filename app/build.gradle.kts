@@ -4,6 +4,8 @@ plugins {
     id("com.android.application")
     kotlin("android")
     id("com.google.devtools.ksp")
+    id("com.google.dagger.hilt.android")
+    kotlin("plugin.serialization")
 }
 
 configurations.all {
@@ -13,8 +15,8 @@ configurations.all {
     )
 }
 
-val appVersionCode = 4
-val appVersionName = "1.1.2"
+val appVersionCode = 5
+val appVersionName = "1.1.3"
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -43,7 +45,7 @@ fun String.toBuildConfigString(): String =
 
 android {
     namespace = "com.sajda.app"
-    compileSdk = 33
+    compileSdk = 36
 
     signingConfigs {
         if (hasReleaseKeystore) {
@@ -140,7 +142,7 @@ android.applicationVariants.configureEach {
         outputs.configureEach {
             @Suppress("UNCHECKED_CAST")
             (this as com.android.build.gradle.internal.api.ApkVariantOutputImpl).outputFileName =
-                "Sajda-App-v$appVersionName.apk"
+                "NurApp-v$appVersionName.apk"
         }
     }
 }
@@ -183,4 +185,21 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.5.4")
     debugImplementation("androidx.compose.ui:ui-tooling:1.5.4")
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.5.4")
+
+    // Hilt DI
+    implementation("com.google.dagger:hilt-android:2.51.1")
+    ksp("com.google.dagger:hilt-compiler:2.51.1")
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+
+    // Retrofit & Network
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // Navigation Compose & Serialization
+    implementation("androidx.navigation:navigation-compose:2.8.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
+    // Coil Image Loading
+    implementation("io.coil-kt:coil-compose:2.6.0")
 }

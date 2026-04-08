@@ -53,6 +53,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Mosque
 import com.sajda.app.R
 import com.sajda.app.domain.model.AudioPlaybackState
 import com.sajda.app.ui.theme.SajdaArabicFont
@@ -106,22 +108,27 @@ fun SajdaLogoTile(
         modifier = modifier
             .size(size.dp)
             .shadow(
-                elevation = 18.dp,
+                elevation = 14.dp,
                 shape = RoundedCornerShape((size * 0.35f).dp),
-                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
             )
             .clip(RoundedCornerShape((size * 0.35f).dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest),
+            .background(
+                Brush.linearGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.primaryContainer,
+                        MaterialTheme.colorScheme.primary
+                    )
+                )
+            ),
         contentAlignment = Alignment.Center
     ) {
-        Image(
-            painter = painterResource(R.drawable.sajda_logo_mark),
-            contentDescription = "Logo Sajda",
-            modifier = Modifier
-                .fillMaxSize()
-                .padding((size * 0.12f).dp),
-            contentScale = ContentScale.Fit
+        Icon(
+            imageVector = Icons.Rounded.Mosque,
+            contentDescription = "NurApp",
+            tint = MaterialTheme.colorScheme.secondaryContainer,
+            modifier = Modifier.size((size * 0.52f).dp)
         )
     }
 }
@@ -139,7 +146,7 @@ fun AnimatedSajdaSplashOverlay(
     if (overlayAlpha <= 0.01f) return
 
     val logoScale by animateFloatAsState(
-        targetValue = if (visible) 1f else 1.08f,
+        targetValue = if (visible) 1f else 1.06f,
         animationSpec = tween(durationMillis = 700),
         label = "splashScale"
     )
@@ -187,9 +194,9 @@ fun AnimatedSajdaSplashOverlay(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF081B16),
-                        Color(0xFF0F332A),
-                        Color(0xFF123F34)
+                        Color(0xFF0D7377),
+                        Color(0xFF0F5B68),
+                        Color(0xFF132E48)
                     )
                 )
             )
@@ -198,27 +205,27 @@ fun AnimatedSajdaSplashOverlay(
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 58.dp)
-                .size(260.dp)
+                .padding(top = 56.dp)
+                .size(220.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFBFE7D1).copy(alpha = haloAlpha))
+                .background(Color.White.copy(alpha = haloAlpha * 0.18f))
         )
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 170.dp)
-                .size(210.dp)
+                .padding(bottom = 144.dp)
+                .size(190.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF96D0B3).copy(alpha = haloAlpha * 0.45f))
+                .background(Color(0xFFFFDCC4).copy(alpha = haloAlpha * 0.24f))
         )
         Column(
             modifier = Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(168.dp)
+                    .size(164.dp)
                     .graphicsLayer(
                         scaleX = logoScale * logoPulse,
                         scaleY = logoScale * logoPulse,
@@ -229,24 +236,27 @@ fun AnimatedSajdaSplashOverlay(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(168.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFF4FBF7).copy(alpha = 0.96f))
+                        .size(164.dp)
+                        .clip(RoundedCornerShape(52.dp))
+                        .background(Color.White.copy(alpha = 0.12f))
                 )
-                Image(
-                    painter = painterResource(R.drawable.sajda_logo_mark),
-                    contentDescription = "Sajda App",
-                    modifier = Modifier
-                        .size(134.dp)
-                        .padding(12.dp),
-                    contentScale = ContentScale.Fit
+                Icon(
+                    imageVector = Icons.Rounded.Mosque,
+                    contentDescription = "NurApp",
+                    tint = Color(0xFFFFB16A),
+                    modifier = Modifier.size(88.dp)
                 )
             }
             Text(
-                text = "Sajda App",
+                text = "NURAPP",
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFFE8FFF2)
+                color = Color.White
+            )
+            Text(
+                text = "Teman Ibadahmu Setiap Hari",
+                style = MaterialTheme.typography.titleMedium,
+                color = Color(0xFF8AD3D6)
             )
         }
     }
@@ -306,7 +316,7 @@ fun SajdaTopAction(icon: ImageVector, label: String, onClick: () -> Unit) {
         onClick = onClick,
         modifier = Modifier
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.92f))
     ) {
         Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.primary)
     }
@@ -322,9 +332,9 @@ fun SanctuaryCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(26.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (elevated) 6.dp else 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (elevated) 3.dp else 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(contentPadding),
@@ -343,12 +353,12 @@ fun HeroCard(
         modifier = modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 24.dp,
-                shape = RoundedCornerShape(32.dp),
-                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                elevation = 18.dp,
+                shape = RoundedCornerShape(30.dp),
+                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
             ),
-        shape = RoundedCornerShape(32.dp),
+        shape = RoundedCornerShape(30.dp),
         color = Color.Transparent
     ) {
         Column(
@@ -471,13 +481,13 @@ fun FloatingDock(
         modifier = modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 20.dp,
-                shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
-                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                elevation = 14.dp,
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
             )
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
+            .padding(horizontal = 12.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -485,12 +495,16 @@ fun FloatingDock(
             val selected = index == selectedIndex
             Column(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(22.dp))
+                    .clip(RoundedCornerShape(20.dp))
                     .background(
-                        if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+                        if (selected) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                        } else {
+                            Color.Transparent
+                        }
                     )
                     .clickable { onSelect(index) }
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -534,7 +548,7 @@ fun FloatingMiniPlayer(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = playbackState.title.ifBlank { "Murattal Sajda" },
+                    text = playbackState.title.ifBlank { "Murattal NurApp" },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )

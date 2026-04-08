@@ -67,7 +67,7 @@ object PrayerTimesWidgetUpdater {
                 setTextViewText(R.id.widget_title, todayPrayerTime?.locationName ?: settings.locationName)
                 setTextViewText(
                     R.id.widget_next_prayer,
-                    nextPrayer?.let { "Berikutnya ${it.first.label}" } ?: "Sajda App"
+                    nextPrayer?.let { "Berikutnya ${it.first.label}" } ?: "NurApp"
                 )
                 setTextViewText(R.id.widget_next_time, nextPrayer?.second ?: "--:--")
                 setTextViewText(R.id.widget_summary, summary)

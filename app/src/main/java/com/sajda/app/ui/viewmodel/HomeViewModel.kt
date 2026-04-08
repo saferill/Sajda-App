@@ -10,12 +10,14 @@ import com.sajda.app.domain.model.Ayat
 import com.sajda.app.domain.model.PrayerTime
 import com.sajda.app.domain.model.Surah
 import com.sajda.app.util.DateTimeUtils
+import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class HomeUiState(
     val currentTime: String = DateTimeUtils.currentTimeString(),
@@ -35,7 +37,8 @@ data class HomeUiState(
     val isLoading: Boolean = true
 )
 
-class HomeViewModel(
+@HiltViewModel
+class HomeViewModel @Inject constructor(
     private val quranRepository: QuranRepository,
     private val prayerTimeRepository: PrayerTimeRepository,
     private val preferencesDataStore: PreferencesDataStore

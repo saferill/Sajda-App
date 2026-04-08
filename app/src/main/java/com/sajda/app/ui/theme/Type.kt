@@ -14,39 +14,39 @@ val SajdaTypography = Typography(
     displayLarge = TextStyle(
         fontFamily = SajdaDisplayFont,
         fontWeight = FontWeight.ExtraBold,
-        fontSize = 42.sp,
-        lineHeight = 48.sp,
-        letterSpacing = (-0.5).sp
+        fontSize = 46.sp,
+        lineHeight = 52.sp,
+        letterSpacing = (-0.8).sp
     ),
     displayMedium = TextStyle(
         fontFamily = SajdaDisplayFont,
         fontWeight = FontWeight.ExtraBold,
-        fontSize = 34.sp,
-        lineHeight = 40.sp,
-        letterSpacing = (-0.25).sp
+        fontSize = 36.sp,
+        lineHeight = 42.sp,
+        letterSpacing = (-0.5).sp
     ),
     displaySmall = TextStyle(
         fontFamily = SajdaDisplayFont,
-        fontWeight = FontWeight.Bold,
-        fontSize = 28.sp,
-        lineHeight = 34.sp
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 30.sp,
+        lineHeight = 36.sp
     ),
     headlineLarge = TextStyle(
         fontFamily = SajdaDisplayFont,
-        fontWeight = FontWeight.Bold,
-        fontSize = 26.sp,
-        lineHeight = 32.sp
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 28.sp,
+        lineHeight = 34.sp
     ),
     headlineMedium = TextStyle(
         fontFamily = SajdaDisplayFont,
         fontWeight = FontWeight.Bold,
-        fontSize = 22.sp,
+        fontSize = 24.sp,
         lineHeight = 28.sp
     ),
     headlineSmall = TextStyle(
         fontFamily = SajdaDisplayFont,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 20.sp,
+        fontSize = 22.sp,
         lineHeight = 26.sp
     ),
     titleLarge = TextStyle(
@@ -71,7 +71,7 @@ val SajdaTypography = Typography(
         fontFamily = SajdaBodyFont,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
-        lineHeight = 24.sp
+        lineHeight = 25.sp
     ),
     bodyMedium = TextStyle(
         fontFamily = SajdaBodyFont,
@@ -90,20 +90,20 @@ val SajdaTypography = Typography(
         fontWeight = FontWeight.Bold,
         fontSize = 13.sp,
         lineHeight = 18.sp,
-        letterSpacing = 0.6.sp
+        letterSpacing = 0.4.sp
     ),
     labelMedium = TextStyle(
         fontFamily = SajdaBodyFont,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
         lineHeight = 16.sp,
-        letterSpacing = 1.1.sp
+        letterSpacing = 1.2.sp
     ),
     labelSmall = TextStyle(
         fontFamily = SajdaBodyFont,
         fontWeight = FontWeight.Medium,
         fontSize = 10.sp,
         lineHeight = 14.sp,
-        letterSpacing = 1.sp
+        letterSpacing = 1.1.sp
     )
 )

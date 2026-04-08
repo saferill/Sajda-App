@@ -401,7 +401,7 @@ fun AdhanSettingsScreen(
                 when (item) {
                     "Pastikan notifikasi aplikasi diizinkan." -> "Make sure app notifications are allowed."
                     "Pastikan izin exact alarm aktif." -> "Make sure exact alarm permission is enabled."
-                    "Lepaskan pembatasan baterai untuk Sajda App." -> "Remove battery restrictions for Sajda App."
+                    "Lepaskan pembatasan baterai untuk NurApp." -> "Remove battery restrictions for NurApp."
                     "Naikkan volume alarm perangkat di atas nol." -> "Keep the device alarm volume above zero."
                     "Aktifkan Override silent mode jika Anda ingin adzan tetap bersuara saat HP silent." -> "Enable Override silent mode if you want adhan to sound while the phone is silent."
                     "Buka aplikasi minimal sekali setelah reboot atau update bila vendor sangat agresif." -> "Open the app at least once after reboot or update if your device vendor is very aggressive."
@@ -422,6 +422,34 @@ fun AdhanSettingsScreen(
         SettingToggleCard(settings.pick("Adzan otomatis", "Automatic adhan"), settings.adzanEnabled) { viewModel.setAdzanEnabled(it) }
         SettingToggleCard(settings.pick("Override mode senyap", "Override silent mode"), settings.overrideSilentMode) { viewModel.setOverrideSilentMode(it) }
         SettingToggleCard(settings.pick("Getaran", "Vibration"), settings.vibrationEnabled) { viewModel.setVibrationEnabled(it) }
+
+        SanctuaryCard {
+            SectionHeader(
+                eyebrow = settings.pick("Suara Adzan", "Adhan Audio"),
+                title = settings.pick("Pilih muadzin / gaya adzan", "Select adhan style")
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                com.sajda.app.domain.model.AdhanStyle.entries.forEach { style ->
+                    ChoiceChip(
+                        label = style.title,
+                        selected = settings.adzanSound == style,
+                        onClick = { viewModel.setAdzanSound(style) }
+                    )
+                }
+            }
+            Text(
+                text = settings.pick(
+                    "Pilihan akan diterapkan pada adzan reguler maupun subuh (bila tersedia). Gunakan 'Tes Manual' di bawah untuk mengecek suara.",
+                    "The selected style applies to both regular and Fajr adhan (where available). Use 'Manual Test' below to preview the sound."
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
         SanctuaryCard {
             SectionHeader(
                 eyebrow = settings.pick("Status Sistem Adzan", "Adhan System Status"),
@@ -737,7 +765,7 @@ fun AppearanceSettingsScreen(
 ) {
     OverlayShell(
         title = settings.pick("Tampilan", "Appearance"),
-        subtitle = settings.pick("Tampilan Sajda", "Sajda appearance"),
+        subtitle = settings.pick("Tampilan NurApp", "NurApp appearance"),
         onBack = onBack
     ) {
         SettingToggleCard(settings.pick("Mode gelap", "Dark mode"), settings.darkMode) { viewModel.setDarkMode(it) }
@@ -815,8 +843,8 @@ fun AppearanceSettingsScreen(
         SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
             Text(
                 text = settings.pick(
-                    "Sajda memakai palet emerald lembut dengan layered surfaces agar pengalaman ibadah terasa tenang, ringan, dan fokus.",
-                    "Sajda uses a soft emerald palette with layered surfaces so worship feels calm, light, and focused."
+                    "NurApp memakai palet emerald lembut dengan layered surfaces agar pengalaman ibadah terasa tenang, ringan, dan fokus.",
+                    "NurApp uses a soft emerald palette with layered surfaces so worship feels calm, light, and focused."
                 ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1266,7 +1294,7 @@ fun OnboardingExperience(
     }
 
     OverlayShell(
-        title = settings.pick("Persiapan Sajda", "Sajda setup"),
+        title = settings.pick("Persiapan NurApp", "NurApp setup"),
         subtitle = settings.pick("Aktifkan fitur penting sebelum mulai", "Enable key features before you begin"),
         onBack = {
             viewModel.completeOnboarding()
@@ -1429,7 +1457,7 @@ fun OnboardingExperience(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = settings.pick("Masuk ke Sajda App", "Enter Sajda App"),
+                        text = settings.pick("Masuk ke NurApp", "Enter NurApp"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary

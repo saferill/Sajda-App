@@ -9,12 +9,15 @@ import android.os.Environment
 import android.provider.Settings
 import com.google.gson.JsonParser
 import com.sajda.app.BuildConfig
+import com.sajda.app.data.api.GithubUpdateApi
+import com.sajda.app.di.NetworkModule
 import com.sajda.app.domain.model.AppUpdateInfo
 import com.sajda.app.util.Constants
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
+import javax.inject.Inject
+import javax.inject.Singleton
 
 data class UpdateDownloadRecord(
     val id: Long,
@@ -22,26 +25,27 @@ data class UpdateDownloadRecord(
     val status: Int
 )
 
-class AppUpdateRepository(private val appContext: Context) {
+@Singleton
+class AppUpdateRepository @Inject constructor(
+    @ApplicationContext private val appContext: Context,
+    private val githubApi: GithubUpdateApi
+) {
+
+    constructor(context: Context) : this(
+        appContext = context.applicationContext,
+        githubApi = NetworkModule.provideGithubUpdateApi(
+            NetworkModule.provideRetrofit(
+                NetworkModule.provideOkHttpClient()
+            )
+        )
+    )
 
     private val downloadManager = appContext.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
     suspend fun fetchLatestRelease(): AppUpdateInfo? = withContext(Dispatchers.IO) {
-        val connection = (URL(Constants.UPDATE_RELEASES_URL).openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 15_000
-            readTimeout = 15_000
-            setRequestProperty("Accept", "application/vnd.github+json")
-            setRequestProperty("User-Agent", "Sajda-App/${BuildConfig.VERSION_NAME}")
-        }
-
         runCatching {
-            val responseCode = connection.responseCode
-            if (responseCode == HttpURLConnection.HTTP_NOT_FOUND) return@withContext null
-            if (responseCode !in 200..299) return@withContext null
+            val root = githubApi.getLatestRelease(Constants.UPDATE_RELEASES_URL)
 
-            val body = connection.inputStream.bufferedReader().use { it.readText() }
-            val root = JsonParser.parseString(body).asJsonObject
             val tagName = root.get("tag_name")?.asString?.removePrefix("v")?.trim().orEmpty()
             val releaseName = root.get("name")?.asString?.ifBlank { tagName } ?: tagName
             val notes = root.get("body")?.asString.orEmpty().trim()
@@ -66,9 +70,7 @@ class AppUpdateRepository(private val appContext: Context) {
                 releasePageUrl = releasePageUrl,
                 publishedAt = publishedAt
             )
-        }.getOrNull().also {
-            connection.disconnect()
-        }
+        }.getOrNull()
     }
 
     fun enqueueUpdateDownload(updateInfo: AppUpdateInfo): Long {
@@ -83,7 +85,7 @@ class AppUpdateRepository(private val appContext: Context) {
             .setDestinationInExternalFilesDir(
                 appContext,
                 Environment.DIRECTORY_DOWNLOADS,
-                "sajda-update-$sanitizedVersion.apk"
+                "nurapp-update-$sanitizedVersion.apk"
             )
 
         return downloadManager.enqueue(request)

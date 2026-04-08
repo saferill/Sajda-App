@@ -15,6 +15,7 @@ import com.sajda.app.domain.model.PrayerCalculationMethod
 import com.sajda.app.domain.model.QuranReadingMode
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.service.AdzanScheduler
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class AppUpdateUiState(
     val currentVersionName: String = BuildConfig.VERSION_NAME,
@@ -40,7 +42,8 @@ data class AppUpdateUiState(
         get() = latestVersionName.isNotBlank()
 }
 
-class SettingsViewModel(
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
     private val preferencesDataStore: PreferencesDataStore,
     private val prayerTimeRepository: PrayerTimeRepository,
     private val adzanScheduler: AdzanScheduler,
@@ -128,8 +131,8 @@ class SettingsViewModel(
         viewModelScope.launch { preferencesDataStore.setVibrationEnabled(enabled) }
     }
 
-    fun setAdzanSound(sound: String) {
-        viewModelScope.launch { preferencesDataStore.setAdzanSound(sound) }
+    fun setAdzanSound(style: com.sajda.app.domain.model.AdhanStyle) {
+        viewModelScope.launch { preferencesDataStore.setAdzanSound(style) }
     }
 
     fun setPrayerCalculationMethod(method: PrayerCalculationMethod) {

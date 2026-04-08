@@ -27,7 +27,12 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 
-class AdzanScheduler(private val context: Context) {
+import javax.inject.Inject
+import javax.inject.Singleton
+import dagger.hilt.android.qualifiers.ApplicationContext
+
+@Singleton
+class AdzanScheduler @Inject constructor(@ApplicationContext private val context: Context) {
 
     private val appContext = context.applicationContext
     private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -113,6 +118,7 @@ class AdzanScheduler(private val context: Context) {
         val openAppIntent = Intent(appContext, MainActivity::class.java).apply {
             action = Constants.ACTION_OPEN_PRAYER_TAB
             putExtra(Constants.EXTRA_OPEN_TAB, "prayer")
+            putExtra("is_adhan", true)
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val openAppPendingIntent = PendingIntent.getActivity(
@@ -177,24 +183,95 @@ class AdzanScheduler(private val context: Context) {
         }
     }
 
+    private fun scheduleEmergencyPrayer(
+        prayerDate: String,
+        prayerName: PrayerName,
+        prayerTimeValue: String,
+        locationName: String,
+        scheduledAt: LocalDateTime
+    ) {
+        val triggerAtMillis = scheduledAt
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+        val pendingIntent = pendingIntentFor(
+            prayerDate = prayerDate,
+            locationName = locationName,
+            prayerName = prayerName,
+            prayerTimeValue = prayerTimeValue
+        )
+        val canScheduleExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            alarmManager.canScheduleExactAlarms()
+        } else {
+            true
+        }
+
+        runCatching {
+            if (canScheduleExact) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+            } else {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+            }
+            runBlocking {
+                val language = preferencesDataStore.settingsFlow.first().appLanguage
+                preferencesDataStore.appendAdhanLog(
+                    prayerName = prayerName.label,
+                    status = language.pick(
+                        "Jadwal darurat esok hari dipasang",
+                        "Emergency next-day fallback armed"
+                    ),
+                    details = "$prayerDate | $prayerTimeValue | $locationName"
+                )
+            }
+        }.onFailure { error ->
+            Log.e(TAG, "Failed to arm emergency fallback for ${prayerName.label} at $scheduledAt", error)
+            runBlocking {
+                val language = preferencesDataStore.settingsFlow.first().appLanguage
+                preferencesDataStore.appendAdhanLog(
+                    prayerName = prayerName.label,
+                    status = language.pick(
+                        "Jadwal darurat gagal dipasang",
+                        "Emergency fallback could not be armed"
+                    ),
+                    details = error.message.orEmpty()
+                )
+            }
+        }
+    }
+
     private fun pendingIntentFor(
         prayerTime: PrayerTime,
+        prayerName: PrayerName,
+        prayerTimeValue: String
+    ): PendingIntent {
+        return pendingIntentFor(
+            prayerDate = prayerTime.date,
+            locationName = prayerTime.locationName,
+            prayerName = prayerName,
+            prayerTimeValue = prayerTimeValue
+        )
+    }
+
+    private fun pendingIntentFor(
+        prayerDate: String,
+        locationName: String,
         prayerName: PrayerName,
         prayerTimeValue: String
     ): PendingIntent {
         val intent = Intent(appContext, AdzanReceiver::class.java).apply {
             action = Constants.ACTION_TRIGGER_ADZAN
             data = Uri.parse(
-                "sajda://adhan/${prayerTime.date}/${prayerName.key}?time=$prayerTimeValue&loc=${Uri.encode(prayerTime.locationName)}"
+                "sajda://adhan/$prayerDate/${prayerName.key}?time=$prayerTimeValue&loc=${Uri.encode(locationName)}"
             )
             putExtra(Constants.EXTRA_PRAYER_NAME, prayerName.label)
+            putExtra(Constants.EXTRA_PRAYER_KEY, prayerName.key)
             putExtra(Constants.EXTRA_PRAYER_TIME, prayerTimeValue)
-            putExtra(Constants.EXTRA_PRAYER_DATE, prayerTime.date)
-            putExtra(Constants.EXTRA_LOCATION_NAME, prayerTime.locationName)
+            putExtra(Constants.EXTRA_PRAYER_DATE, prayerDate)
+            putExtra(Constants.EXTRA_LOCATION_NAME, locationName)
         }
         return PendingIntent.getBroadcast(
             appContext,
-            "${prayerTime.date}-${prayerName.name}-$prayerTimeValue".hashCode(),
+            "$prayerDate-${prayerName.name}-$prayerTimeValue".hashCode(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -275,6 +352,40 @@ class AdzanScheduler(private val context: Context) {
                 prayerTimes = prayerTimes,
                 settings = settings,
                 referenceTime = referenceTime
+            )
+        }
+
+        fun scheduleEmergencyNextDayFallback(
+            context: Context,
+            prayerNameLabel: String,
+            prayerKey: String,
+            prayerTimeValue: String,
+            prayerDate: String,
+            locationName: String
+        ) {
+            if (prayerTimeValue.isBlank()) {
+                return
+            }
+
+            val prayerName = PrayerName.entries.firstOrNull {
+                it.key.equals(prayerKey, ignoreCase = true)
+            } ?: PrayerName.entries.firstOrNull {
+                it.label.equals(prayerNameLabel, ignoreCase = true)
+            } ?: return
+
+            val scheduledDate = runCatching {
+                LocalDate.parse(prayerDate).plusDays(1)
+            }.getOrDefault(LocalDate.now().plusDays(1))
+            val scheduledTime = runCatching {
+                LocalTime.parse(prayerTimeValue)
+            }.getOrNull() ?: return
+
+            AdzanScheduler(context.applicationContext).scheduleEmergencyPrayer(
+                prayerDate = scheduledDate.toString(),
+                prayerName = prayerName,
+                prayerTimeValue = prayerTimeValue,
+                locationName = locationName,
+                scheduledAt = LocalDateTime.of(scheduledDate, scheduledTime)
             )
         }
     }

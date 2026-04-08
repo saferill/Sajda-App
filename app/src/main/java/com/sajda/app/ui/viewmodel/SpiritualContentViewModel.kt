@@ -8,12 +8,14 @@ import com.sajda.app.data.repository.SpiritualContentRepository
 import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.DailyDua
 import com.sajda.app.domain.model.HadithEntry
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class SpiritualContentUiState(
     val duas: List<DailyDua> = emptyList(),
@@ -25,7 +27,8 @@ data class SpiritualContentUiState(
     val errorMessage: String? = null
 )
 
-class SpiritualContentViewModel(
+@HiltViewModel
+class SpiritualContentViewModel @Inject constructor(
     private val repository: SpiritualContentRepository,
     private val preferencesDataStore: PreferencesDataStore
 ) : ViewModel() {

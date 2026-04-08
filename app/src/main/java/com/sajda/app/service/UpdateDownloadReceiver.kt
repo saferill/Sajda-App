@@ -35,7 +35,7 @@ class UpdateDownloadReceiver : BroadcastReceiver() {
                     val permissionIntent = repository.buildUnknownSourcesIntent()
                     AppUpdateNotifier.notifyUpdateReady(
                         context = context,
-                        versionLabel = "Sajda App versi terbaru",
+                        versionLabel = "NurApp versi terbaru",
                         installIntent = installIntent,
                         permissionIntent = permissionIntent,
                         needsInstallPermission = !repository.canRequestPackageInstalls()

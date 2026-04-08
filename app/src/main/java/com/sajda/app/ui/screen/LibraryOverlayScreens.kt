@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Headphones
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.PauseCircle
 import androidx.compose.material.icons.rounded.PlayCircle
@@ -61,6 +63,7 @@ private data class BookmarkEntryUi(
     val englishTranslation: String
 )
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SearchScreen(
     appLanguage: AppLanguage,
@@ -69,68 +72,128 @@ fun SearchScreen(
     onOpenResult: (QuranSearchResult) -> Unit
 ) {
     var query by remember { mutableStateOf("") }
-    val results by produceState(initialValue = emptyList<QuranSearchResult>(), query) {
+    var selectedType by remember { mutableStateOf<SearchResultType?>(null) }
+    val rawResults by produceState(initialValue = emptyList<QuranSearchResult>(), query) {
         value = quranRepository.search(query)
+    }
+    val results = remember(rawResults, selectedType) {
+        rawResults.filter { result ->
+            selectedType == null || result.type == selectedType
+        }
+    }
+    val suggestions = remember(appLanguage) {
+        if (appLanguage == AppLanguage.ENGLISH) {
+            listOf("Patience", "Prayer", "Mercy")
+        } else {
+            listOf("Sabar", "Sholat", "Rahmat")
+        }
     }
 
     OverlayShell(
-        title = appLanguage.pick("Cari", "Search"),
-        subtitle = appLanguage.pick("Surah dan ayat", "Surah and verses"),
+        title = "Al-Qur'an",
+        subtitle = appLanguage.pick("Cari ayat atau topik", "Search verses or topics"),
         onBack = onBack
     ) {
-        SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+        SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest) {
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Rounded.Language, contentDescription = null) },
-                placeholder = { Text(appLanguage.pick("Cari ayat, arti, atau nama surah", "Search verses, meanings, or surah names")) },
-                singleLine = true
+                placeholder = { Text(appLanguage.pick("Cari ayat atau nama surah...", "Search verses or surah names...")) },
+                singleLine = true,
+                shape = RoundedCornerShape(24.dp)
             )
         }
 
-        if (results.isEmpty()) {
-            EmptyStateCard(
-                title = if (query.isBlank()) {
-                    appLanguage.pick("Mulai mencari", "Start searching")
-                } else {
-                    appLanguage.pick("Hasil belum ditemukan", "No results found")
-                },
-                message = if (query.isBlank()) {
-                    appLanguage.pick(
-                        "Ketik kata kunci untuk mencari surah atau ayat secara offline.",
-                        "Type a keyword to search surahs or verses offline."
-                    )
-                } else {
-                    appLanguage.pick(
-                        "Coba kata yang lebih singkat atau lebih umum.",
-                        "Try a shorter or more common keyword."
-                    )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ChoiceChip(
+                label = appLanguage.pick("Semua", "All"),
+                selected = selectedType == null,
+                onClick = { selectedType = null }
+            )
+            ChoiceChip(
+                label = appLanguage.pick("Surah", "Surah"),
+                selected = selectedType == SearchResultType.SURAH,
+                onClick = { selectedType = SearchResultType.SURAH }
+            )
+            ChoiceChip(
+                label = appLanguage.pick("Ayat", "Verse"),
+                selected = selectedType == SearchResultType.AYAT,
+                onClick = { selectedType = SearchResultType.AYAT }
+            )
+        }
+
+        if (query.isBlank()) {
+            Text(
+                text = appLanguage.pick("PENCARIAN TERAKHIR", "RECENT SEARCHES"),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                suggestions.forEach { suggestion ->
+                    Row(
+                        modifier = Modifier.clickable { query = suggestion },
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.History,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        MetadataChip(text = suggestion)
+                    }
                 }
+            }
+        } else if (results.isEmpty()) {
+            EmptyStateCard(
+                title = appLanguage.pick("Hasil belum ditemukan", "No results found"),
+                message = appLanguage.pick(
+                    "Coba kata yang lebih singkat atau lebih umum.",
+                    "Try a shorter or more common keyword."
+                )
             )
         } else {
             results.forEach { result ->
                 SanctuaryCard(
-                    modifier = Modifier.clickable { onOpenResult(result) }
+                    modifier = Modifier.clickable { onOpenResult(result) },
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
                 ) {
-                    MetadataChip(
-                        text = if (result.type == SearchResultType.SURAH) {
-                            appLanguage.pick("Surah", "Surah")
-                        } else {
-                            appLanguage.pick("Ayat", "Verse")
-                        },
-                        active = result.type == SearchResultType.SURAH
-                    )
-                    Text(
-                        text = result.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = result.subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            MetadataChip(
+                                text = if (result.type == SearchResultType.SURAH) {
+                                    appLanguage.pick("Surah", "Surah")
+                                } else {
+                                    appLanguage.pick("Ayat", "Verse")
+                                },
+                                active = result.type == SearchResultType.SURAH
+                            )
+                            Text(
+                                text = result.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = result.subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Rounded.Bookmark,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)
+                        )
+                    }
                 }
             }
         }
@@ -158,13 +221,47 @@ fun BookmarksScreen(
     }
 
     OverlayShell(
-        title = appLanguage.pick("Bookmark", "Bookmarks"),
+        title = appLanguage.pick("Terakhir Dibaca & Bookmark", "Reading History & Bookmarks"),
         subtitle = appLanguage.pick(
             "${bookmarks.size} ayat tersimpan",
             "${bookmarks.size} saved verses"
         ),
         onBack = onBack
     ) {
+        val featured = entries.firstOrNull()
+
+        if (featured != null) {
+            HeroCard {
+                Text(
+                    text = appLanguage.pick("TERAKHIR DISIMPAN", "LAST SAVED"),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.secondaryContainer
+                )
+                Text(
+                    text = "${featured.bookmark.surahName}: ${featured.bookmark.ayatNumber}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                ArabicVerseText(text = featured.arabic, fontSize = 24)
+                Text(
+                    text = if (appLanguage == AppLanguage.ENGLISH) {
+                        featured.englishTranslation.ifBlank { featured.translation }
+                    } else {
+                        featured.translation
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.86f)
+                )
+                Text(
+                    text = appLanguage.pick("Lanjutkan Membaca", "Continue Reading"),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.clickable { onOpenAyat(featured.bookmark) }
+                )
+            }
+        }
+
         if (entries.isEmpty()) {
             EmptyStateCard(
                 title = appLanguage.pick("Belum ada bookmark", "No bookmarks yet"),
@@ -174,33 +271,62 @@ fun BookmarksScreen(
                 )
             )
         } else {
-            entries.forEach { entry ->
+            Text(
+                text = appLanguage.pick("AYAT TERSIMPAN", "SAVED VERSES"),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            entries.forEachIndexed { index, entry ->
                 SanctuaryCard(
                     modifier = Modifier.clickable { onOpenAyat(entry.bookmark) },
                     containerColor = bookmarkCardColor(entry.bookmark.highlightColor)
                 ) {
-                    Text(
-                        text = "${entry.bookmark.surahName} - ${appLanguage.pick("Ayat", "Verse")} ${entry.bookmark.ayatNumber}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    BookmarkMetaRow(entry.bookmark, appLanguage)
-                    ArabicVerseText(text = entry.arabic, fontSize = 22)
-                    Text(
-                        text = if (appLanguage == AppLanguage.ENGLISH) {
-                            entry.englishTranslation.ifBlank { entry.translation }
-                        } else {
-                            entry.translation
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (entry.bookmark.note.isNotBlank()) {
-                        Text(
-                            text = entry.bookmark.note,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            MetadataChip(text = "%02d".format(index + 1), active = true)
+                        }
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "${entry.bookmark.surahName} - ${appLanguage.pick("Ayat", "Verse")} ${entry.bookmark.ayatNumber}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = entry.arabic,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = if (appLanguage == AppLanguage.ENGLISH) {
+                                    entry.englishTranslation.ifBlank { entry.translation }
+                                } else {
+                                    entry.translation
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1
+                            )
+                            BookmarkMetaRow(entry.bookmark, appLanguage)
+                            if (entry.bookmark.note.isNotBlank()) {
+                                Text(
+                                    text = entry.bookmark.note,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -338,7 +464,7 @@ fun FullAudioPlayerScreen(
 ) {
     OverlayShell(
         title = appLanguage.pick("Sedang Diputar", "Now Playing"),
-        subtitle = currentSurah?.transliteration ?: appLanguage.pick("Murattal Sajda", "Sajda Murattal"),
+        subtitle = currentSurah?.transliteration ?: appLanguage.pick("Murattal NurApp", "NurApp Murattal"),
         onBack = onBack
     ) {
         HeroCard {
@@ -348,7 +474,7 @@ fun FullAudioPlayerScreen(
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
                 Text(
-                    text = playbackState.title.ifBlank { appLanguage.pick("Murattal Sajda", "Sajda Murattal") },
+                    text = playbackState.title.ifBlank { appLanguage.pick("Murattal NurApp", "NurApp Murattal") },
                     style = MaterialTheme.typography.headlineLarge,
                     color = MaterialTheme.colorScheme.onPrimary,
                     fontWeight = FontWeight.Bold

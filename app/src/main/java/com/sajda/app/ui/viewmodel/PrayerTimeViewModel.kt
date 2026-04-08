@@ -9,11 +9,13 @@ import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.PrayerTime
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.service.AdzanScheduler
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class PrayerTimeUiState(
     val todayPrayerTime: PrayerTime? = null,
@@ -23,7 +25,8 @@ data class PrayerTimeUiState(
     val isRefreshing: Boolean = true
 )
 
-class PrayerTimeViewModel(
+@HiltViewModel
+class PrayerTimeViewModel @Inject constructor(
     private val prayerTimeRepository: PrayerTimeRepository,
     private val preferencesDataStore: PreferencesDataStore,
     private val adzanScheduler: AdzanScheduler

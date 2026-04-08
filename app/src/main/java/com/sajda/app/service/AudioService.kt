@@ -160,7 +160,7 @@ class AudioService : Service() {
 
         return NotificationCompat.Builder(this, Constants.AUDIO_NOTIFICATION_CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Sajda App")
+            .setContentTitle("NurApp")
             .setContentText(contentText)
             .setContentIntent(pendingIntent)
             .setOnlyAlertOnce(true)
@@ -187,7 +187,7 @@ class AudioService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 Constants.AUDIO_NOTIFICATION_CHANNEL,
-                "Pemutaran Audio Sajda",
+                "Pemutaran Audio NurApp",
                 NotificationManager.IMPORTANCE_LOW
             )
             getSystemService(NotificationManager::class.java).createNotificationChannel(channel)

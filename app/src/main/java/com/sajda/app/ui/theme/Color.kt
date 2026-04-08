@@ -8,44 +8,44 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-val SajdaPrimary = Color(0xFF0F5238)
-val SajdaPrimaryContainer = Color(0xFF2D6A4F)
-val SajdaPrimaryFixed = Color(0xFFB1F0CE)
-val SajdaPrimaryFixedDim = Color(0xFF95D4B3)
-val SajdaSecondary = Color(0xFF4B6359)
-val SajdaSecondaryContainer = Color(0xFFCEE9DC)
-val SajdaAccent = Color(0xFFD4E9DE)
-val SajdaBackground = Color(0xFFF7FAF8)
-val SajdaSurface = Color(0xFFF7FAF8)
-val SajdaSurfaceLow = Color(0xFFF1F4F2)
+val SajdaPrimary = Color(0xFF00595C)
+val SajdaPrimaryContainer = Color(0xFF0D7377)
+val SajdaPrimaryFixed = Color(0xFF9DF0F4)
+val SajdaPrimaryFixedDim = Color(0xFF81D4D8)
+val SajdaSecondary = Color(0xFF8E4E14)
+val SajdaSecondaryContainer = Color(0xFFFFAB69)
+val SajdaAccent = Color(0xFFFFDCC4)
+val SajdaBackground = Color(0xFFF9F9F9)
+val SajdaSurface = Color(0xFFF9F9F9)
+val SajdaSurfaceLow = Color(0xFFF3F3F3)
 val SajdaSurfaceLowest = Color(0xFFFFFFFF)
-val SajdaSurfaceHigh = Color(0xFFE6E9E7)
-val SajdaSurfaceHighest = Color(0xFFE0E3E1)
-val SajdaOutline = Color(0xFF707973)
-val SajdaOutlineVariant = Color(0xFFBFC9C1)
-val SajdaOnSurface = Color(0xFF181C1B)
-val SajdaOnSurfaceVariant = Color(0xFF404943)
+val SajdaSurfaceHigh = Color(0xFFE8E8E8)
+val SajdaSurfaceHighest = Color(0xFFE2E2E2)
+val SajdaOutline = Color(0xFF6E7979)
+val SajdaOutlineVariant = Color(0xFFBEC9C9)
+val SajdaOnSurface = Color(0xFF1A1C1C)
+val SajdaOnSurfaceVariant = Color(0xFF3E4949)
 val SajdaError = Color(0xFFBA1A1A)
-val SajdaWarm = Color(0xFF713638)
+val SajdaWarm = Color(0xFF434F6E)
 
-val SajdaDarkBackground = Color(0xFF121715)
-val SajdaDarkSurface = Color(0xFF151A18)
-val SajdaDarkSurfaceLow = Color(0xFF1C2320)
-val SajdaDarkSurfaceLowest = Color(0xFF232B28)
-val SajdaDarkSurfaceHigh = Color(0xFF2C3431)
-val SajdaDarkSurfaceHighest = Color(0xFF36403C)
-val SajdaDarkOnSurface = Color(0xFFF0F4F1)
-val SajdaDarkOnSurfaceVariant = Color(0xFFB8C2BC)
+val SajdaDarkBackground = Color(0xFF0E1517)
+val SajdaDarkSurface = Color(0xFF10181A)
+val SajdaDarkSurfaceLow = Color(0xFF162022)
+val SajdaDarkSurfaceLowest = Color(0xFF1A2528)
+val SajdaDarkSurfaceHigh = Color(0xFF223033)
+val SajdaDarkSurfaceHighest = Color(0xFF2B3B3E)
+val SajdaDarkOnSurface = Color(0xFFF0F1F1)
+val SajdaDarkOnSurfaceVariant = Color(0xFFB7C4C4)
 
 private val LightColorScheme = lightColorScheme(
     primary = SajdaPrimary,
     onPrimary = Color.White,
     primaryContainer = SajdaPrimaryContainer,
-    onPrimaryContainer = SajdaPrimaryFixed,
+    onPrimaryContainer = Color(0xFFA2F5F9),
     secondary = SajdaSecondary,
     onSecondary = Color.White,
     secondaryContainer = SajdaSecondaryContainer,
-    onSecondaryContainer = SajdaPrimary,
+    onSecondaryContainer = Color(0xFF783D01),
     tertiary = SajdaWarm,
     onTertiary = Color.White,
     background = SajdaBackground,
@@ -54,29 +54,31 @@ private val LightColorScheme = lightColorScheme(
     onSurface = SajdaOnSurface,
     surfaceVariant = SajdaSurfaceHighest,
     onSurfaceVariant = SajdaOnSurfaceVariant,
-    surfaceTint = SajdaPrimaryContainer,
+    surfaceTint = SajdaPrimary,
     outline = SajdaOutline,
     outlineVariant = SajdaOutlineVariant,
     error = SajdaError,
     onError = Color.White,
     errorContainer = Color(0xFFFFDAD6),
     onErrorContainer = Color(0xFF93000A),
-    inverseSurface = Color(0xFF2D3130),
-    inverseOnSurface = Color(0xFFEEF1EF),
+    inverseSurface = Color(0xFF2F3131),
+    inverseOnSurface = Color(0xFFF0F1F1),
     inversePrimary = SajdaPrimaryFixedDim
 )
 
 private val DarkColorScheme = darkColorScheme(
     primary = SajdaPrimaryFixed,
-    onPrimary = Color(0xFF003823),
-    primaryContainer = Color(0xFF185239),
-    onPrimaryContainer = Color(0xFFD3F7E1),
-    secondary = Color(0xFFB2CCC0),
-    onSecondary = Color(0xFF1D352B),
-    secondaryContainer = Color(0xFF344C42),
-    onSecondaryContainer = Color(0xFFD0EBDE),
-    tertiary = Color(0xFFE2B9B9),
-    onTertiary = Color(0xFF442021),
+    onPrimary = Color(0xFF002E30),
+    primaryContainer = Color(0xFF004F52),
+    onPrimaryContainer = Color(0xFFA2F5F9),
+    secondary = Color(0xFFFFB780),
+    onSecondary = Color(0xFF4E2600),
+    secondaryContainer = Color(0xFF6F3800),
+    onSecondaryContainer = Color(0xFFFFDCC4),
+    tertiary = Color(0xFFB9C6EA),
+    onTertiary = Color(0xFF16213D),
+    tertiaryContainer = Color(0xFF3A4664),
+    onTertiaryContainer = Color(0xFFE0E7FF),
     background = SajdaDarkBackground,
     onBackground = SajdaDarkOnSurface,
     surface = SajdaDarkSurface,
@@ -84,14 +86,14 @@ private val DarkColorScheme = darkColorScheme(
     surfaceVariant = SajdaDarkSurfaceHighest,
     onSurfaceVariant = SajdaDarkOnSurfaceVariant,
     surfaceTint = SajdaPrimaryFixed,
-    outline = Color(0xFF88938D),
-    outlineVariant = Color(0xFF414A46),
+    outline = Color(0xFF7B8C8C),
+    outlineVariant = Color(0xFF334346),
     error = Color(0xFFFFB4AB),
     onError = Color(0xFF690005),
     errorContainer = Color(0xFF93000A),
     onErrorContainer = Color(0xFFFFDAD6),
-    inverseSurface = Color(0xFFE3E8E4),
-    inverseOnSurface = Color(0xFF2A312F),
+    inverseSurface = Color(0xFFE7ECEC),
+    inverseOnSurface = Color(0xFF202729),
     inversePrimary = SajdaPrimary
 )
 
@@ -112,11 +114,11 @@ fun SajdaAppTheme(
 @Composable
 fun sajdaBackgroundBrush(): Brush {
     val colors = MaterialTheme.colorScheme
-    return Brush.radialGradient(
+    return Brush.linearGradient(
         colors = listOf(
+            colors.background,
             colors.surface,
-            colors.surfaceContainerLow,
-            colors.background
+            colors.surfaceContainerLow
         )
     )
 }
@@ -125,6 +127,10 @@ fun sajdaBackgroundBrush(): Brush {
 fun sajdaHeroBrush(): Brush {
     val colors = MaterialTheme.colorScheme
     return Brush.linearGradient(
-        colors = listOf(colors.primaryContainer, colors.primary)
+        colors = listOf(
+            colors.primaryContainer,
+            colors.primary,
+            colors.primary.copy(alpha = 0.86f)
+        )
     )
 }

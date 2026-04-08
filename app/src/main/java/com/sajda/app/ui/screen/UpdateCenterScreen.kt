@@ -80,12 +80,12 @@ fun UpdateCenterScreen(
         SanctuaryCard {
             SectionHeader(eyebrow = "Cara kerja", title = "Sumber rilis")
             Text(
-                text = "Sajda App mengecek GitHub Releases untuk mencari APK yang lebih baru. Saat ada rilis baru, pengguna bisa mengunduh update dari dalam aplikasi lalu melanjutkan instalasi lewat installer sistem.",
+                text = "NurApp mengecek GitHub Releases untuk mencari APK yang lebih baru. Saat ada rilis baru, pengguna bisa mengunduh update dari dalam aplikasi lalu melanjutkan instalasi lewat installer sistem.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Penting: Android masih bisa meminta verifikasi APK atau izin instalasi dari Sajda App bila update dibagikan di luar Google Play. Update yang benar-benar mulus di semua HP tetap butuh distribusi lewat Play Store.",
+                text = "Penting: Android masih bisa meminta verifikasi APK atau izin instalasi dari NurApp bila update dibagikan di luar Google Play. Update yang benar-benar mulus di semua HP tetap butuh distribusi lewat Play Store.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -105,7 +105,7 @@ fun UpdateCenterScreen(
                     )
                 } else {
                     Text(
-                        text = "Ada rilis baru. Unduh sekarang untuk memasang build Sajda App terbaru.",
+                        text = "Ada rilis baru. Unduh sekarang untuk memasang build NurApp terbaru.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -133,7 +133,7 @@ fun UpdateCenterScreen(
             SanctuaryCard {
                 SectionHeader(eyebrow = "Saat ini", title = "Versi aplikasi sudah terbaru")
                 Text(
-                    text = "Saat Anda menerbitkan APK yang lebih baru ke GitHub Releases, Sajda App bisa memberi tahu pengguna yang sudah memasang aplikasi lalu membantu mereka memperbarui dari dalam aplikasi.",
+                    text = "Saat Anda menerbitkan APK yang lebih baru ke GitHub Releases, NurApp bisa memberi tahu pengguna yang sudah memasang aplikasi lalu membantu mereka memperbarui dari dalam aplikasi.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
