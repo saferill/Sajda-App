@@ -21,6 +21,7 @@ data class AdhanReadiness(
     val adhanChannelEnabled: Boolean,
     val exactAlarmGranted: Boolean,
     val batteryOptimizationIgnored: Boolean,
+    val locationPermissionGranted: Boolean,
     val silentModeActive: Boolean,
     val alarmVolumeLevel: Int
 )
@@ -93,6 +94,7 @@ object AdhanSystemHelper {
             adhanChannelEnabled = isAdhanChannelEnabled(context),
             exactAlarmGranted = canScheduleExactAlarms(context),
             batteryOptimizationIgnored = isIgnoringBatteryOptimizations(context),
+            locationPermissionGranted = DeviceLocationHelper.hasLocationPermission(context),
             silentModeActive = isSilentModeActive(context),
             alarmVolumeLevel = alarmVolumeLevel(context)
         )

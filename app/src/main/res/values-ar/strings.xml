@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">نور آب</string>
+    <string name="tab_home">الرئيسية</string>
+    <string name="tab_quran">القرآن</string>
+    <string name="tab_adhan">الأذان</string>
+    <string name="tab_hadith">الحديث</string>
+    <string name="tab_ramadan">رمضان</string>
+    <string name="tab_settings">الإعدادات</string>
+</resources>

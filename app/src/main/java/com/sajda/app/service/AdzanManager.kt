@@ -8,10 +8,10 @@ import com.sajda.app.data.local.PreferencesDataStore
 import com.sajda.app.data.local.SajdaDatabase
 import com.sajda.app.data.repository.PrayerTimeRepository
 import com.sajda.app.domain.model.PrayerTime
+import com.sajda.app.util.LocationUpdateDecider
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 class AdzanManager(private val context: Context) {
 
@@ -27,13 +27,13 @@ class AdzanManager(private val context: Context) {
     suspend fun checkAndUpdateLocation(): Boolean {
         return try {
             val locationSnapshot = locationService.getCurrentLocationSnapshot() ?: return false
-            val newCity = normalizeCityName(locationSnapshot.cityName)
+            val newCity = LocationUpdateDecider.normalizeCityName(locationSnapshot.cityName)
             val savedCity = getSavedCity()
             val cachedSchedules = getSavedPrayerTimes()
 
             Log.d(TAG, "Kota GPS=$newCity, kota tersimpan=$savedCity")
 
-            if (savedCity.equals(newCity, ignoreCase = true) && hasTodaySchedule(cachedSchedules)) {
+            if (!LocationUpdateDecider.shouldRefresh(savedCity, newCity, cachedSchedules)) {
                 Log.d(TAG, "Kota sama dan jadwal hari ini sudah ada, skip fetch ulang")
                 return false
             }
@@ -79,9 +79,9 @@ class AdzanManager(private val context: Context) {
         return try {
             Log.d(TAG, "Mencari ID kota baru ke API MyQuran: $cityName")
             val response = apiService.getAllCities()
-            val target = normalizeCityName(cityName)
+            val target = LocationUpdateDecider.normalizeCityName(cityName)
             response.data.firstOrNull { city ->
-                val candidate = normalizeCityName(city.lokasi)
+                val candidate = LocationUpdateDecider.normalizeCityName(city.lokasi)
                 candidate == target || candidate.contains(target) || target.contains(candidate)
             }?.id
         } catch (error: Exception) {
@@ -140,18 +140,6 @@ class AdzanManager(private val context: Context) {
     private fun hasTodaySchedule(schedules: List<PrayerTime>): Boolean {
         val today = LocalDate.now().toString()
         return schedules.any { it.date == today }
-    }
-
-    private fun normalizeCityName(value: String): String {
-        return value
-            .lowercase(Locale.US)
-            .replace("kota", "")
-            .replace("kabupaten", "")
-            .replace("kab.", "")
-            .replace("provinsi", "")
-            .replace(Regex("[^a-z0-9 ]"), " ")
-            .replace(Regex("\\s+"), " ")
-            .trim()
     }
 
     private fun MyQuranDailySchedule.toPrayerTime(

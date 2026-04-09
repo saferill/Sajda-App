@@ -40,12 +40,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.sajda.app.data.repository.QuranRepository
 import com.sajda.app.domain.model.AppLanguage
+import com.sajda.app.domain.model.AudioDownloadMode
 import com.sajda.app.domain.model.AudioDownloadState
 import com.sajda.app.domain.model.AudioPlaybackState
 import com.sajda.app.domain.model.Bookmark
 import com.sajda.app.domain.model.QuranSearchResult
 import com.sajda.app.domain.model.SearchResultType
 import com.sajda.app.domain.model.Surah
+import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.ui.component.ArabicVerseText
 import com.sajda.app.ui.component.HeroCard
 import com.sajda.app.ui.component.MetadataChip
@@ -54,6 +56,7 @@ import com.sajda.app.ui.component.formatStorageSize
 import com.sajda.app.ui.theme.surfaceContainerLow
 import com.sajda.app.ui.theme.surfaceContainerLowest
 import com.sajda.app.util.audioBundleSizeBytes
+import com.sajda.app.util.buildHighlightedText
 import com.sajda.app.util.hasAnyDownloadedAudio
 import com.sajda.app.util.pick
 
@@ -179,12 +182,20 @@ fun SearchScreen(
                                 active = result.type == SearchResultType.SURAH
                             )
                             Text(
-                                text = result.title,
+                                text = buildHighlightedText(
+                                    text = result.title,
+                                    query = query,
+                                    highlightColor = MaterialTheme.colorScheme.primary
+                                ),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = result.subtitle,
+                                text = buildHighlightedText(
+                                    text = result.subtitle,
+                                    query = query,
+                                    highlightColor = MaterialTheme.colorScheme.primary
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -357,18 +368,28 @@ private fun bookmarkCardColor(highlightColor: String): Color {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AudioManagementScreen(
     appLanguage: AppLanguage,
+    settings: UserSettings,
     surahList: List<Surah>,
     downloadStates: Map<Int, AudioDownloadState>,
     onBack: () -> Unit,
     onPlay: (Surah) -> Unit,
     onDelete: (Surah) -> Unit,
-    onDownload: (Surah) -> Unit
+    onDownload: (Surah) -> Unit,
+    onDeleteAll: () -> Unit,
+    onSetDownloadMode: (AudioDownloadMode) -> Unit,
+    onSetWifiOnly: (Boolean) -> Unit
 ) {
     val downloaded = surahList.filter { it.hasAnyDownloadedAudio() }
-    val storageUsage = downloaded.sumOf { surah -> surah.audioBundleSizeBytes() }
+    val storageUsage = downloaded.sumOf { surah ->
+        surah.audioBundleSizeBytes(
+            mode = settings.audioDownloadMode,
+            selectedReciter = settings.selectedQuranReciter
+        )
+    }
 
     OverlayShell(
         title = appLanguage.pick("Manajemen Audio", "Audio Management"),
@@ -383,16 +404,81 @@ fun AudioManagementScreen(
             )
             Text(
                 text = appLanguage.pick(
-                    "${downloaded.size} surah tersimpan offline. Anda bebas menghapus atau mengunduh ulang kapan saja.",
-                    "${downloaded.size} surahs are stored offline. You can delete or download them again at any time."
+                    "${downloaded.size} surah tersimpan offline.",
+                    "${downloaded.size} surahs stored offline."
                 ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AudioDownloadMode.entries.forEach { mode ->
+                    ChoiceChip(
+                        label = when (mode) {
+                            AudioDownloadMode.SELECTED_RECITER_ONLY -> appLanguage.pick("Qari aktif saja", "Selected reciter only")
+                            AudioDownloadMode.ALL_RECITERS -> appLanguage.pick("Semua qari", "All reciters")
+                        },
+                        selected = settings.audioDownloadMode == mode,
+                        onClick = { onSetDownloadMode(mode) }
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = appLanguage.pick("Unduh hanya lewat Wi-Fi", "Download on Wi-Fi only"),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = appLanguage.pick(
+                            "Cocok untuk paket audio besar.",
+                            "Recommended for large audio packages."
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                androidx.compose.material3.Switch(
+                    checked = settings.wifiOnlyAudioDownloads,
+                    onCheckedChange = onSetWifiOnly
+                )
+            }
+            if (downloaded.isNotEmpty()) {
+                Text(
+                    text = appLanguage.pick("Hapus semua audio", "Delete all audio"),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.clickable(onClick = onDeleteAll)
+                )
+            }
+        }
+
+        if (surahList.isEmpty()) {
+            EmptyStateCard(
+                title = appLanguage.pick("Daftar surah belum siap", "Surah list is not ready"),
+                message = appLanguage.pick(
+                    "Coba buka ulang halaman Qur'an setelah data selesai dimuat.",
+                    "Open the Qur'an page again after the data finishes loading."
+                )
             )
         }
 
         surahList.forEach { surah ->
             val state = downloadStates[surah.number]
+            val estimatedSize = surah.audioBundleSizeBytes(
+                mode = settings.audioDownloadMode,
+                selectedReciter = settings.selectedQuranReciter
+            )
             SanctuaryCard {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -415,8 +501,8 @@ fun AudioManagementScreen(
                         )
                         Text(
                             text = appLanguage.pick(
-                                "${surah.downloadedReciterIds.size}/${com.sajda.app.domain.model.QuranReciter.entries.size} qari • ${formatStorageSize(surah.audioBundleSizeBytes())}",
-                                "${surah.downloadedReciterIds.size}/${com.sajda.app.domain.model.QuranReciter.entries.size} reciters • ${formatStorageSize(surah.audioBundleSizeBytes())}"
+                                "${surah.downloadedReciterIds.size}/${com.sajda.app.domain.model.QuranReciter.entries.size} qari | ${formatStorageSize(estimatedSize)}",
+                                "${surah.downloadedReciterIds.size}/${com.sajda.app.domain.model.QuranReciter.entries.size} reciters | ${formatStorageSize(estimatedSize)}"
                             ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
@@ -446,8 +532,15 @@ fun AudioManagementScreen(
                 MetadataChip(
                     text = when {
                         state?.isDownloading == true -> appLanguage.pick("Mengunduh ${state.progress}%", "Downloading ${state.progress}%")
-                        surah.hasAnyDownloadedAudio() -> appLanguage.pick("Semua qari siap offline", "All reciters ready offline")
-                        else -> appLanguage.pick("Belum diunduh", "Not downloaded")
+                        surah.hasAnyDownloadedAudio() -> appLanguage.pick("Audio offline siap", "Offline audio ready")
+                        settings.audioDownloadMode == AudioDownloadMode.SELECTED_RECITER_ONLY -> appLanguage.pick(
+                            "Qari aktif | ~${formatStorageSize(estimatedSize)}",
+                            "Selected reciter | ~${formatStorageSize(estimatedSize)}"
+                        )
+                        else -> appLanguage.pick(
+                            "Semua qari | ~${formatStorageSize(estimatedSize)}",
+                            "All reciters | ~${formatStorageSize(estimatedSize)}"
+                        )
                     },
                     active = surah.hasAnyDownloadedAudio()
                 )

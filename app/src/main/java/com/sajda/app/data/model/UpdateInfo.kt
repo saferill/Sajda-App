@@ -5,5 +5,7 @@ data class UpdateInfo(
     val currentVersion: String,
     val downloadUrl: String,
     val releaseNotes: String,
-    val fileSize: Long
+    val fileSize: Long,
+    val releaseUrl: String = "",
+    val checksum: String? = null
 )

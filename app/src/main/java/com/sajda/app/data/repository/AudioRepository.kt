@@ -2,15 +2,19 @@ package com.sajda.app.data.repository
 
 import android.app.DownloadManager
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Environment
 import com.google.gson.JsonObject
 import com.sajda.app.data.api.EquranApi
 import com.sajda.app.data.local.PreferencesDataStore
 import com.sajda.app.domain.model.AudioDownloadState
+import com.sajda.app.domain.model.AudioDownloadMode
 import com.sajda.app.domain.model.QuranReciter
 import com.sajda.app.domain.model.Surah
 import com.sajda.app.util.Constants
+import com.sajda.app.util.AudioDownloadPlanner
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,13 +58,23 @@ class AudioRepository @Inject constructor(
     }
 
     suspend fun downloadSurah(surah: Surah) = withContext(Dispatchers.IO) {
-        val selectedReciter = preferencesDataStore.settingsFlow.first().selectedQuranReciter
+        val settings = preferencesDataStore.settingsFlow.first()
+        if (AudioDownloadPlanner.shouldBlockForNetwork(settings.wifiOnlyAudioDownloads, isWifiConnected())) {
+            throw IllegalStateException("Unduhan audio diatur hanya lewat Wi-Fi")
+        }
+
+        val selectedReciter = settings.selectedQuranReciter
+        val plan = AudioDownloadPlanner.plan(
+            totalVerses = surah.totalVerses,
+            selectedReciter = selectedReciter,
+            mode = settings.audioDownloadMode
+        )
         val audioUrls = resolveAudioUrls(surah.number)
-        val totalReciters = QuranReciter.entries.size
+        val totalReciters = plan.reciters.size
 
         updateProgress(surah.number, 0, isDownloading = true)
 
-        QuranReciter.entries.forEachIndexed { index, reciter ->
+        plan.reciters.forEachIndexed { index, reciter ->
             val targetFile = audioFileFor(surah.number, reciter)
             targetFile.parentFile?.mkdirs()
             val completedProgress = ((index.toFloat() / totalReciters) * 100f).roundToInt()
@@ -86,7 +100,7 @@ class AudioRepository @Inject constructor(
 
         val representativeFile = audioFileFor(surah.number, selectedReciter)
             .takeIf { it.exists() }
-            ?: QuranReciter.entries
+            ?: plan.reciters
                 .map { audioFileFor(surah.number, it) }
                 .firstOrNull { it.exists() }
 
@@ -98,6 +112,25 @@ class AudioRepository @Inject constructor(
             downloadedReciterId = selectedReciter.id
         )
         _downloadStates.update { it - surah.number }
+    }
+
+    suspend fun deleteAllDownloadedAudio() = withContext(Dispatchers.IO) {
+        quranRepository.observeAllSurah().first().forEach { surah ->
+            QuranReciter.entries.forEach { reciter ->
+                val file = audioFileFor(surah.number, reciter)
+                if (file.exists()) {
+                    file.delete()
+                }
+            }
+            quranRepository.updateAudioState(
+                surahNumber = surah.number,
+                isDownloaded = false,
+                localAudioPath = null,
+                downloadedAt = null,
+                downloadedReciterId = null
+            )
+        }
+        _downloadStates.value = emptyMap()
     }
 
     suspend fun deleteSurahAudio(surahNumber: Int) = withContext(Dispatchers.IO) {
@@ -225,6 +258,13 @@ class AudioRepository @Inject constructor(
         val musicDir = appContext.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
         val targetDir = File(musicDir, Constants.AUDIO_DOWNLOAD_DIR).apply { mkdirs() }
         return File(targetDir, Constants.formatAudioFileName(surahNumber, reciterId))
+    }
+
+    private fun isWifiConnected(): Boolean {
+        val connectivityManager = appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
     }
 
     private fun JsonObject.stringValue(key: String): String? {

@@ -130,12 +130,27 @@ object AppUpdateNotifier {
         NotificationManagerCompat.from(context).notify(Constants.UPDATE_READY_NOTIFICATION_ID, builder.build())
     }
 
-    fun notifyUpdateDownloadFailed(context: Context) {
+    fun notifyUpdateDownloadFailed(
+        context: Context,
+        message: String = "Coba cek update lagi dari Settings."
+    ) {
         ensureChannel(context)
         val notification = NotificationCompat.Builder(context, Constants.UPDATE_NOTIFICATION_CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Unduhan update gagal")
-            .setContentText("Coba cek update lagi dari Settings.")
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .build()
+        NotificationManagerCompat.from(context).notify(Constants.UPDATE_READY_NOTIFICATION_ID, notification)
+    }
+
+    fun notifyReleaseAssetMissing(context: Context) {
+        ensureChannel(context)
+        val notification = NotificationCompat.Builder(context, Constants.UPDATE_NOTIFICATION_CHANNEL)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("Asset update tidak ditemukan")
+            .setContentText("Release terbaru ada, tapi file APK belum tersedia.")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .build()

@@ -4,12 +4,36 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
-### Planned for v1.1.2
+### Planned next
 
 - Continue improving adhan reliability across more Android devices
 - Expand dua and hadith content with a richer offline-first dataset
 - Refine prayer, qibla, and location UX
 - Polish release workflow and public project documentation
+
+## v1.4.0 - 2026-04-09
+
+### Added
+
+- Adhan diagnostics with more actionable readiness checks and last-event visibility
+- Audio download controls for active qari or all qari, plus Wi-Fi-only handling
+- Local backup and restore foundation for bookmarks and key settings
+- Stronger Qur'an and hadith search helpers with result highlighting
+- New roadmap document for upcoming product work
+- New NurApp logo system for launcher, splash, and runtime branding
+
+### Changed
+
+- Refined Home, Qur'an, Hadith, Ramadan, and Settings flows to reduce duplicate actions and UI clutter
+- Updated adhan playback so hardware volume follows the user's alarm stream more consistently
+- Improved language handling groundwork with dedicated locale resources
+- Hardened app update flow toward the current `saferill/Nur-App` release source
+
+### Fixed
+
+- Several mixed-language and placeholder UI issues across main screens
+- Qur'an display issues related to broken separator characters and weaker empty states
+- Notification and branding inconsistencies across launcher, splash, and alerts
 
 ## v1.1.2 - 2026-04-03
 

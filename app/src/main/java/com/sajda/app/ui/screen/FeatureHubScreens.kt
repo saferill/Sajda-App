@@ -77,7 +77,7 @@ fun MoreHubScreen(
     onOpenSettings: () -> Unit,
     onOpenPermissionSetup: () -> Unit
 ) {
-    val isEnglish = settings.appLanguage == AppLanguage.ENGLISH
+    val isEnglish = settings.appLanguage.isEnglish()
 
     androidx.compose.foundation.lazy.LazyColumn(
         modifier = Modifier.fillMaxWidth(),
@@ -156,7 +156,7 @@ fun HadithLibraryScreen(
     onRefresh: () -> Unit,
     onBack: () -> Unit
 ) {
-    val isEnglish = settings.appLanguage == AppLanguage.ENGLISH
+    val isEnglish = settings.appLanguage.isEnglish()
     val categories = spiritualState.hadithCategories.entries.toList()
     val latestItems = categories.flatMap { it.value }.take(6)
 

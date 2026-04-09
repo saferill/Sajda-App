@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="splash_background">#081F24</color>
+    <color name="splash_background">#0D3841</color>
     <color name="adhan_notification_background">#0E2019</color>
     <color name="adhan_notification_surface">#18352B</color>
     <color name="adhan_notification_accent">#D3B06A</color>

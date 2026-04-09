@@ -108,26 +108,18 @@ fun SajdaLogoTile(
         modifier = modifier
             .size(size.dp)
             .shadow(
-                elevation = 14.dp,
+                elevation = 16.dp,
                 shape = RoundedCornerShape((size * 0.35f).dp),
-                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                ambientColor = Color(0xFF143D44).copy(alpha = 0.10f),
+                spotColor = Color(0xFF143D44).copy(alpha = 0.18f)
             )
-            .clip(RoundedCornerShape((size * 0.35f).dp))
-            .background(
-                Brush.linearGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.primaryContainer,
-                        MaterialTheme.colorScheme.primary
-                    )
-                )
-            ),
+            .clip(RoundedCornerShape((size * 0.35f).dp)),
         contentAlignment = Alignment.Center
     ) {
         Image(
-            painter = painterResource(R.drawable.nurapp_logo_mark),
+            painter = painterResource(R.drawable.nurapp_logo_badge),
             contentDescription = "NurApp",
-            modifier = Modifier.size((size * 0.56f).dp)
+            modifier = Modifier.size(size.dp)
         )
     }
 }
@@ -193,9 +185,9 @@ fun AnimatedSajdaSplashOverlay(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF0D7377),
-                        Color(0xFF0F5B68),
-                        Color(0xFF132E48)
+                        Color(0xFF123B43),
+                        Color(0xFF0F323A),
+                        Color(0xFF102830)
                     )
                 )
             )
@@ -233,16 +225,10 @@ fun AnimatedSajdaSplashOverlay(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(164.dp)
-                        .clip(RoundedCornerShape(52.dp))
-                        .background(Color.White.copy(alpha = 0.12f))
-                )
                 Image(
-                    painter = painterResource(R.drawable.nurapp_logo_mark),
+                    painter = painterResource(R.drawable.nurapp_logo_badge),
                     contentDescription = "NurApp",
-                    modifier = Modifier.size(96.dp)
+                    modifier = Modifier.size(138.dp)
                 )
             }
             Text(

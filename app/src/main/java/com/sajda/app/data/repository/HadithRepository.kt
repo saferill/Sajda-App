@@ -28,7 +28,14 @@ class HadithRepository @Inject constructor(
     ): List<HadithEntry> = withContext(Dispatchers.IO) {
         val normalizedQuery = query.trim()
         if (normalizedQuery.isBlank()) return@withContext browse(book)
-        return@withContext fetchBook(book, range).filter { entry ->
+        val explicitNumber = normalizedQuery.toIntOrNull()
+        val effectiveRange = if (explicitNumber != null && explicitNumber > 0) {
+            "$explicitNumber-$explicitNumber"
+        } else {
+            range
+        }
+        return@withContext fetchBook(book, effectiveRange).filter { entry ->
+            entry.reference == normalizedQuery ||
             entry.text.contains(normalizedQuery, ignoreCase = true) ||
                 entry.arabicText.contains(normalizedQuery, ignoreCase = true) ||
                 entry.reference.contains(normalizedQuery, ignoreCase = true) ||

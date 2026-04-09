@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sajda.app.data.local.PreferencesDataStore
 import com.sajda.app.data.repository.AppUpdateRepository
+import com.sajda.app.data.repository.BackupRepository
 import com.sajda.app.data.repository.PrayerTimeRepository
+import com.sajda.app.domain.model.AudioDownloadMode
 import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.AppUpdateInfo
 import com.sajda.app.domain.model.AsrMadhhab
@@ -44,12 +46,19 @@ data class AppUpdateUiState(
         get() = latestVersionName.isNotBlank()
 }
 
+data class BackupUiState(
+    val isBusy: Boolean = false,
+    val message: String? = null,
+    val lastFilePath: String = ""
+)
+
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val preferencesDataStore: PreferencesDataStore,
     private val prayerTimeRepository: PrayerTimeRepository,
     private val adzanScheduler: AdzanScheduler,
-    private val appUpdateRepository: AppUpdateRepository
+    private val appUpdateRepository: AppUpdateRepository,
+    private val backupRepository: BackupRepository
 ) : ViewModel() {
 
     val settings = preferencesDataStore.settingsFlow.stateIn(
@@ -60,6 +69,9 @@ class SettingsViewModel @Inject constructor(
 
     private val _appUpdateState = MutableStateFlow(AppUpdateUiState())
     val appUpdateState = _appUpdateState.asStateFlow()
+
+    private val _backupState = MutableStateFlow(BackupUiState())
+    val backupState = _backupState.asStateFlow()
 
     private var cachedUpdateInfo: AppUpdateInfo? = null
 
@@ -143,6 +155,14 @@ class SettingsViewModel @Inject constructor(
 
     fun setSelectedQuranReciter(reciter: QuranReciter) {
         viewModelScope.launch { preferencesDataStore.setSelectedQuranReciter(reciter) }
+    }
+
+    fun setAudioDownloadMode(mode: AudioDownloadMode) {
+        viewModelScope.launch { preferencesDataStore.setAudioDownloadMode(mode) }
+    }
+
+    fun setWifiOnlyAudioDownloads(enabled: Boolean) {
+        viewModelScope.launch { preferencesDataStore.setWifiOnlyAudioDownloads(enabled) }
     }
 
     fun setCalendarDisplayMode(mode: CalendarDisplayMode) {
@@ -263,6 +283,51 @@ class SettingsViewModel @Inject constructor(
             }
             appUpdateRepository.enqueueUpdateDownload(updateInfo)
             _appUpdateState.update { it.copy(isDownloading = false) }
+        }
+    }
+
+    fun exportBackup() {
+        viewModelScope.launch {
+            _backupState.value = BackupUiState(isBusy = true)
+            val result = backupRepository.exportToDefaultFile()
+            _backupState.value = result.fold(
+                onSuccess = { file ->
+                    BackupUiState(
+                        isBusy = false,
+                        message = "Backup tersimpan di ${file.name}",
+                        lastFilePath = file.absolutePath
+                    )
+                },
+                onFailure = { error ->
+                    BackupUiState(
+                        isBusy = false,
+                        message = error.message ?: "Backup gagal dibuat"
+                    )
+                }
+            )
+        }
+    }
+
+    fun restoreBackup() {
+        viewModelScope.launch {
+            _backupState.value = BackupUiState(isBusy = true)
+            val result = backupRepository.restoreFromDefaultFile()
+            _backupState.value = result.fold(
+                onSuccess = { file ->
+                    BackupUiState(
+                        isBusy = false,
+                        message = "Backup ${file.name} berhasil dipulihkan",
+                        lastFilePath = file.absolutePath
+                    )
+                },
+                onFailure = { error ->
+                    BackupUiState(
+                        isBusy = false,
+                        message = error.message ?: "Restore backup gagal"
+                    )
+                }
+            )
+            reschedulePrayerAlarms()
         }
     }
 

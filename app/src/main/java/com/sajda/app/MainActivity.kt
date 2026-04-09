@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.core.view.isVisible
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -56,6 +57,7 @@ import com.sajda.app.domain.model.SearchResultType
 import com.sajda.app.domain.model.Surah
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.service.AdzanManager
+import com.sajda.app.service.AdhanPlaybackStore
 import com.sajda.app.service.AdzanScheduler
 import com.sajda.app.service.AudioPlaybackStore
 import com.sajda.app.service.AudioService
@@ -66,12 +68,9 @@ import com.sajda.app.ui.component.FloatingDock
 import com.sajda.app.ui.component.FloatingMiniPlayer
 import com.sajda.app.ui.component.SajdaScreenBackground
 import com.sajda.app.ui.screen.AdhanSettingsScreen
-import com.sajda.app.ui.screen.AppearanceSettingsScreen
 import com.sajda.app.ui.screen.AudioManagementScreen
-import com.sajda.app.ui.screen.BackgroundAudioInfoScreen
 import com.sajda.app.ui.screen.BookmarksScreen
 import com.sajda.app.ui.screen.DailyDuaScreen
-import com.sajda.app.ui.screen.EmptyStateScreen
 import com.sajda.app.ui.screen.HadithSearchScreen
 import com.sajda.app.ui.screen.FullAudioPlayerScreen
 import com.sajda.app.ui.screen.HomeScreen
@@ -80,7 +79,6 @@ import com.sajda.app.ui.screen.LanguageSettingsScreen
 import com.sajda.app.ui.screen.LocationSettingsScreen
 import com.sajda.app.ui.screen.ModernQuranScreen
 import com.sajda.app.ui.screen.NurAppOnboardingScreen
-import com.sajda.app.ui.screen.PermissionSetupScreen
 import com.sajda.app.ui.screen.PrayerTimeScreen
 import com.sajda.app.ui.screen.QiblaScreen
 import com.sajda.app.ui.screen.RamadanDuaScreen
@@ -92,11 +90,9 @@ import com.sajda.app.ui.screen.SmartReminderScreen
 import com.sajda.app.ui.screen.TafsirScreen
 import com.sajda.app.ui.screen.UpdateCenterScreen
 import com.sajda.app.ui.screen.WeeklyPrayerScheduleScreen
-import com.sajda.app.ui.screen.WidgetPreviewScreen
-import com.sajda.app.ui.screen.WorshipProgressScreen
 import com.sajda.app.ui.theme.SajdaAppTheme
 import com.sajda.app.util.AdhanSystemHelper
-import com.sajda.app.util.pick
+import com.sajda.app.util.AppLocaleManager
 import com.sajda.app.ui.viewmodel.HomeViewModel
 import com.sajda.app.ui.viewmodel.QuranViewModel
 import com.sajda.app.ui.viewmodel.PrayerTimeViewModel
@@ -125,23 +121,15 @@ private sealed interface OverlayDestination {
     data object DailyDua : OverlayDestination
     data object Hadith : OverlayDestination
     data object Calendar : OverlayDestination
-    data object Ramadan : OverlayDestination
     data object RamadanPractices : OverlayDestination
     data object RamadanDua : OverlayDestination
     data object WeeklyPrayer : OverlayDestination
-    data object WorshipProgress : OverlayDestination
     data object SmartReminder : OverlayDestination
     data object Qibla : OverlayDestination
-    data object PermissionSetup : OverlayDestination
-    data object Settings : OverlayDestination
     data object AdhanSettings : OverlayDestination
-    data object AppearanceSettings : OverlayDestination
     data object LocationSettings : OverlayDestination
     data object LanguageSettings : OverlayDestination
     data object UpdateCenter : OverlayDestination
-    data object BackgroundAudioInfo : OverlayDestination
-    data object WidgetPreview : OverlayDestination
-    data object EmptyState : OverlayDestination
     data object FullPlayer : OverlayDestination
     data class Tafsir(val surah: Surah, val ayat: Ayat) : OverlayDestination
 }
@@ -211,6 +199,7 @@ class MainActivity : ComponentActivity() {
             val spiritualState by spiritualContentViewModel.uiState.collectAsStateWithLifecycle()
             val duaBookmarks by preferencesDataStore.duaBookmarksFlow.collectAsStateWithLifecycle(initialValue = emptySet())
             val audioState by AudioPlaybackStore.state.collectAsStateWithLifecycle()
+            val adhanPlaybackState by AdhanPlaybackStore.state.collectAsStateWithLifecycle()
 
             var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
             var overlay by remember { mutableStateOf<OverlayDestination?>(null) }
@@ -253,7 +242,16 @@ class MainActivity : ComponentActivity() {
             }
 
             androidx.compose.runtime.LaunchedEffect(settings.appLanguage) {
+                AppLocaleManager.apply(settings.appLanguage)
                 spiritualContentViewModel.refresh(settings.appLanguage)
+            }
+
+            androidx.compose.runtime.LaunchedEffect(adhanPlaybackState.isActive) {
+                volumeControlStream = if (adhanPlaybackState.isActive) {
+                    android.media.AudioManager.STREAM_ALARM
+                } else {
+                    android.media.AudioManager.STREAM_MUSIC
+                }
             }
 
             SajdaAppTheme(darkTheme = settings.darkMode || settings.nightMode) {
@@ -276,13 +274,8 @@ class MainActivity : ComponentActivity() {
                                         onNavigateToQuran = { selectedTabIndex = RootTab.QURAN.ordinal },
                                         onNavigateToPrayer = { selectedTabIndex = RootTab.ADHAN.ordinal },
                                         onOpenBookmarks = { overlay = OverlayDestination.Bookmarks },
-                                        onOpenHadith = { selectedTabIndex = RootTab.HADITH.ordinal },
                                         onOpenCalendar = { overlay = OverlayDestination.Calendar },
-                                        onOpenRamadan = { selectedTabIndex = RootTab.RAMADAN.ordinal },
                                         onOpenQibla = { overlay = OverlayDestination.Qibla },
-                                        onOpenSearch = { overlay = OverlayDestination.Search },
-                                        onOpenReminders = { overlay = OverlayDestination.SmartReminder },
-                                        onOpenProgress = { overlay = OverlayDestination.WorshipProgress },
                                         onPlayLastAudio = playSelectedSurah
                                     )
 
@@ -322,16 +315,11 @@ class MainActivity : ComponentActivity() {
                                         viewModel = settingsViewModel,
                                         updateState = appUpdateState,
                                         onOpenAdhanSettings = { overlay = OverlayDestination.AdhanSettings },
-                                        onOpenAppearanceSettings = { overlay = OverlayDestination.AppearanceSettings },
                                         onOpenLocationSettings = { overlay = OverlayDestination.LocationSettings },
                                         onOpenLanguageSettings = { overlay = OverlayDestination.LanguageSettings },
                                         onOpenUpdateCenter = { overlay = OverlayDestination.UpdateCenter },
                                         onOpenAudioManagement = { overlay = OverlayDestination.AudioManager },
-                                        onOpenWorshipProgress = { overlay = OverlayDestination.WorshipProgress },
                                         onOpenSmartReminders = { overlay = OverlayDestination.SmartReminder },
-                                        onOpenBackgroundAudioInfo = { overlay = OverlayDestination.BackgroundAudioInfo },
-                                        onOpenWidgetPreview = { overlay = OverlayDestination.WidgetPreview },
-                                        onOpenEmptyState = { overlay = OverlayDestination.EmptyState }
                                     )
                                 }
                             } else {
@@ -361,12 +349,16 @@ class MainActivity : ComponentActivity() {
 
                                         OverlayDestination.AudioManager -> AudioManagementScreen(
                                             appLanguage = settingsState.appLanguage,
+                                            settings = settingsState,
                                             surahList = quranState.surahList,
                                             downloadStates = quranState.downloadStates,
                                             onBack = { overlay = null },
                                             onPlay = playSelectedSurah,
                                             onDelete = { quranViewModel.deleteAudio(it.number) },
-                                            onDownload = quranViewModel::downloadAudio
+                                            onDownload = quranViewModel::downloadAudio,
+                                            onDeleteAll = quranViewModel::deleteAllAudio,
+                                            onSetDownloadMode = settingsViewModel::setAudioDownloadMode,
+                                            onSetWifiOnly = settingsViewModel::setWifiOnlyAudioDownloads
                                         )
 
                                         OverlayDestination.DailyDua -> DailyDuaScreen(
@@ -395,22 +387,6 @@ class MainActivity : ComponentActivity() {
                                             onBack = { overlay = null }
                                         )
 
-                                        OverlayDestination.Ramadan -> RamadanModeScreen(
-                                            settings = settingsState,
-                                            prayerTime = prayerState.todayPrayerTime,
-                                            onOpenPrayer = {
-                                                selectedTabIndex = RootTab.ADHAN.ordinal
-                                                overlay = null
-                                            },
-                                            onOpenQuran = {
-                                                selectedTabIndex = RootTab.QURAN.ordinal
-                                                overlay = null
-                                            },
-                                            onOpenPractices = { overlay = OverlayDestination.RamadanPractices },
-                                            onOpenRamadanDua = { overlay = OverlayDestination.RamadanDua },
-                                            onBack = { overlay = null }
-                                        )
-
                                         OverlayDestination.RamadanPractices -> RamadanPracticesScreen(
                                             appLanguage = settingsState.appLanguage,
                                             onBack = { overlay = null }
@@ -428,11 +404,6 @@ class MainActivity : ComponentActivity() {
                                             onBack = { overlay = null }
                                         )
 
-                                        OverlayDestination.WorshipProgress -> WorshipProgressScreen(
-                                            settings = settingsState,
-                                            onBack = { overlay = null }
-                                        )
-
                                         OverlayDestination.SmartReminder -> SmartReminderScreen(
                                             settings = settingsState,
                                             viewModel = settingsViewModel,
@@ -445,36 +416,7 @@ class MainActivity : ComponentActivity() {
                                             onBack = { overlay = null }
                                         )
 
-                                        OverlayDestination.PermissionSetup -> PermissionSetupScreen(
-                                            settings = settingsState,
-                                            viewModel = settingsViewModel,
-                                            onBack = { overlay = null }
-                                        )
-
-                                        OverlayDestination.Settings -> SettingsScreen(
-                                            viewModel = settingsViewModel,
-                                            updateState = appUpdateState,
-                                            onOpenAdhanSettings = { overlay = OverlayDestination.AdhanSettings },
-                                            onOpenAppearanceSettings = { overlay = OverlayDestination.AppearanceSettings },
-                                            onOpenLocationSettings = { overlay = OverlayDestination.LocationSettings },
-                                            onOpenLanguageSettings = { overlay = OverlayDestination.LanguageSettings },
-                                            onOpenUpdateCenter = { overlay = OverlayDestination.UpdateCenter },
-                                            onOpenAudioManagement = { overlay = OverlayDestination.AudioManager },
-                                            onOpenWorshipProgress = { overlay = OverlayDestination.WorshipProgress },
-                                            onOpenSmartReminders = { overlay = OverlayDestination.SmartReminder },
-                                            onOpenBackgroundAudioInfo = { overlay = OverlayDestination.BackgroundAudioInfo },
-                                            onOpenWidgetPreview = { overlay = OverlayDestination.WidgetPreview },
-                                            onOpenEmptyState = { overlay = OverlayDestination.EmptyState },
-                                            onBack = { overlay = null }
-                                        )
-
                                         OverlayDestination.AdhanSettings -> AdhanSettingsScreen(
-                                            settings = settingsState,
-                                            viewModel = settingsViewModel,
-                                            onBack = { overlay = null }
-                                        )
-
-                                        OverlayDestination.AppearanceSettings -> AppearanceSettingsScreen(
                                             settings = settingsState,
                                             viewModel = settingsViewModel,
                                             onBack = { overlay = null }
@@ -496,22 +438,6 @@ class MainActivity : ComponentActivity() {
                                             settings = settingsState,
                                             updateState = appUpdateState,
                                             viewModel = settingsViewModel,
-                                            onBack = { overlay = null }
-                                        )
-
-                                        OverlayDestination.BackgroundAudioInfo -> BackgroundAudioInfoScreen(
-                                            appLanguage = settingsState.appLanguage,
-                                            onBack = { overlay = null }
-                                        )
-
-                                        OverlayDestination.WidgetPreview -> WidgetPreviewScreen(
-                                            prayerTime = prayerState.todayPrayerTime,
-                                            appLanguage = settingsState.appLanguage,
-                                            onBack = { overlay = null }
-                                        )
-
-                                        OverlayDestination.EmptyState -> EmptyStateScreen(
-                                            appLanguage = settingsState.appLanguage,
                                             onBack = { overlay = null }
                                         )
 
@@ -555,12 +481,12 @@ class MainActivity : ComponentActivity() {
                             if (settingsState.onboardingCompleted && overlay == null) {
                                 FloatingDock(
                                     items = listOf(
-                                        DockItem(settingsState.pick("Beranda", "Home"), Icons.Rounded.Home),
-                                        DockItem("Qur'an", Icons.Rounded.MenuBook),
-                                        DockItem(settingsState.pick("Adzan", "Adhan"), Icons.Rounded.NotificationsActive),
-                                        DockItem(settingsState.pick("Hadist", "Hadith"), Icons.Rounded.HistoryEdu),
-                                        DockItem(settingsState.pick("Ramadhan", "Ramadan"), Icons.Rounded.Mosque),
-                                        DockItem(settingsState.pick("Pengaturan", "Settings"), Icons.Rounded.Settings)
+                                        DockItem(stringResource(R.string.tab_home), Icons.Rounded.Home),
+                                        DockItem(stringResource(R.string.tab_quran), Icons.Rounded.MenuBook),
+                                        DockItem(stringResource(R.string.tab_adhan), Icons.Rounded.NotificationsActive),
+                                        DockItem(stringResource(R.string.tab_hadith), Icons.Rounded.HistoryEdu),
+                                        DockItem(stringResource(R.string.tab_ramadan), Icons.Rounded.Mosque),
+                                        DockItem(stringResource(R.string.tab_settings), Icons.Rounded.Settings)
                                     ),
                                     selectedIndex = selectedTabIndex,
                                     modifier = Modifier
@@ -636,7 +562,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun updateVolumeControlStream(intent: android.content.Intent?) {
-        val isAdhan = intent?.getBooleanExtra("is_adhan", false) == true
+        val isAdhan = intent?.getBooleanExtra("is_adhan", false) == true || AdhanPlaybackStore.state.value.isActive
         volumeControlStream = if (isAdhan) {
             android.media.AudioManager.STREAM_ALARM
         } else {
@@ -686,7 +612,7 @@ class MainActivity : ComponentActivity() {
                 progress = 0,
                 showInstallButton = false
             )
-            DownloadUpdateWorker.enqueue(this@MainActivity, updateInfo.downloadUrl)
+            DownloadUpdateWorker.enqueue(this@MainActivity, updateInfo.downloadUrl, updateInfo.checksum)
         }
     }
 

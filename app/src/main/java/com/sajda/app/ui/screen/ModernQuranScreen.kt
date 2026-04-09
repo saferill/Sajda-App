@@ -137,6 +137,15 @@ fun ModernQuranScreen(
             }
 
             item {
+                state.errorMessage?.let { message ->
+                    EmptyStateCard(
+                        title = if (isEnglish) "Audio message" else "Pesan audio",
+                        message = message
+                    )
+                }
+            }
+
+            item {
                 SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
                     OutlinedTextField(
                         value = query,
@@ -175,11 +184,28 @@ fun ModernQuranScreen(
                 }
             }
 
+            if (filteredSurah.isEmpty()) {
+                item {
+                    EmptyStateCard(
+                        title = if (isEnglish) "No surah found" else "Surah tidak ditemukan",
+                        message = if (isEnglish) {
+                            "Try another keyword or open the full search page."
+                        } else {
+                            "Coba kata kunci lain atau buka halaman pencarian penuh."
+                        }
+                    )
+                }
+            }
+
             items(filteredSurah, key = { it.number }) { surah ->
                 val downloadState = state.downloadStates[surah.number]
                 val hasSelectedAudio = surah.hasDownloadedAudioFor(selectedReciter)
                 val hasOfflineBundle = surah.hasAnyDownloadedAudio()
                 val downloadedReciters = surah.downloadedReciterIds.size
+                val estimatedSize = surah.audioBundleSizeBytes(
+                    mode = state.audioDownloadMode,
+                    selectedReciter = selectedReciter
+                )
                 SanctuaryCard(
                     modifier = Modifier.clickable { viewModel.openSurah(surah) }
                 ) {
@@ -217,7 +243,7 @@ fun ModernQuranScreen(
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = "${state.appLanguage.pick(surah.translation, surah.englishTranslation.ifBlank { surah.translation })} • ${surah.totalVerses} ${state.appLanguage.pick("ayat", "verses")}",
+                                    text = "${state.appLanguage.pick(surah.translation, surah.englishTranslation.ifBlank { surah.translation })} | ${surah.totalVerses} ${state.appLanguage.pick("ayat", "verses")}",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -237,7 +263,7 @@ fun ModernQuranScreen(
                                         Icon(Icons.Rounded.Download, contentDescription = null)
                                     }
                                     Text(
-                                        text = "~${formatStorageSize(surah.audioBundleSizeBytes())}",
+                                        text = "~${formatStorageSize(estimatedSize)}",
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -248,8 +274,8 @@ fun ModernQuranScreen(
 
                     Text(
                         text = state.appLanguage.pick(
-                            "$downloadedReciters/${QuranReciter.entries.size} qari siap | ${formatStorageSize(surah.audioBundleSizeBytes())}",
-                            "$downloadedReciters/${QuranReciter.entries.size} reciters ready | ${formatStorageSize(surah.audioBundleSizeBytes())}"
+                            "$downloadedReciters/${QuranReciter.entries.size} qari siap | ${formatStorageSize(estimatedSize)}",
+                            "$downloadedReciters/${QuranReciter.entries.size} reciters ready | ${formatStorageSize(estimatedSize)}"
                         ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -266,8 +292,16 @@ fun ModernQuranScreen(
                     } else {
                         MetadataChip(
                             text = state.appLanguage.pick(
-                                "Unduh semua qari • ~${formatStorageSize(surah.audioBundleSizeBytes())}",
-                                "Download all reciters • ~${formatStorageSize(surah.audioBundleSizeBytes())}"
+                                if (state.audioDownloadMode == com.sajda.app.domain.model.AudioDownloadMode.SELECTED_RECITER_ONLY) {
+                                    "Unduh qari aktif | ~${formatStorageSize(estimatedSize)}"
+                                } else {
+                                    "Unduh semua qari | ~${formatStorageSize(estimatedSize)}"
+                                },
+                                if (state.audioDownloadMode == com.sajda.app.domain.model.AudioDownloadMode.SELECTED_RECITER_ONLY) {
+                                    "Download active reciter | ~${formatStorageSize(estimatedSize)}"
+                                } else {
+                                    "Download all reciters | ~${formatStorageSize(estimatedSize)}"
+                                }
                             ),
                             active = false
                         )
@@ -298,6 +332,10 @@ fun ModernQuranScreen(
         val hasSelectedAudio = surah.hasDownloadedAudioFor(selectedReciter)
         val hasOfflineBundle = surah.hasAnyDownloadedAudio()
         val downloadState = state.downloadStates[surah.number]
+        val estimatedSize = surah.audioBundleSizeBytes(
+            mode = state.audioDownloadMode,
+            selectedReciter = selectedReciter
+        )
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -342,7 +380,7 @@ fun ModernQuranScreen(
                                         Icon(Icons.Rounded.Download, contentDescription = null)
                                     }
                                     Text(
-                                        text = "~${formatStorageSize(surah.audioBundleSizeBytes())}",
+                                        text = "~${formatStorageSize(estimatedSize)}",
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -360,13 +398,21 @@ fun ModernQuranScreen(
                     Text(
                         text = if (hasOfflineBundle) {
                             state.appLanguage.pick(
-                                "${surah.downloadedReciterIds.size}/${QuranReciter.entries.size} qari offline • ${formatStorageSize(surah.audioBundleSizeBytes())}",
-                                "${surah.downloadedReciterIds.size}/${QuranReciter.entries.size} reciters offline • ${formatStorageSize(surah.audioBundleSizeBytes())}"
+                                "${surah.downloadedReciterIds.size}/${QuranReciter.entries.size} qari offline | ${formatStorageSize(estimatedSize)}",
+                                "${surah.downloadedReciterIds.size}/${QuranReciter.entries.size} reciters offline | ${formatStorageSize(estimatedSize)}"
                             )
                         } else {
                             state.appLanguage.pick(
-                                "Sekali unduh langsung semua qari • ~${formatStorageSize(surah.audioBundleSizeBytes())}",
-                                "One tap downloads all reciters • ~${formatStorageSize(surah.audioBundleSizeBytes())}"
+                                if (state.audioDownloadMode == com.sajda.app.domain.model.AudioDownloadMode.SELECTED_RECITER_ONLY) {
+                                    "Sekali unduh qari aktif | ~${formatStorageSize(estimatedSize)}"
+                                } else {
+                                    "Sekali unduh langsung semua qari | ~${formatStorageSize(estimatedSize)}"
+                                },
+                                if (state.audioDownloadMode == com.sajda.app.domain.model.AudioDownloadMode.SELECTED_RECITER_ONLY) {
+                                    "One tap downloads the active reciter | ~${formatStorageSize(estimatedSize)}"
+                                } else {
+                                    "One tap downloads all reciters | ~${formatStorageSize(estimatedSize)}"
+                                }
                             )
                         },
                         style = MaterialTheme.typography.bodySmall,

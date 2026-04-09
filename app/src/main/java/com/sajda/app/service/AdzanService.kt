@@ -32,11 +32,16 @@ import com.sajda.app.R
 import com.sajda.app.data.local.PreferencesDataStore
 import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.PrayerName
+import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.util.Constants
 import com.sajda.app.util.localizedPrayerName
 import com.sajda.app.util.pick
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 
 class AdzanService : Service() {
 
@@ -48,9 +53,15 @@ class AdzanService : Service() {
     private var currentPrayerTime: String = ""
     private var currentPrayerDate: String = ""
     private var currentLocationName: String = ""
+    private lateinit var preferencesDataStore: PreferencesDataStore
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var cachedSettings: UserSettings = UserSettings()
+    private var cachedLanguage: AppLanguage = AppLanguage.INDONESIAN
+    private var cachedSnoozeMinutes: Int = 10
 
     override fun onCreate() {
         super.onCreate()
+        preferencesDataStore = PreferencesDataStore(this)
         createNotificationChannel()
     }
 
@@ -77,11 +88,19 @@ class AdzanService : Service() {
                     return START_NOT_STICKY
                 }
                 isServiceRunning = true
-                if (currentLocationName.isBlank()) {
-                    currentLocationName = resolveLocationLabel()
-                }
+                AdhanPlaybackStore.markActive(currentPrayerName, currentPrayerKey)
                 startForeground(Constants.ADZAN_NOTIFICATION_ID, createNotification(currentPrayerName))
-                triggerAdzan(currentPrayerName, currentPrayerKey)
+                serviceScope.launch {
+                    cachedSettings = preferencesDataStore.settingsFlow.first()
+                    cachedLanguage = cachedSettings.appLanguage
+                    cachedSnoozeMinutes = cachedSettings.adhanSnoozeMinutes
+                    currentLocationName = currentLocationName.ifBlank { resolveLocationLabel(cachedSettings) }
+                    NotificationManagerCompat.from(this@AdzanService).notify(
+                        Constants.ADZAN_NOTIFICATION_ID,
+                        createNotification(currentPrayerName)
+                    )
+                    triggerAdzan(currentPrayerName, currentPrayerKey, cachedSettings)
+                }
                 return START_REDELIVER_INTENT
             }
         }
@@ -89,17 +108,21 @@ class AdzanService : Service() {
 
     override fun onDestroy() {
         isServiceRunning = false
+        AdhanPlaybackStore.clear()
         releasePlayer()
         releaseFallbackRingtone()
         abandonAudioFocus()
+        serviceScope.cancel()
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun triggerAdzan(prayerName: String, prayerKey: String) {
-        val preferencesDataStore = PreferencesDataStore(this@AdzanService)
-        val settings = runBlocking { preferencesDataStore.settingsFlow.first() }
+    private suspend fun triggerAdzan(
+        prayerName: String,
+        prayerKey: String,
+        settings: UserSettings
+    ) {
         currentLocationName = currentLocationName.ifBlank { resolveLocationLabel(settings) }
         val audioManager = getSystemService(AudioManager::class.java)
         val alarmVolumeAudible = audioManager.getStreamVolume(AudioManager.STREAM_ALARM) > 0
@@ -110,16 +133,14 @@ class AdzanService : Service() {
         }
 
         if (!canPlaySound) {
-            runBlocking {
-                preferencesDataStore.updateAdhanLastEvent(
-                    prayerName = prayerName,
-                    status = settings.pick(
-                        "Notif tampil, volume alarm sedang nol",
-                        "Notification shown, alarm volume is zero"
-                    ),
-                    details = "ringer=${audioManager.ringerMode}, volumeAlarm=${audioManager.getStreamVolume(AudioManager.STREAM_ALARM)}"
-                )
-            }
+            preferencesDataStore.updateAdhanLastEvent(
+                prayerName = prayerName,
+                status = settings.pick(
+                    "Notif tampil, volume alarm sedang nol",
+                    "Notification shown, alarm volume is zero"
+                ),
+                details = "ringer=${audioManager.ringerMode}, volumeAlarm=${audioManager.getStreamVolume(AudioManager.STREAM_ALARM)}"
+            )
             keepNotificationVisibleAndStop(
                 createNotification(
                     prayerName = prayerName,
@@ -161,17 +182,15 @@ class AdzanService : Service() {
                 prepare()
                 start()
             }
-            runBlocking {
-                preferencesDataStore.updateAdhanLastEvent(
-                    prayerName = prayerName,
-                    status = if (audioSource.isFallbackShort) {
-                        settings.pick("Alarm pengganti diputar", "Fallback alert played")
-                    } else {
-                        settings.pick("Adzan diputar", "Adhan played")
-                    },
-                    details = adzanUri.toString()
-                )
-            }
+            preferencesDataStore.updateAdhanLastEvent(
+                prayerName = prayerName,
+                status = if (audioSource.isFallbackShort) {
+                    settings.pick("Alarm pengganti diputar", "Fallback alert played")
+                } else {
+                    settings.pick("Adzan diputar", "Adhan played")
+                },
+                details = adzanUri.toString()
+            )
             Log.d(TAG, "Playing adhan for $prayerName from $adzanUri")
             NotificationManagerCompat.from(this).notify(
                 Constants.ADZAN_NOTIFICATION_ID,
@@ -180,7 +199,7 @@ class AdzanService : Service() {
         }.onFailure {
             Log.e(TAG, "Failed to play adhan for $prayerName", it)
             playShortFallbackAlert(prayerName, it.message.orEmpty())
-            runBlocking {
+            serviceScope.launch {
                 preferencesDataStore.updateAdhanLastEvent(
                     prayerName = prayerName,
                     status = settings.pick(
@@ -214,7 +233,7 @@ class AdzanService : Service() {
         isPlaying: Boolean = false,
         soundDisabled: Boolean = false
     ): Notification {
-        val language = currentLanguage()
+        val language = cachedLanguage
         val displayName = displayPrayerName(prayerName, language)
         val openAppIntent = Intent(this, MainActivity::class.java).apply {
             action = Constants.ACTION_OPEN_PRAYER_TAB
@@ -246,7 +265,7 @@ class AdzanService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val snoozeMinutes = runBlocking { PreferencesDataStore(this@AdzanService).settingsFlow.first().adhanSnoozeMinutes }
+        val snoozeMinutes = cachedSnoozeMinutes
         val snoozeIntent = Intent(this, AdzanService::class.java).apply {
             action = Constants.ACTION_SNOOZE_ADZAN
             putExtra(Constants.EXTRA_PRAYER_NAME, prayerName)
@@ -368,10 +387,11 @@ class AdzanService : Service() {
     }
 
     private fun stopAdzan() {
-        runBlocking {
-            PreferencesDataStore(this@AdzanService).updateAdhanLastEvent(
+        AdhanPlaybackStore.clear()
+        serviceScope.launch {
+            preferencesDataStore.updateAdhanLastEvent(
                 prayerName = currentPrayerName,
-                status = currentLanguage().pick("Dihentikan manual", "Stopped manually")
+                status = cachedLanguage.pick("Dihentikan manual", "Stopped manually")
             )
         }
         releaseFallbackRingtone()
@@ -381,10 +401,11 @@ class AdzanService : Service() {
     }
 
     private fun finishAdzanPlayback() {
-        runBlocking {
-            PreferencesDataStore(this@AdzanService).updateAdhanLastEvent(
+        AdhanPlaybackStore.clear()
+        serviceScope.launch {
+            preferencesDataStore.updateAdhanLastEvent(
                 prayerName = currentPrayerName,
-                status = currentLanguage().pick("Selesai diputar", "Playback finished")
+                status = cachedLanguage.pick("Selesai diputar", "Playback finished")
             )
         }
         releaseFallbackRingtone()
@@ -395,10 +416,12 @@ class AdzanService : Service() {
 
     private fun snoozeAdzan(prayerName: String, prayerKey: String, minutes: Int) {
         val safeMinutes = minutes.coerceIn(5, 30)
-        runBlocking {
-            PreferencesDataStore(this@AdzanService).updateAdhanLastEvent(
+        cachedSnoozeMinutes = safeMinutes
+        AdhanPlaybackStore.clear()
+        serviceScope.launch {
+            preferencesDataStore.updateAdhanLastEvent(
                 prayerName = prayerName,
-                status = if (currentLanguage() == AppLanguage.ENGLISH) {
+                status = if (cachedLanguage == AppLanguage.ENGLISH) {
                     "Snoozed ${safeMinutes} minutes"
                 } else {
                     "Ditunda $safeMinutes menit"
@@ -453,15 +476,16 @@ class AdzanService : Service() {
             )
         )
 
-        runBlocking {
-            PreferencesDataStore(this@AdzanService).appendAdhanLog(
+        serviceScope.launch {
+            preferencesDataStore.appendAdhanLog(
                 prayerName = prayerName,
-                status = currentLanguage().pick("Alarm pengganti diputar", "Fallback alert played"),
+                status = cachedLanguage.pick("Alarm pengganti diputar", "Fallback alert played"),
                 details = details
             )
         }
 
         android.os.Handler(mainLooper).postDelayed({
+            AdhanPlaybackStore.clear()
             releaseFallbackRingtone()
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
@@ -551,7 +575,7 @@ class AdzanService : Service() {
     }
 
     private fun currentLanguage(): AppLanguage {
-        return runBlocking { PreferencesDataStore(this@AdzanService).settingsFlow.first().appLanguage }
+        return cachedLanguage
     }
 
     private fun displayPrayerName(prayerName: String, language: AppLanguage = currentLanguage()): String {
@@ -614,7 +638,7 @@ class AdzanService : Service() {
     private fun resolveLocationLabel(
         settings: com.sajda.app.domain.model.UserSettings? = null
     ): String {
-        val savedSettings = settings ?: runBlocking { PreferencesDataStore(this@AdzanService).settingsFlow.first() }
+        val savedSettings = settings ?: cachedSettings
         return listOf(currentLocationName, savedSettings.locationName)
             .map { it.trim() }
             .firstOrNull {

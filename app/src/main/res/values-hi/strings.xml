@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">नूरऐप</string>
+    <string name="tab_home">होम</string>
+    <string name="tab_quran">क़ुरआन</string>
+    <string name="tab_adhan">अज़ान</string>
+    <string name="tab_hadith">हदीस</string>
+    <string name="tab_ramadan">रमज़ान</string>
+    <string name="tab_settings">सेटिंग्स</string>
+</resources>

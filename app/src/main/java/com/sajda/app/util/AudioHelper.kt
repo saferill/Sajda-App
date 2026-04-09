@@ -1,5 +1,6 @@
 package com.sajda.app.util
 
+import com.sajda.app.domain.model.AudioDownloadMode
 import com.sajda.app.domain.model.QuranReciter
 import com.sajda.app.domain.model.Surah
 import java.io.File
@@ -15,7 +16,25 @@ fun Surah.hasAnyDownloadedAudio(): Boolean = downloadedReciterIds.isNotEmpty() |
 
 fun Surah.audioBundleSizeBytes(): Long {
     if (downloadedAudioBytes > 0L) return downloadedAudioBytes
-    val estimatedPerVerseBytes = 480_000L
-    val baselineBytes = 3_200_000L
-    return maxOf(baselineBytes, totalVerses * estimatedPerVerseBytes)
+    return AudioDownloadPlanner
+        .plan(
+            totalVerses = totalVerses,
+            selectedReciter = QuranReciter.MISYARI_RASYID_AL_AFASI,
+            mode = AudioDownloadMode.ALL_RECITERS
+        )
+        .estimatedBytes
+}
+
+fun Surah.audioBundleSizeBytes(
+    mode: AudioDownloadMode,
+    selectedReciter: QuranReciter
+): Long {
+    if (downloadedAudioBytes > 0L && mode == AudioDownloadMode.ALL_RECITERS) return downloadedAudioBytes
+    return AudioDownloadPlanner
+        .plan(
+            totalVerses = totalVerses,
+            selectedReciter = selectedReciter,
+            mode = mode
+        )
+        .estimatedBytes
 }

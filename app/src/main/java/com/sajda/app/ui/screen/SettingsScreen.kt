@@ -3,6 +3,8 @@ package com.sajda.app.ui.screen
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,34 +26,33 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sajda.app.BuildConfig
+import com.sajda.app.domain.model.AudioDownloadMode
 import com.sajda.app.domain.model.CalendarDisplayMode
 import com.sajda.app.ui.component.SajdaTopAction
 import com.sajda.app.ui.component.SajdaTopBar
 import com.sajda.app.ui.component.SanctuaryCard
 import com.sajda.app.ui.viewmodel.AppUpdateUiState
+import com.sajda.app.ui.viewmodel.BackupUiState
 import com.sajda.app.ui.viewmodel.SettingsViewModel
-import com.sajda.app.util.displayName
 import com.sajda.app.util.displayLabel
+import com.sajda.app.util.displayName
 import com.sajda.app.util.pick
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     updateState: AppUpdateUiState,
     onOpenAdhanSettings: () -> Unit,
-    onOpenAppearanceSettings: () -> Unit,
     onOpenLocationSettings: () -> Unit,
     onOpenLanguageSettings: () -> Unit,
     onOpenUpdateCenter: () -> Unit,
     onOpenAudioManagement: () -> Unit,
-    onOpenWorshipProgress: () -> Unit,
     onOpenSmartReminders: () -> Unit,
-    onOpenBackgroundAudioInfo: () -> Unit,
-    onOpenWidgetPreview: () -> Unit,
-    onOpenEmptyState: () -> Unit,
     onBack: (() -> Unit)? = null
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val backupState by viewModel.backupState.collectAsStateWithLifecycle()
     val isEnglish = settings.appLanguage == com.sajda.app.domain.model.AppLanguage.ENGLISH
 
     androidx.compose.foundation.lazy.LazyColumn(
@@ -61,7 +62,7 @@ fun SettingsScreen(
     ) {
         item {
             SajdaTopBar(
-                title = if (isEnglish) "Settings" else "Pengaturan",
+                title = settings.pick("Pengaturan", "Settings"),
                 leading = onBack?.let { backAction ->
                     {
                         SajdaTopAction(
@@ -76,30 +77,26 @@ fun SettingsScreen(
 
         item {
             SanctuaryCard {
-                SettingsCardTitle(if (isEnglish) "Adhan" else "Adzan")
+                SettingsCardTitle(settings.pick("Adzan", "Adhan"))
                 ToggleRow(
                     title = settings.pick("Adzan otomatis", "Automatic adhan"),
-                    subtitle = if (settings.adzanEnabled) {
-                        settings.pick("Aktif", "On")
-                    } else {
-                        settings.pick("Nonaktif", "Off")
-                    },
+                    subtitle = if (settings.adzanEnabled) settings.pick("Aktif", "On") else settings.pick("Nonaktif", "Off"),
                     checked = settings.adzanEnabled,
                     onCheckedChange = viewModel::setAdzanEnabled
                 )
                 ActionRow(
-                    title = settings.pick("Suara adzan reguler", "Regular adhan sound"),
+                    title = settings.pick("Diagnosa adzan", "Adhan diagnostics"),
+                    value = settings.pick("Tes, izin, battery, exact alarm", "Tests, permissions, battery, exact alarm"),
+                    onClick = onOpenAdhanSettings
+                )
+                ActionRow(
+                    title = settings.pick("Suara reguler", "Regular sound"),
                     value = settings.adzanSound.title,
                     onClick = onOpenAdhanSettings
                 )
                 ActionRow(
-                    title = settings.pick("Suara adzan Subuh", "Fajr adhan sound"),
+                    title = settings.pick("Suara Subuh", "Fajr sound"),
                     value = settings.fajrAdzanSound.title,
-                    onClick = onOpenAdhanSettings
-                )
-                ActionRow(
-                    title = settings.pick("Pengaturan adzan", "Adhan settings"),
-                    value = settings.pick("Buka", "Open"),
                     onClick = onOpenAdhanSettings
                 )
             }
@@ -109,19 +106,35 @@ fun SettingsScreen(
             SanctuaryCard {
                 SettingsCardTitle("Al-Qur'an")
                 ActionRow(
-                    title = settings.pick("Mode terjemahan", "Translation mode"),
-                    value = settings.quranReadingMode.displayLabel(settings.appLanguage),
-                    onClick = onOpenLanguageSettings
-                )
-                ActionRow(
                     title = settings.pick("Qari aktif", "Active reciter"),
                     value = settings.selectedQuranReciter.title,
                     onClick = onOpenAudioManagement
                 )
                 ActionRow(
                     title = settings.pick("Audio offline", "Offline audio"),
-                    value = settings.pick("Kelola", "Manage"),
+                    value = settings.pick("Kelola unduhan", "Manage downloads"),
                     onClick = onOpenAudioManagement
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AudioDownloadMode.entries.forEach { mode ->
+                        ChoiceChip(
+                            label = when (mode) {
+                                AudioDownloadMode.SELECTED_RECITER_ONLY -> settings.pick("Qari aktif saja", "Selected reciter only")
+                                AudioDownloadMode.ALL_RECITERS -> settings.pick("Semua qari", "All reciters")
+                            },
+                            selected = settings.audioDownloadMode == mode,
+                            onClick = { viewModel.setAudioDownloadMode(mode) }
+                        )
+                    }
+                }
+                ToggleRow(
+                    title = settings.pick("Unduh hanya lewat Wi-Fi", "Download on Wi-Fi only"),
+                    subtitle = settings.pick("Berlaku untuk audio Qur'an offline", "Applies to offline Qur'an audio"),
+                    checked = settings.wifiOnlyAudioDownloads,
+                    onCheckedChange = viewModel::setWifiOnlyAudioDownloads
                 )
             }
         }
@@ -149,68 +162,94 @@ fun SettingsScreen(
                     valueLabel = settings.arabicFontSize.toString(),
                     onValueChange = { viewModel.setArabicFontSize(it.toInt()) }
                 )
-                ActionRow(
-                    title = settings.pick("Mode kalender", "Calendar mode"),
-                    value = if (settings.calendarDisplayMode == CalendarDisplayMode.HIJRI) {
-                        settings.pick("Hijriah", "Hijri")
-                    } else {
-                        settings.pick("Masehi", "Gregorian")
-                    },
-                    onClick = onOpenAppearanceSettings
-                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ChoiceChip(
+                        label = settings.pick("Hijriah", "Hijri"),
+                        selected = settings.calendarDisplayMode == CalendarDisplayMode.HIJRI,
+                        onClick = { viewModel.setCalendarDisplayMode(CalendarDisplayMode.HIJRI) }
+                    )
+                    ChoiceChip(
+                        label = settings.pick("Masehi", "Gregorian"),
+                        selected = settings.calendarDisplayMode == CalendarDisplayMode.GREGORIAN,
+                        onClick = { viewModel.setCalendarDisplayMode(CalendarDisplayMode.GREGORIAN) }
+                    )
+                }
             }
         }
 
         item {
             SanctuaryCard {
-                SettingsCardTitle(settings.pick("Lokasi", "Location"))
+                SettingsCardTitle(settings.pick("Lokasi & Jadwal", "Location & Schedule"))
                 ToggleRow(
                     title = settings.pick("Lokasi otomatis", "Auto location"),
-                    subtitle = settings.locationName,
+                    subtitle = settings.locationName.ifBlank {
+                        settings.pick("Belum ada lokasi aktif", "No active location yet")
+                    },
                     checked = settings.autoLocation,
                     onCheckedChange = viewModel::setAutoLocation
                 )
                 ActionRow(
-                    title = settings.pick("Metode perhitungan", "Calculation method"),
+                    title = settings.pick("Lokasi aktif", "Active location"),
+                    value = settings.locationName.ifBlank {
+                        settings.pick("Pilih lokasi", "Choose location")
+                    },
+                    onClick = onOpenLocationSettings
+                )
+                ActionRow(
+                    title = settings.pick("Metode hisab", "Calculation method"),
                     value = "${settings.prayerCalculationMethod.label} | ${settings.asrMadhhab.label}",
                     onClick = onOpenLocationSettings
                 )
                 ActionRow(
-                    title = settings.pick("Pilih lokasi", "Choose location"),
-                    value = settings.locationName,
-                    onClick = onOpenLocationSettings
+                    title = settings.pick("Reminder ibadah", "Worship reminders"),
+                    value = settings.pick("Atur jadwal harian", "Manage daily reminders"),
+                    onClick = onOpenSmartReminders
                 )
             }
         }
 
         item {
             SanctuaryCard {
-                SettingsCardTitle(settings.pick("Lainnya", "More"))
+                SettingsCardTitle(settings.pick("Data & Update", "Data & Updates"))
                 ActionRow(
                     title = settings.pick("Pembaruan aplikasi", "App updates"),
                     value = if (updateState.hasUpdate) {
                         settings.pick("Versi ${updateState.latestVersionName}", "Version ${updateState.latestVersionName}")
                     } else {
-                        settings.pick("Terbaru", "Latest")
+                        settings.pick("Sudah terbaru", "Up to date")
                     },
                     onClick = onOpenUpdateCenter
                 )
                 ActionRow(
-                    title = settings.pick("Reminder ibadah", "Worship reminders"),
-                    value = settings.pick("Atur", "Set"),
-                    onClick = onOpenSmartReminders
+                    title = settings.pick("Backup data lokal", "Backup local data"),
+                    value = settings.lastBackupAt.ifBlank {
+                        settings.pick("Belum pernah backup", "No backup yet")
+                    },
+                    onClick = viewModel::exportBackup
                 )
                 ActionRow(
-                    title = settings.pick("Widget", "Widgets"),
-                    value = settings.pick("Buka", "Open"),
-                    onClick = onOpenWidgetPreview
+                    title = settings.pick("Restore data lokal", "Restore local data"),
+                    value = settings.lastRestoreAt.ifBlank {
+                        settings.pick("Belum pernah restore", "No restore yet")
+                    },
+                    onClick = viewModel::restoreBackup
+                )
+                BackupStatusCard(
+                    backupState = backupState,
+                    emptyMessage = settings.pick(
+                        "Bookmark, terakhir dibaca, qari, bahasa, dan setting adzan ikut dibackup.",
+                        "Bookmarks, last read, reciter, language, and adhan settings are included in the backup."
+                    )
                 )
             }
         }
 
         item {
             Text(
-                text = "NurApp ${BuildConfig.VERSION_NAME}",
+                text = if (isEnglish) "NurApp ${BuildConfig.VERSION_NAME}" else "NurApp ${BuildConfig.VERSION_NAME}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
@@ -325,4 +364,20 @@ private fun ActionRow(
             tint = MaterialTheme.colorScheme.outline
         )
     }
+}
+
+@Composable
+private fun BackupStatusCard(
+    backupState: BackupUiState,
+    emptyMessage: String
+) {
+    Text(
+        text = backupState.message ?: emptyMessage,
+        style = MaterialTheme.typography.bodySmall,
+        color = if (backupState.message == null) {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        } else {
+            MaterialTheme.colorScheme.primary
+        }
+    )
 }

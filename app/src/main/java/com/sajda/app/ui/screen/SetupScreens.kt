@@ -48,6 +48,7 @@ import com.sajda.app.ui.theme.surfaceContainerLow
 import com.sajda.app.ui.viewmodel.SettingsViewModel
 import com.sajda.app.util.DeviceLocationHelper
 import com.sajda.app.util.DeviceLocationResult
+import com.sajda.app.util.isEnglish
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -58,7 +59,7 @@ fun PermissionSetupScreen(
     onBack: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val isEnglish = settings.appLanguage == AppLanguage.ENGLISH
+    val isEnglish = settings.appLanguage.isEnglish()
     val scope = rememberCoroutineScope()
     var status by remember { mutableStateOf<String?>(null) }
 
@@ -179,7 +180,7 @@ fun NurAppOnboardingScreen(
     viewModel: SettingsViewModel,
     onFinish: () -> Unit
 ) {
-    val isEnglish = settings.appLanguage == AppLanguage.ENGLISH
+    val isEnglish = settings.appLanguage.isEnglish()
     var page by rememberSaveable { mutableIntStateOf(0) }
     val pages = listOf(
         Triple(

@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.core.content.FileProvider
 import com.sajda.app.data.model.UpdateInfo
 import com.sajda.app.data.remote.GithubApiService
+import com.sajda.app.util.AppUpdateNotifier
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -44,10 +45,11 @@ class UpdateManager(private val context: Context) {
 
             if (apkAsset == null) {
                 Log.e(TAG, "Asset APK tidak ditemukan di GitHub Releases")
+                AppUpdateNotifier.notifyReleaseAssetMissing(context)
                 return null
             }
 
-            if (!isNewerVersion(latestVersion, currentVersion)) {
+            if (!UpdateReleaseResolver.isNewerVersion(latestVersion, currentVersion)) {
                 Log.d(TAG, "Versi terbaru sama atau lebih rendah, skip download")
                 return null
             }
@@ -57,7 +59,9 @@ class UpdateManager(private val context: Context) {
                 currentVersion = currentVersion,
                 downloadUrl = apkAsset.browser_download_url,
                 releaseNotes = release.body,
-                fileSize = apkAsset.size
+                fileSize = apkAsset.size,
+                releaseUrl = release.html_url,
+                checksum = UpdateReleaseResolver.resolveChecksum(apkAsset, release.body)
             )
         } catch (error: Exception) {
             Log.e(TAG, "Gagal cek update", error)
@@ -82,22 +86,6 @@ class UpdateManager(private val context: Context) {
             Log.e(TAG, "Gagal ambil versionName", error)
             "0.0.0"
         }
-    }
-
-    // Bandingkan versi semantic sederhana.
-    fun isNewerVersion(latest: String, current: String): Boolean {
-        val latestParts = latest.split(".").map { it.toIntOrNull() ?: 0 }
-        val currentParts = current.split(".").map { it.toIntOrNull() ?: 0 }
-        val maxLength = maxOf(latestParts.size, currentParts.size)
-
-        for (index in 0 until maxLength) {
-            val latestValue = latestParts.getOrElse(index) { 0 }
-            val currentValue = currentParts.getOrElse(index) { 0 }
-            if (latestValue > currentValue) return true
-            if (latestValue < currentValue) return false
-        }
-
-        return false
     }
 
     // Trigger installer Android native menggunakan FileProvider.
@@ -146,6 +134,6 @@ class UpdateManager(private val context: Context) {
         private const val TAG = "UpdateManager"
         private const val GITHUB_BASE_URL = "https://api.github.com/"
         private const val GITHUB_OWNER = "saferill"
-        private const val GITHUB_REPO = "Sajda-App"
+        private const val GITHUB_REPO = "Nur-App"
     }
 }

@@ -9,6 +9,8 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.sajda.app.util.AppUpdateNotifier
+import com.sajda.app.utils.UpdateReleaseResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -23,6 +25,7 @@ class DownloadUpdateWorker(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val downloadUrl = inputData.getString(KEY_DOWNLOAD_URL)
+        val expectedChecksum = inputData.getString(KEY_CHECKSUM)
         if (downloadUrl.isNullOrBlank()) {
             Log.e(TAG, "Download URL kosong")
             return@withContext Result.failure(errorData("Download URL kosong"))
@@ -75,17 +78,37 @@ class DownloadUpdateWorker(
                 }
             }
 
+            if (!expectedChecksum.isNullOrBlank()) {
+                val actualChecksum = UpdateReleaseResolver.sha256(targetFile)
+                if (!actualChecksum.equals(expectedChecksum, ignoreCase = true)) {
+                    Log.e(TAG, "Checksum APK tidak cocok. expected=$expectedChecksum actual=$actualChecksum")
+                    targetFile.delete()
+                    val message = "Checksum update tidak cocok"
+                    if (runAttemptCount < MAX_RETRY_COUNT) {
+                        return@withContext Result.retry()
+                    }
+                    AppUpdateNotifier.notifyUpdateDownloadFailed(applicationContext, message)
+                    return@withContext Result.failure(errorData(message))
+                }
+            }
+
             Log.d(TAG, "Download update sukses: ${targetFile.absolutePath}")
             Result.success(
                 Data.Builder()
                     .putString(KEY_APK_PATH, targetFile.absolutePath)
                     .putInt(KEY_PROGRESS, 100)
                     .putString(KEY_STATUS, "Download selesai")
+                    .putString(KEY_CHECKSUM, expectedChecksum.orEmpty())
                     .build()
             )
         } catch (error: Exception) {
             Log.e(TAG, "Download update gagal", error)
-            Result.failure(errorData(error.message ?: "Download gagal"))
+            val message = error.message ?: "Download gagal"
+            if (runAttemptCount < MAX_RETRY_COUNT) {
+                return@withContext Result.retry()
+            }
+            AppUpdateNotifier.notifyUpdateDownloadFailed(applicationContext, message)
+            Result.failure(errorData(message))
         }
     }
 
@@ -105,12 +128,19 @@ class DownloadUpdateWorker(
         const val KEY_STATUS = "status"
         const val KEY_APK_PATH = "apk_path"
         const val KEY_ERROR = "error"
+        const val KEY_CHECKSUM = "checksum"
+        private const val MAX_RETRY_COUNT = 2
 
-        fun enqueue(context: Context, downloadUrl: String): OneTimeWorkRequest {
+        fun enqueue(
+            context: Context,
+            downloadUrl: String,
+            checksum: String? = null
+        ): OneTimeWorkRequest {
             val request = OneTimeWorkRequestBuilder<DownloadUpdateWorker>()
                 .setInputData(
                     Data.Builder()
                         .putString(KEY_DOWNLOAD_URL, downloadUrl)
+                        .putString(KEY_CHECKSUM, checksum)
                         .build()
                 )
                 .build()

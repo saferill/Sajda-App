@@ -14,6 +14,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.sajda.app.domain.model.AdhanLogEntry
+import com.sajda.app.domain.model.AudioDownloadMode
 import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.AsrMadhhab
 import com.sajda.app.domain.model.AdhanStyle
@@ -58,6 +59,8 @@ class PreferencesDataStore(private val context: Context) {
         private val ADZAN_SOUND = stringPreferencesKey("adzan_sound")
         private val FAJR_ADZAN_SOUND = stringPreferencesKey("fajr_adzan_sound")
         private val QURAN_RECITER = stringPreferencesKey("quran_reciter")
+        private val AUDIO_DOWNLOAD_MODE = stringPreferencesKey("audio_download_mode")
+        private val AUDIO_DOWNLOAD_WIFI_ONLY = booleanPreferencesKey("audio_download_wifi_only")
         private val CALENDAR_DISPLAY_MODE = stringPreferencesKey("calendar_display_mode")
         private val PRAYER_CALCULATION_METHOD = stringPreferencesKey("prayer_calculation_method")
         private val ASR_MADHHAB = stringPreferencesKey("asr_madhhab")
@@ -85,6 +88,8 @@ class PreferencesDataStore(private val context: Context) {
         private val LAST_NOTIFIED_UPDATE_VERSION = stringPreferencesKey("last_notified_update_version")
         private val ADHAN_SNOOZE_MINUTES = intPreferencesKey("adhan_snooze_minutes")
         private val LAST_UPDATE_DOWNLOAD_ID = longPreferencesKey("last_update_download_id")
+        private val LAST_BACKUP_AT = stringPreferencesKey("last_backup_at")
+        private val LAST_RESTORE_AT = stringPreferencesKey("last_restore_at")
         private val FAJR_ENABLED = booleanPreferencesKey("fajr_enabled")
         private val DHUHR_ENABLED = booleanPreferencesKey("dhuhr_enabled")
         private val ASR_ENABLED = booleanPreferencesKey("asr_enabled")
@@ -113,13 +118,17 @@ class PreferencesDataStore(private val context: Context) {
             overrideSilentMode = preferences[OVERRIDE_SILENT_MODE] ?: false,
             vibrationEnabled = preferences[VIBRATION_ENABLED] ?: true,
             autoLocation = preferences[AUTO_LOCATION] ?: false,
-            locationName = preferences[LOCATION] ?: LocationConstants.DEFAULT_LOCATION,
+            locationName = preferences[LOCATION] ?: "",
             latitude = preferences[LATITUDE] ?: LocationConstants.DEFAULT_LATITUDE,
             longitude = preferences[LONGITUDE] ?: LocationConstants.DEFAULT_LONGITUDE,
             adzanSound = preferences[ADZAN_SOUND]?.let { AdhanStyle.fromId(it) } ?: AdhanStyle.DEFAULT,
             fajrAdzanSound = preferences[FAJR_ADZAN_SOUND]?.let { AdhanStyle.fromId(it) } ?: AdhanStyle.DEFAULT,
             selectedQuranReciter = preferences[QURAN_RECITER]?.let { QuranReciter.fromId(it) }
                 ?: QuranReciter.MISYARI_RASYID_AL_AFASI,
+            audioDownloadMode = preferences[AUDIO_DOWNLOAD_MODE]?.let {
+                runCatching { AudioDownloadMode.valueOf(it) }.getOrDefault(AudioDownloadMode.ALL_RECITERS)
+            } ?: AudioDownloadMode.ALL_RECITERS,
+            wifiOnlyAudioDownloads = preferences[AUDIO_DOWNLOAD_WIFI_ONLY] ?: false,
             calendarDisplayMode = preferences[CALENDAR_DISPLAY_MODE]?.let {
                 runCatching { CalendarDisplayMode.valueOf(it) }.getOrDefault(CalendarDisplayMode.HIJRI)
             } ?: CalendarDisplayMode.HIJRI,
@@ -154,7 +163,9 @@ class PreferencesDataStore(private val context: Context) {
             dhuhrAdzanEnabled = preferences[DHUHR_ENABLED] ?: true,
             asrAdzanEnabled = preferences[ASR_ENABLED] ?: true,
             maghribAdzanEnabled = preferences[MAGHRIB_ENABLED] ?: true,
-            ishaAdzanEnabled = preferences[ISHA_ENABLED] ?: true
+            ishaAdzanEnabled = preferences[ISHA_ENABLED] ?: true,
+            lastBackupAt = preferences[LAST_BACKUP_AT] ?: "",
+            lastRestoreAt = preferences[LAST_RESTORE_AT] ?: ""
         )
     }
 
@@ -241,6 +252,14 @@ class PreferencesDataStore(private val context: Context) {
 
     suspend fun setSelectedQuranReciter(reciter: QuranReciter) = context.dataStore.edit {
         it[QURAN_RECITER] = reciter.id
+    }
+
+    suspend fun setAudioDownloadMode(mode: AudioDownloadMode) = context.dataStore.edit {
+        it[AUDIO_DOWNLOAD_MODE] = mode.name
+    }
+
+    suspend fun setWifiOnlyAudioDownloads(enabled: Boolean) = context.dataStore.edit {
+        it[AUDIO_DOWNLOAD_WIFI_ONLY] = enabled
     }
 
     suspend fun setCalendarDisplayMode(mode: CalendarDisplayMode) = context.dataStore.edit {
@@ -383,6 +402,55 @@ class PreferencesDataStore(private val context: Context) {
 
     suspend fun setLastUpdateDownloadId(downloadId: Long) = context.dataStore.edit {
         it[LAST_UPDATE_DOWNLOAD_ID] = downloadId
+    }
+
+    suspend fun setLastBackupAt(value: String = DateTimeUtils.dateTimeString()) = context.dataStore.edit {
+        it[LAST_BACKUP_AT] = value
+    }
+
+    suspend fun setLastRestoreAt(value: String = DateTimeUtils.dateTimeString()) = context.dataStore.edit {
+        it[LAST_RESTORE_AT] = value
+    }
+
+    suspend fun restoreSettings(snapshot: UserSettings) = context.dataStore.edit { preferences ->
+        preferences[DARK_MODE] = snapshot.darkMode
+        preferences[NIGHT_MODE] = snapshot.nightMode
+        preferences[FOCUS_MODE] = snapshot.focusMode
+        preferences[APP_LANGUAGE] = snapshot.appLanguage.name
+        preferences[SHOW_TRANSLATION] = snapshot.showTranslation
+        preferences[ARABIC_ONLY] = snapshot.arabicOnly
+        preferences[SHOW_TRANSLITERATION] = snapshot.showTransliteration
+        preferences[QURAN_READING_MODE] = snapshot.quranReadingMode.name
+        preferences[ARABIC_FONT_SIZE] = snapshot.arabicFontSize
+        preferences[TRANSLATION_FONT_SIZE] = snapshot.translationFontSize
+        preferences[VERSE_SPACING] = snapshot.verseSpacing
+        preferences[ADZAN_ENABLED] = snapshot.adzanEnabled
+        preferences[OVERRIDE_SILENT_MODE] = snapshot.overrideSilentMode
+        preferences[VIBRATION_ENABLED] = snapshot.vibrationEnabled
+        preferences[AUTO_LOCATION] = snapshot.autoLocation
+        preferences[LOCATION] = snapshot.locationName
+        preferences[LATITUDE] = snapshot.latitude
+        preferences[LONGITUDE] = snapshot.longitude
+        preferences[ADZAN_SOUND] = snapshot.adzanSound.id
+        preferences[FAJR_ADZAN_SOUND] = snapshot.fajrAdzanSound.id
+        preferences[QURAN_RECITER] = snapshot.selectedQuranReciter.id
+        preferences[AUDIO_DOWNLOAD_MODE] = snapshot.audioDownloadMode.name
+        preferences[AUDIO_DOWNLOAD_WIFI_ONLY] = snapshot.wifiOnlyAudioDownloads
+        preferences[CALENDAR_DISPLAY_MODE] = snapshot.calendarDisplayMode.name
+        preferences[PRAYER_CALCULATION_METHOD] = snapshot.prayerCalculationMethod.name
+        preferences[ASR_MADHHAB] = snapshot.asrMadhhab.name
+        preferences[QURAN_REMINDER_ENABLED] = snapshot.quranReminderEnabled
+        preferences[QURAN_REMINDER_TIME] = snapshot.quranReminderTime
+        preferences[MORNING_DZIKIR_ENABLED] = snapshot.morningDzikirReminderEnabled
+        preferences[MORNING_DZIKIR_TIME] = snapshot.morningDzikirReminderTime
+        preferences[EVENING_DZIKIR_ENABLED] = snapshot.eveningDzikirReminderEnabled
+        preferences[EVENING_DZIKIR_TIME] = snapshot.eveningDzikirReminderTime
+        preferences[ADHAN_SNOOZE_MINUTES] = snapshot.adhanSnoozeMinutes
+        preferences[FAJR_ENABLED] = snapshot.fajrAdzanEnabled
+        preferences[DHUHR_ENABLED] = snapshot.dhuhrAdzanEnabled
+        preferences[ASR_ENABLED] = snapshot.asrAdzanEnabled
+        preferences[MAGHRIB_ENABLED] = snapshot.maghribAdzanEnabled
+        preferences[ISHA_ENABLED] = snapshot.ishaAdzanEnabled
     }
 
     suspend fun getLastUpdateDownloadId(): Long? {

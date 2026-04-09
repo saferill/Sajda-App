@@ -433,28 +433,8 @@ fun AdhanSettingsScreen(
         }
     }
 
-    val isEnglish = settings.appLanguage.isEnglish()
-    val helpChecklist = remember(settings.appLanguage) {
-        AdhanSystemHelper.helpChecklist().map { item ->
-            if (isEnglish) {
-                when (item) {
-                    "Pastikan notifikasi aplikasi diizinkan." -> "Make sure app notifications are allowed."
-                    "Pastikan izin exact alarm aktif." -> "Make sure exact alarm permission is enabled."
-                    "Lepaskan pembatasan baterai untuk NurApp." -> "Remove battery restrictions for NurApp."
-                    "Naikkan volume alarm perangkat di atas nol." -> "Keep the device alarm volume above zero."
-                    "Aktifkan Override silent mode jika Anda ingin adzan tetap bersuara saat HP silent." -> "Enable Override silent mode if you want adhan to sound while the phone is silent."
-                    "Buka aplikasi minimal sekali setelah reboot atau update bila vendor sangat agresif." -> "Open the app at least once after reboot or update if your device vendor is very aggressive."
-                    else -> item
-                }
-            } else {
-                item
-            }
-        }
-    }
-    val vendorTips = remember(systemRefreshKey, settings.appLanguage) { AdhanSystemHelper.vendorTips(context) }
-
     OverlayShell(
-        title = settings.pick("Pengaturan Adzan", "Adhan Settings"),
+        title = settings.pick("Diagnosa Adzan", "Adhan Diagnostics"),
         subtitle = settings.pick("Alarm sholat offline", "Offline prayer alarms"),
         onBack = onBack
     ) {
@@ -599,6 +579,17 @@ fun AdhanSettingsScreen(
             )
             SystemStatusLine(
                 appLanguage = settings.appLanguage,
+                title = settings.pick("Izin lokasi", "Location permission"),
+                ready = readiness.locationPermissionGranted,
+                message = if (readiness.locationPermissionGranted) null else {
+                    settings.pick(
+                        "Izin lokasi diperlukan jika lokasi adzan ingin diperbarui otomatis.",
+                        "Location permission is required for automatic adhan location updates."
+                    )
+                }
+            )
+            SystemStatusLine(
+                appLanguage = settings.appLanguage,
                 title = settings.pick("Mode senyap perangkat", "Device silent mode"),
                 ready = !readiness.silentModeActive || settings.overrideSilentMode,
                 message = if (readiness.silentModeActive && !settings.overrideSilentMode) {
@@ -668,14 +659,6 @@ fun AdhanSettingsScreen(
                     }
                 )
             }
-            Text(
-                text = settings.pick(
-                    "Agar adzan bekerja seperti aplikasi adzan pada umumnya, minimal aktifkan notifikasi, exact alarm, dan lepaskan pembatasan baterai.",
-                    "To behave like a real adhan app, at minimum enable notifications, exact alarms, and remove battery restrictions."
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
             systemMessage?.let { message ->
                 Text(
                     text = message,
@@ -711,55 +694,6 @@ fun AdhanSettingsScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-        SanctuaryCard {
-            SectionHeader(
-                eyebrow = settings.pick("Bantuan cepat", "Quick help"),
-                title = settings.pick("Kenapa adzan tidak berbunyi?", "Why is adhan not playing?")
-            )
-            helpChecklist.forEach { item ->
-                Text(
-                    text = "- $item",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        SanctuaryCard {
-            SectionHeader(
-                eyebrow = settings.pick("Tips perangkat", "Device tips"),
-                title = settings.pick("Panduan per merek HP", "Vendor-specific guidance")
-            )
-            vendorTips.forEach { tip ->
-                Text(
-                    text = tip.vendor,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = if (isEnglish) {
-                        when (tip.title) {
-                            "Nonaktifkan pembatasan MIUI" -> "Disable MIUI restrictions"
-                            "Izinkan berjalan di background" -> "Allow background running"
-                            "Aktifkan autostart dan baterai tanpa batas" -> "Enable auto-start and unrestricted battery"
-                            "Keluarkan dari sleeping apps" -> "Remove from sleeping apps"
-                            "Izinkan startup manager" -> "Allow startup manager"
-                            else -> tip.title
-                        }
-                    } else {
-                        tip.title
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                tip.steps.forEach { step ->
-                    Text(
-                        text = "- $step",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
         }
         SanctuaryCard {
             SectionHeader(

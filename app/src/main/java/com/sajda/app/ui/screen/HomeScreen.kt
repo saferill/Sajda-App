@@ -60,13 +60,8 @@ fun HomeScreen(
     onNavigateToQuran: () -> Unit,
     onNavigateToPrayer: () -> Unit,
     onOpenBookmarks: () -> Unit,
-    onOpenHadith: () -> Unit,
     onOpenCalendar: () -> Unit,
-    onOpenRamadan: () -> Unit,
     onOpenQibla: () -> Unit,
-    onOpenSearch: () -> Unit,
-    onOpenReminders: () -> Unit,
-    onOpenProgress: () -> Unit,
     onPlayLastAudio: (Surah) -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -116,7 +111,9 @@ fun HomeScreen(
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                text = state.locationName.ifBlank { "Jakarta, Indonesia" },
+                                text = state.locationName.ifBlank {
+                                    if (isEnglish) "Location not active" else "Lokasi belum aktif"
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

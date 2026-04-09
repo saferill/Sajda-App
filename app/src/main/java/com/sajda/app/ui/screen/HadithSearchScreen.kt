@@ -40,6 +40,7 @@ import com.sajda.app.ui.component.ArabicVerseText
 import com.sajda.app.ui.component.SajdaTopAction
 import com.sajda.app.ui.component.SajdaTopBar
 import com.sajda.app.ui.component.SanctuaryCard
+import com.sajda.app.util.buildHighlightedText
 import com.sajda.app.util.isEnglish
 import com.sajda.app.util.pick
 
@@ -53,15 +54,19 @@ fun HadithSearchScreen(
     var selectedBook by rememberSaveable { mutableStateOf(HadithBook.BUKHARI) }
     var query by rememberSaveable { mutableStateOf("") }
     var refreshKey by rememberSaveable { mutableIntStateOf(0) }
-    var items by remember(selectedBook) { mutableStateOf<List<HadithEntry>>(emptyList()) }
-    var isLoading by remember(selectedBook) { mutableStateOf(true) }
-    var errorMessage by remember(selectedBook) { mutableStateOf<String?>(null) }
+    var items by remember(selectedBook, query) { mutableStateOf<List<HadithEntry>>(emptyList()) }
+    var isLoading by remember(selectedBook, query) { mutableStateOf(true) }
+    var errorMessage by remember(selectedBook, query) { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(selectedBook, refreshKey) {
+    LaunchedEffect(selectedBook, refreshKey, query) {
         isLoading = true
         errorMessage = null
         runCatching {
-            repository.browse(selectedBook, range = "1-300")
+            if (query.isBlank()) {
+                repository.browse(selectedBook, range = "1-300")
+            } else {
+                repository.search(query = query, book = selectedBook, range = "1-300")
+            }
         }.onSuccess {
             items = it
         }.onFailure {
@@ -69,20 +74,6 @@ fun HadithSearchScreen(
             items = emptyList()
         }
         isLoading = false
-    }
-
-    val filteredItems = remember(items, query) {
-        val keyword = query.trim()
-        if (keyword.isBlank()) {
-            items
-        } else {
-            items.filter { item ->
-                item.text.contains(keyword, ignoreCase = true) ||
-                    item.arabicText.contains(keyword, ignoreCase = true) ||
-                    item.reference.contains(keyword, ignoreCase = true) ||
-                    item.collection.contains(keyword, ignoreCase = true)
-            }
-        }
     }
 
     LazyColumn(
@@ -161,7 +152,7 @@ fun HadithSearchScreen(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
-        } else if (filteredItems.isEmpty()) {
+        } else if (items.isEmpty()) {
             item {
                 SanctuaryCard {
                     Text(
@@ -172,8 +163,8 @@ fun HadithSearchScreen(
                 }
             }
         } else {
-            items(filteredItems, key = { it.id }) { hadith ->
-                HadithEntryCard(settings = settings, hadith = hadith)
+            items(items, key = { it.id }) { hadith ->
+                HadithEntryCard(settings = settings, hadith = hadith, query = query)
             }
         }
     }
@@ -182,7 +173,8 @@ fun HadithSearchScreen(
 @Composable
 private fun HadithEntryCard(
     settings: UserSettings,
-    hadith: HadithEntry
+    hadith: HadithEntry,
+    query: String
 ) {
     SanctuaryCard {
         Text(
@@ -193,12 +185,16 @@ private fun HadithEntryCard(
         if (hadith.arabicText.isNotBlank()) {
             ArabicVerseText(
                 text = hadith.arabicText,
-                fontSize = 34,
+                fontSize = 38,
                 textAlign = TextAlign.Right
             )
         }
         Text(
-            text = hadith.text,
+            text = buildHighlightedText(
+                text = hadith.text,
+                query = query,
+                highlightColor = MaterialTheme.colorScheme.primary
+            ),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface
         )

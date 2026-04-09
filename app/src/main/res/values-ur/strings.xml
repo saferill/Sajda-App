@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">نور ایپ</string>
+    <string name="tab_home">ہوم</string>
+    <string name="tab_quran">قرآن</string>
+    <string name="tab_adhan">اذان</string>
+    <string name="tab_hadith">حدیث</string>
+    <string name="tab_ramadan">رمضان</string>
+    <string name="tab_settings">ترتیبات</string>
+</resources>

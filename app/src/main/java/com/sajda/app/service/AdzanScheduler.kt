@@ -15,13 +15,18 @@ import com.sajda.app.data.repository.PrayerTimeRepository
 import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.PrayerTime
 import com.sajda.app.domain.model.UserSettings
+import com.sajda.app.util.AdhanSchedulePlanner
 import com.sajda.app.util.Constants
 import com.sajda.app.util.DateTimeUtils
+import com.sajda.app.util.ScheduledPrayerEntry
 import com.sajda.app.util.displayName
 import com.sajda.app.util.pick
 import com.sajda.app.widget.PrayerTimesWidgetUpdater
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -37,6 +42,7 @@ class AdzanScheduler @Inject constructor(@ApplicationContext private val context
     private val appContext = context.applicationContext
     private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     private val preferencesDataStore = PreferencesDataStore(appContext)
+    private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     suspend fun reschedule(
         prayerTimes: List<PrayerTime>,
@@ -52,7 +58,11 @@ class AdzanScheduler @Inject constructor(@ApplicationContext private val context
 
         val upcomingPrayers = findUpcomingScheduledPrayers(prayerTimes, settings, referenceTime)
         upcomingPrayers.forEachIndexed { index, scheduledPrayer ->
-            schedulePrayer(scheduledPrayer, isPrimary = index == 0)
+            schedulePrayer(
+                scheduledPrayer = scheduledPrayer,
+                appLanguage = settings.appLanguage,
+                isPrimary = index == 0
+            )
         }
         val nextUpcoming = upcomingPrayers.firstOrNull()
 
@@ -97,14 +107,18 @@ class AdzanScheduler @Inject constructor(@ApplicationContext private val context
                 val pendingIntent = pendingIntentFor(
                     prayerTime = prayerTime,
                     prayerName = prayerName,
-                    prayerTimeValue = timeFor(prayerTime, prayerName)
+                    prayerTimeValue = AdhanSchedulePlanner.timeFor(prayerTime, prayerName)
                 )
                 alarmManager.cancel(pendingIntent)
             }
         }
     }
 
-    private suspend fun schedulePrayer(scheduledPrayer: ScheduledPrayer, isPrimary: Boolean) {
+    private suspend fun schedulePrayer(
+        scheduledPrayer: ScheduledPrayerEntry,
+        appLanguage: com.sajda.app.domain.model.AppLanguage,
+        isPrimary: Boolean
+    ) {
         val triggerAtMillis = scheduledPrayer.scheduledAt
             .atZone(ZoneId.systemDefault())
             .toInstant()
@@ -135,12 +149,7 @@ class AdzanScheduler @Inject constructor(@ApplicationContext private val context
             )
             preferencesDataStore.appendAdhanLog(
                 prayerName = scheduledPrayer.prayerName.label,
-                status = runBlocking {
-                    preferencesDataStore.settingsFlow.first().appLanguage.pick(
-                        "Alarm utama dijadwalkan",
-                        "Primary alarm scheduled"
-                    )
-                },
+                status = appLanguage.pick("Alarm utama dijadwalkan", "Primary alarm scheduled"),
                 details = "AlarmClock | ${scheduledPrayer.prayerTime.locationName} | ${scheduledPrayer.timeValue}"
             )
             return
@@ -160,24 +169,17 @@ class AdzanScheduler @Inject constructor(@ApplicationContext private val context
             }
             preferencesDataStore.appendAdhanLog(
                 prayerName = scheduledPrayer.prayerName.label,
-                status = runBlocking {
-                    preferencesDataStore.settingsFlow.first().appLanguage.pick(
-                        if (canScheduleExact) "Alarm exact dijadwalkan" else "Alarm fallback dijadwalkan",
-                        if (canScheduleExact) "Exact alarm scheduled" else "Fallback alarm scheduled"
-                    )
-                },
+                status = appLanguage.pick(
+                    if (canScheduleExact) "Alarm exact dijadwalkan" else "Alarm fallback dijadwalkan",
+                    if (canScheduleExact) "Exact alarm scheduled" else "Fallback alarm scheduled"
+                ),
                 details = "${scheduledPrayer.prayerTime.locationName} | ${scheduledPrayer.timeValue}"
             )
         }.onFailure { error ->
             Log.e(TAG, "Failed to schedule ${scheduledPrayer.prayerName.label} at ${scheduledPrayer.scheduledAt}", error)
             preferencesDataStore.appendAdhanLog(
                 prayerName = scheduledPrayer.prayerName.label,
-                status = runBlocking {
-                    preferencesDataStore.settingsFlow.first().appLanguage.pick(
-                        "Gagal menjadwalkan alarm",
-                        "Failed to schedule alarm"
-                    )
-                },
+                status = appLanguage.pick("Gagal menjadwalkan alarm", "Failed to schedule alarm"),
                 details = error.message.orEmpty()
             )
         }
@@ -212,7 +214,7 @@ class AdzanScheduler @Inject constructor(@ApplicationContext private val context
             } else {
                 alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
             }
-            runBlocking {
+            ioScope.launch {
                 val language = preferencesDataStore.settingsFlow.first().appLanguage
                 preferencesDataStore.appendAdhanLog(
                     prayerName = prayerName.label,
@@ -225,7 +227,7 @@ class AdzanScheduler @Inject constructor(@ApplicationContext private val context
             }
         }.onFailure { error ->
             Log.e(TAG, "Failed to arm emergency fallback for ${prayerName.label} at $scheduledAt", error)
-            runBlocking {
+            ioScope.launch {
                 val language = preferencesDataStore.settingsFlow.first().appLanguage
                 preferencesDataStore.appendAdhanLog(
                     prayerName = prayerName.label,
@@ -277,58 +279,18 @@ class AdzanScheduler @Inject constructor(@ApplicationContext private val context
         )
     }
 
-    private fun isEnabled(settings: UserSettings, prayerName: PrayerName): Boolean {
-        return when (prayerName) {
-            PrayerName.FAJR -> settings.fajrAdzanEnabled
-            PrayerName.DHUHR -> settings.dhuhrAdzanEnabled
-            PrayerName.ASR -> settings.asrAdzanEnabled
-            PrayerName.MAGHRIB -> settings.maghribAdzanEnabled
-            PrayerName.ISHA -> settings.ishaAdzanEnabled
-        }
-    }
-
-    private fun timeFor(prayerTime: PrayerTime, prayerName: PrayerName): String {
-        return when (prayerName) {
-            PrayerName.FAJR -> prayerTime.fajr
-            PrayerName.DHUHR -> prayerTime.dhuhr
-            PrayerName.ASR -> prayerTime.asr
-            PrayerName.MAGHRIB -> prayerTime.maghrib
-            PrayerName.ISHA -> prayerTime.isha
-        }
-    }
-
     private fun findUpcomingScheduledPrayers(
         prayerTimes: List<PrayerTime>,
         settings: UserSettings,
         referenceTime: LocalDateTime
-    ): List<ScheduledPrayer> {
-        return prayerTimes.asSequence().flatMap { prayerTime ->
-            PrayerName.entries.asSequence()
-                .filter { isEnabled(settings, it) }
-                .map { prayerName ->
-                    ScheduledPrayer(
-                        prayerTime = prayerTime,
-                        prayerName = prayerName,
-                        timeValue = timeFor(prayerTime, prayerName),
-                        scheduledAt = LocalDateTime.of(
-                            LocalDate.parse(prayerTime.date),
-                            LocalTime.parse(timeFor(prayerTime, prayerName))
-                        )
-                    )
-                }
-        }
-            .filter { it.scheduledAt.isAfter(referenceTime) }
-            .sortedBy { it.scheduledAt }
-            .take(MAX_BACKUP_ALARMS)
-            .toList()
+    ): List<ScheduledPrayerEntry> {
+        return AdhanSchedulePlanner.upcoming(
+            prayerTimes = prayerTimes,
+            settings = settings,
+            referenceTime = referenceTime,
+            maxItems = MAX_BACKUP_ALARMS
+        )
     }
-
-    private data class ScheduledPrayer(
-        val prayerTime: PrayerTime,
-        val prayerName: PrayerName,
-        val timeValue: String,
-        val scheduledAt: LocalDateTime
-    )
 
     companion object {
         private const val MAX_BACKUP_ALARMS = 10

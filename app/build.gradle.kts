@@ -15,8 +15,8 @@ configurations.all {
     )
 }
 
-val appVersionCode = 7
-val appVersionName = "1.3.0"
+val appVersionCode = 8
+val appVersionName = "1.4.0"
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -69,7 +69,7 @@ android {
         versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        resourceConfigurations += listOf("id", "in", "en", "ar")
+        resourceConfigurations += listOf("id", "in", "en", "ar", "tr", "ur", "fr", "ms", "hi")
         buildConfigField(
             "String",
             "HADITH_API_KEY",
@@ -151,6 +151,7 @@ android.applicationVariants.configureEach {
 dependencies {
     implementation("androidx.core:core-ktx:1.10.1")
     implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.activity:activity-compose:1.7.2")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")

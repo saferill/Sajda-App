@@ -33,7 +33,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.ui.component.HeroCard
 import com.sajda.app.ui.component.MetadataChip
@@ -45,6 +44,7 @@ import com.sajda.app.util.currentDayName
 import com.sajda.app.util.currentGregorianSummary
 import com.sajda.app.util.currentHijriSummary
 import com.sajda.app.util.displayName
+import com.sajda.app.util.isEnglish
 import com.sajda.app.util.localizedPrayerName
 import java.time.LocalDate
 
@@ -57,7 +57,7 @@ fun PrayerTimeScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val settings = state.settings
-    val isEnglish = settings.appLanguage == AppLanguage.ENGLISH
+    val isEnglish = settings.appLanguage.isEnglish()
     val today = LocalDate.now()
     val prayerTime = state.todayPrayerTime
     val nextPrayer = prayerTime?.let(DateTimeUtils::nextPrayer)
@@ -99,12 +99,14 @@ fun PrayerTimeScreen(
                         )
                     }
                     Text(
-                        text = settings.locationName.ifBlank { "Jakarta, Indonesia" },
+                        text = settings.locationName.ifBlank {
+                            if (isEnglish) "Location not active" else "Lokasi belum aktif"
+                        },
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.ExtraBold
                     )
                     Text(
-                        text = "${currentHijriSummary(settings.appLanguage, today)}  •  ${currentDayName(settings.appLanguage, today)}, ${currentGregorianSummary(settings.appLanguage, today)}",
+                        text = "${currentHijriSummary(settings.appLanguage, today)} - ${currentDayName(settings.appLanguage, today)}, ${currentGregorianSummary(settings.appLanguage, today)}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

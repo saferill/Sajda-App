@@ -7,7 +7,7 @@ import com.sajda.app.domain.model.PrayerCalculationMethod
 import com.sajda.app.domain.model.QuranReadingMode
 import com.sajda.app.domain.model.UserSettings
 
-fun AppLanguage.isEnglish(): Boolean = this == AppLanguage.ENGLISH
+fun AppLanguage.isEnglish(): Boolean = this != AppLanguage.INDONESIAN
 
 fun AppLanguage.displayName(): String {
     return when (this) {
@@ -23,7 +23,7 @@ fun AppLanguage.displayName(): String {
 }
 
 fun AppLanguage.pick(indonesian: String, english: String): String {
-    return if (this == AppLanguage.ENGLISH) english else indonesian
+    return if (this == AppLanguage.INDONESIAN) indonesian else english
 }
 
 fun UserSettings.pick(indonesian: String, english: String): String = appLanguage.pick(indonesian, english)

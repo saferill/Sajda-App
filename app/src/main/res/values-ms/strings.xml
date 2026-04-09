@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">NurApp</string>
+    <string name="tab_home">Laman Utama</string>
+    <string name="tab_quran">Al-Quran</string>
+    <string name="tab_adhan">Azan</string>
+    <string name="tab_hadith">Hadis</string>
+    <string name="tab_ramadan">Ramadan</string>
+    <string name="tab_settings">Tetapan</string>
+</resources>

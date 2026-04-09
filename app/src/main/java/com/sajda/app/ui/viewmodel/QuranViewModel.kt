@@ -6,6 +6,7 @@ import com.sajda.app.data.local.PreferencesDataStore
 import com.sajda.app.data.repository.AudioRepository
 import com.sajda.app.data.repository.QuranRepository
 import com.sajda.app.domain.model.AudioDownloadState
+import com.sajda.app.domain.model.AudioDownloadMode
 import com.sajda.app.domain.model.Ayat
 import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.Bookmark
@@ -28,6 +29,8 @@ data class QuranUiState(
     val focusMode: Boolean = false,
     val appLanguage: AppLanguage = AppLanguage.INDONESIAN,
     val selectedQuranReciter: QuranReciter = QuranReciter.MISYARI_RASYID_AL_AFASI,
+    val audioDownloadMode: AudioDownloadMode = AudioDownloadMode.ALL_RECITERS,
+    val wifiOnlyAudioDownloads: Boolean = false,
     val quranReadingMode: QuranReadingMode = QuranReadingMode.ARABIC_INDONESIAN,
     val showTranslation: Boolean = true,
     val arabicOnly: Boolean = false,
@@ -96,6 +99,8 @@ class QuranViewModel @Inject constructor(
                         focusMode = settings.focusMode,
                         appLanguage = settings.appLanguage,
                         selectedQuranReciter = settings.selectedQuranReciter,
+                        audioDownloadMode = settings.audioDownloadMode,
+                        wifiOnlyAudioDownloads = settings.wifiOnlyAudioDownloads,
                         quranReadingMode = settings.quranReadingMode,
                         showTranslation = settings.showTranslation,
                         arabicOnly = settings.arabicOnly,
@@ -135,6 +140,15 @@ class QuranViewModel @Inject constructor(
             runCatching { audioRepository.deleteSurahAudio(surahNumber) }
                 .onFailure { error ->
                     _uiState.update { it.copy(errorMessage = error.message ?: "Gagal menghapus audio") }
+                }
+        }
+    }
+
+    fun deleteAllAudio() {
+        viewModelScope.launch {
+            runCatching { audioRepository.deleteAllDownloadedAudio() }
+                .onFailure { error ->
+                    _uiState.update { it.copy(errorMessage = error.message ?: "Gagal menghapus semua audio") }
                 }
         }
     }

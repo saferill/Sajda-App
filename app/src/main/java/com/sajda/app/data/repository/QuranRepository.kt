@@ -61,9 +61,29 @@ class QuranRepository @Inject constructor(
         val trimmedQuery = query.trim()
         if (trimmedQuery.isBlank()) return emptyList()
 
+        val exactAyatQuery = Regex("""^(\d{1,3})\s*[:./-]\s*(\d{1,3})$""").matchEntire(trimmedQuery)
+        if (exactAyatQuery != null) {
+            val surahNumber = exactAyatQuery.groupValues[1].toIntOrNull() ?: return emptyList()
+            val ayatNumber = exactAyatQuery.groupValues[2].toIntOrNull() ?: return emptyList()
+            val surah = surahDao.getSurahByNumber(surahNumber) ?: return emptyList()
+            val ayat = ayatDao.getAyat(surahNumber, ayatNumber) ?: return emptyList()
+            return listOf(
+                QuranSearchResult(
+                    type = SearchResultType.AYAT,
+                    title = "${surah.transliteration} | Ayat ${ayat.ayatNumber}",
+                    subtitle = ayat.translation.take(140),
+                    surahNumber = surah.number,
+                    ayatNumber = ayat.ayatNumber
+                )
+            )
+        }
+
+        val numericQuery = trimmedQuery.toIntOrNull()
+
         val surahResults = surahDao.getAllSurah()
             .filter { surah ->
-                surah.transliteration.contains(trimmedQuery, ignoreCase = true) ||
+                surah.number == numericQuery ||
+                    surah.transliteration.contains(trimmedQuery, ignoreCase = true) ||
                     surah.translation.contains(trimmedQuery, ignoreCase = true) ||
                     QuranDataLoader.englishSurahTranslation(surah.number).contains(trimmedQuery, ignoreCase = true) ||
                     surah.nameArabic.contains(trimmedQuery)
@@ -76,17 +96,18 @@ class QuranRepository @Inject constructor(
                     subtitle = listOf(
                         surah.translation,
                         QuranDataLoader.englishSurahTranslation(surah.number)
-                    ).filter { it.isNotBlank() }.joinToString(" • "),
+                    ).filter { it.isNotBlank() }.joinToString(" | "),
                     surahNumber = surah.number
                 )
             }
 
         val ayatResults = ayatDao.searchAyat(trimmedQuery)
+            .filter { ayat -> numericQuery == null || ayat.ayatNumber == numericQuery || ayat.surahNumber == numericQuery }
             .mapNotNull { ayat ->
                 val surah = surahDao.getSurahByNumber(ayat.surahNumber) ?: return@mapNotNull null
                 QuranSearchResult(
                     type = SearchResultType.AYAT,
-                    title = "${surah.transliteration} • Ayat ${ayat.ayatNumber}",
+                    title = "${surah.transliteration} | Ayat ${ayat.ayatNumber}",
                     subtitle = ayat.translation.take(120),
                     surahNumber = ayat.surahNumber,
                     ayatNumber = ayat.ayatNumber
@@ -95,15 +116,16 @@ class QuranRepository @Inject constructor(
 
         val englishAyatResults = ayatDao.getAllAyat()
             .filter { ayat ->
+                val matchesNumber = numericQuery == null || ayat.ayatNumber == numericQuery || ayat.surahNumber == numericQuery
                 QuranDataLoader.englishAyatTranslation(ayat.surahNumber, ayat.ayatNumber)
-                    .contains(trimmedQuery, ignoreCase = true)
+                    .contains(trimmedQuery, ignoreCase = true) || matchesNumber
             }
             .take(20)
             .mapNotNull { ayat ->
                 val surah = surahDao.getSurahByNumber(ayat.surahNumber) ?: return@mapNotNull null
                 QuranSearchResult(
                     type = SearchResultType.AYAT,
-                    title = "${surah.transliteration} • Ayah ${ayat.ayatNumber}",
+                    title = "${surah.transliteration} | Ayah ${ayat.ayatNumber}",
                     subtitle = QuranDataLoader
                         .englishAyatTranslation(ayat.surahNumber, ayat.ayatNumber)
                         .take(120),
@@ -119,12 +141,22 @@ class QuranRepository @Inject constructor(
 
     fun observeBookmarks(): Flow<List<Bookmark>> = bookmarkDao.observeBookmarks().map { items -> items.map { it.toModel() } }
 
+    suspend fun getAllBookmarks(): List<Bookmark> = bookmarkDao.getAllBookmarks().map { it.toModel() }
+
     suspend fun addBookmark(bookmark: Bookmark) = bookmarkDao.insertBookmark(bookmark.toEntity())
 
     suspend fun removeBookmark(surahNumber: Int, ayatNumber: Int) = bookmarkDao.deleteBookmarkByAyat(surahNumber, ayatNumber)
 
     suspend fun getBookmark(surahNumber: Int, ayatNumber: Int): Bookmark? =
         bookmarkDao.getBookmark(surahNumber, ayatNumber)?.toModel()
+
+    suspend fun replaceBookmarks(bookmarks: List<Bookmark>) {
+        bookmarkDao.clearBookmarks()
+        if (bookmarks.isNotEmpty()) {
+            bookmarkDao.insertBookmark(bookmarks.first().toEntity())
+            bookmarks.drop(1).forEach { bookmarkDao.insertBookmark(it.toEntity()) }
+        }
+    }
 
     suspend fun saveBookmarkReflection(
         surahNumber: Int,
@@ -163,6 +195,19 @@ class QuranRepository @Inject constructor(
                 updatedAt = System.currentTimeMillis()
             )
         )
+    }
+
+    suspend fun replaceLastRead(lastRead: LastRead?) {
+        lastReadDao.clearLastRead()
+        if (lastRead != null) {
+            lastReadDao.upsertLastRead(
+                LastReadEntity(
+                    surahNumber = lastRead.surahNumber,
+                    ayatNumber = lastRead.ayatNumber,
+                    updatedAt = lastRead.updatedAt
+                )
+            )
+        }
     }
 
     suspend fun updateAudioState(

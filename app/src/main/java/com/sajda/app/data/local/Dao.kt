@@ -86,6 +86,9 @@ interface BookmarkDao {
     @Query("SELECT * FROM bookmark ORDER BY updatedAt DESC, createdAt DESC")
     fun observeBookmarks(): Flow<List<BookmarkEntity>>
 
+    @Query("SELECT * FROM bookmark ORDER BY updatedAt DESC, createdAt DESC")
+    suspend fun getAllBookmarks(): List<BookmarkEntity>
+
     @Query("SELECT * FROM bookmark WHERE surahNumber = :surahNumber AND ayatNumber = :ayatNumber")
     suspend fun getBookmark(surahNumber: Int, ayatNumber: Int): BookmarkEntity?
 
@@ -94,6 +97,9 @@ interface BookmarkDao {
 
     @Query("DELETE FROM bookmark WHERE surahNumber = :surahNumber AND ayatNumber = :ayatNumber")
     suspend fun deleteBookmarkByAyat(surahNumber: Int, ayatNumber: Int)
+
+    @Query("DELETE FROM bookmark")
+    suspend fun clearBookmarks()
 }
 
 @Dao
@@ -106,6 +112,9 @@ interface LastReadDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertLastRead(lastRead: LastReadEntity)
+
+    @Query("DELETE FROM last_read")
+    suspend fun clearLastRead()
 }
 
 @Dao

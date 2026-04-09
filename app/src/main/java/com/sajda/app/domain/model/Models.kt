@@ -99,6 +99,11 @@ enum class QuranReciter(
     }
 }
 
+enum class AudioDownloadMode {
+    SELECTED_RECITER_ONLY,
+    ALL_RECITERS
+}
+
 enum class CalendarDisplayMode {
     HIJRI,
     GREGORIAN
@@ -170,12 +175,14 @@ data class UserSettings(
     val overrideSilentMode: Boolean = false,
     val vibrationEnabled: Boolean = true,
     val autoLocation: Boolean = false,
-    val locationName: String = "Jakarta",
+    val locationName: String = "",
     val latitude: Double = -6.2088,
     val longitude: Double = 106.8456,
     val adzanSound: AdhanStyle = AdhanStyle.DEFAULT,
     val fajrAdzanSound: AdhanStyle = AdhanStyle.DEFAULT,
     val selectedQuranReciter: QuranReciter = QuranReciter.MISYARI_RASYID_AL_AFASI,
+    val audioDownloadMode: AudioDownloadMode = AudioDownloadMode.ALL_RECITERS,
+    val wifiOnlyAudioDownloads: Boolean = false,
     val calendarDisplayMode: CalendarDisplayMode = CalendarDisplayMode.HIJRI,
     val prayerCalculationMethod: PrayerCalculationMethod = PrayerCalculationMethod.KEMENAG,
     val asrMadhhab: AsrMadhhab = AsrMadhhab.SHAFII,
@@ -204,7 +211,9 @@ data class UserSettings(
     val dhuhrAdzanEnabled: Boolean = true,
     val asrAdzanEnabled: Boolean = true,
     val maghribAdzanEnabled: Boolean = true,
-    val ishaAdzanEnabled: Boolean = true
+    val ishaAdzanEnabled: Boolean = true,
+    val lastBackupAt: String = "",
+    val lastRestoreAt: String = ""
 )
 
 data class AppUpdateInfo(
@@ -290,7 +299,19 @@ enum class AppLanguage {
     URDU,
     FRENCH,
     MALAY,
-    HINDI
+    HINDI;
+
+    val languageTag: String
+        get() = when (this) {
+            INDONESIAN -> "id"
+            ENGLISH -> "en"
+            ARABIC -> "ar"
+            TURKISH -> "tr"
+            URDU -> "ur"
+            FRENCH -> "fr"
+            MALAY -> "ms"
+            HINDI -> "hi"
+        }
 }
 
 enum class QuranReadingMode {

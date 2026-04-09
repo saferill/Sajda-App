@@ -50,8 +50,8 @@ object Constants {
     const val PRAYER_SCHEDULE_WORK_NAME = "prayer_schedule_refresh"
     const val APP_UPDATE_WORK_NAME = "app_update_check"
     const val UPDATE_DOWNLOAD_TITLE = "NurApp update"
-    const val UPDATE_RELEASES_URL = "https://api.github.com/repos/saferill/Sajda-App/releases/latest"
-    const val UPDATE_RELEASES_PAGE_URL = "https://github.com/saferill/Sajda-App/releases"
+    const val UPDATE_RELEASES_URL = "https://api.github.com/repos/saferill/Nur-App/releases/latest"
+    const val UPDATE_RELEASES_PAGE_URL = "https://github.com/saferill/Nur-App/releases"
 
     fun buildMurattalUrl(surahNumber: Int): String {
         val paddedNumber = surahNumber.toString().padStart(3, '0')
