@@ -173,19 +173,23 @@ class MainActivity : ComponentActivity() {
         LocationWorker.enqueuePeriodic(this)
 
         lifecycleScope.launch {
-            quranRepository.seedIfNeeded(this@MainActivity)
             runCatching {
-                AdzanManager(this@MainActivity).checkAndUpdateLocation()
-            }.onFailure { error ->
-                android.util.Log.e("MainActivity", "Gagal auto update lokasi adzan", error)
-            }
+                quranRepository.seedIfNeeded(this@MainActivity)
+                runCatching {
+                    AdzanManager(this@MainActivity).checkAndUpdateLocation()
+                }.onFailure { error ->
+                    android.util.Log.e("MainActivity", "Gagal auto update lokasi adzan", error)
+                }
 
-            val refreshedSettings = preferencesDataStore.settingsFlow.first()
-            val prayerTimes = prayerTimeRepository.getNextDaysPrayerTimes(30)
-                .ifEmpty { prayerTimeRepository.refreshPrayerTimes(refreshedSettings) }
-            adzanScheduler.reschedule(prayerTimes, refreshedSettings)
-            PrayerScheduleWorker.enqueueImmediate(this@MainActivity)
-            PrayerScheduleWorker.ensurePeriodic(this@MainActivity)
+                val refreshedSettings = preferencesDataStore.settingsFlow.first()
+                val prayerTimes = prayerTimeRepository.getNextDaysPrayerTimes(30)
+                    .ifEmpty { prayerTimeRepository.refreshPrayerTimes(refreshedSettings) }
+                adzanScheduler.reschedule(prayerTimes, refreshedSettings)
+                PrayerScheduleWorker.enqueueImmediate(this@MainActivity)
+                PrayerScheduleWorker.ensurePeriodic(this@MainActivity)
+            }.onFailure { error ->
+                android.util.Log.e("MainActivity", "Startup initialization failed", error)
+            }
         }
 
         binding.composeHost.setContent {
@@ -592,27 +596,32 @@ class MainActivity : ComponentActivity() {
 
     private fun checkForUpdateOnOpen() {
         lifecycleScope.launch {
-            if (!isNetworkAvailable()) {
+            runCatching {
+                if (!isNetworkAvailable()) {
+                    showUpdateBanner(
+                        status = "Tidak ada koneksi internet untuk cek update",
+                        progress = 0,
+                        showInstallButton = false
+                    )
+                    return@launch
+                }
+
+                val updateInfo = updateManager.checkForUpdate()
+                if (updateInfo == null) {
+                    hideUpdateBanner()
+                    return@launch
+                }
+
                 showUpdateBanner(
-                    status = "Tidak ada koneksi internet untuk cek update",
+                    status = "Update ${updateInfo.latestVersion} ditemukan, mengunduh di background...",
                     progress = 0,
                     showInstallButton = false
                 )
-                return@launch
-            }
-
-            val updateInfo = updateManager.checkForUpdate()
-            if (updateInfo == null) {
+                DownloadUpdateWorker.enqueue(this@MainActivity, updateInfo.downloadUrl, updateInfo.checksum)
+            }.onFailure { error ->
+                android.util.Log.e("MainActivity", "Update check failed on launch", error)
                 hideUpdateBanner()
-                return@launch
             }
-
-            showUpdateBanner(
-                status = "Update ${updateInfo.latestVersion} ditemukan, mengunduh di background...",
-                progress = 0,
-                showInstallButton = false
-            )
-            DownloadUpdateWorker.enqueue(this@MainActivity, updateInfo.downloadUrl, updateInfo.checksum)
         }
     }
 
