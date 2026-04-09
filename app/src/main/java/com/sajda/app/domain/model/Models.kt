@@ -12,7 +12,9 @@ data class Surah(
     val isDownloaded: Boolean = false,
     val localAudioPath: String? = null,
     val downloadedAt: Long? = null,
-    val downloadedReciterId: String? = null
+    val downloadedReciterId: String? = null,
+    val downloadedReciterIds: Set<String> = emptySet(),
+    val downloadedAudioBytes: Long = 0L
 )
 
 data class Ayat(

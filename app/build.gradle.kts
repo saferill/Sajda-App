@@ -15,8 +15,8 @@ configurations.all {
     )
 }
 
-val appVersionCode = 6
-val appVersionName = "1.2.0"
+val appVersionCode = 7
+val appVersionName = "1.3.0"
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -120,6 +120,7 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        viewBinding = true
     }
 
     composeOptions {
@@ -169,6 +170,7 @@ dependencies {
 
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     implementation("androidx.work:work-runtime-ktx:2.8.1")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 
     implementation("androidx.media3:media3-common:1.1.1")
     implementation("androidx.media3:media3-exoplayer:1.1.1")

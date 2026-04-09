@@ -28,7 +28,8 @@ class PrayerScheduleWorker(
 
         preferencesDataStore.resetDailyCounterIfNeeded()
         val settings = preferencesDataStore.settingsFlow.first()
-        val prayerTimes = prayerTimeRepository.refreshPrayerTimes(settings)
+        val prayerTimes = prayerTimeRepository.getNextDaysPrayerTimes(7)
+            .ifEmpty { prayerTimeRepository.refreshPrayerTimes(settings) }
         scheduler.reschedule(prayerTimes, settings)
         return Result.success()
     }

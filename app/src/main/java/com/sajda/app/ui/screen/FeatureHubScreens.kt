@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.HistoryEdu
+import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Mosque
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Settings
@@ -46,14 +47,20 @@ import com.sajda.app.ui.component.SanctuaryCard
 import com.sajda.app.ui.theme.surfaceContainerLow
 import com.sajda.app.ui.viewmodel.AppUpdateUiState
 import com.sajda.app.ui.viewmodel.SpiritualContentUiState
+import com.sajda.app.util.HijriCalendarPage
 import com.sajda.app.util.buildHijriCalendarCells
+import com.sajda.app.util.buildGregorianCalendarCells
 import com.sajda.app.util.currentHijriSummary
+import com.sajda.app.util.currentHijriPage
 import com.sajda.app.util.daysUntil
+import com.sajda.app.util.gregorianMonthLabel
 import com.sajda.app.util.hijriRangeLabel
 import com.sajda.app.util.hijriWeekdayHeaders
 import com.sajda.app.util.isEnglish
 import com.sajda.app.util.nextRamadanStart
+import com.sajda.app.util.pick
 import com.sajda.app.util.ramadanProgress
+import com.sajda.app.util.shiftHijriPage
 import com.sajda.app.util.upcomingIslamicEvents
 import java.time.LocalDate
 import java.time.YearMonth
@@ -241,10 +248,25 @@ fun IslamicCalendarScreen(
     onBack: (() -> Unit)? = null
 ) {
     val isEnglish = appLanguage.isEnglish()
-    var monthOffset by rememberSaveable { mutableIntStateOf(0) }
-    val month = remember(monthOffset) { YearMonth.now().plusMonths(monthOffset.toLong()) }
-    val cells = remember(month) { buildHijriCalendarCells(month) }
-    val events = remember(month, appLanguage) { upcomingIslamicEvents(appLanguage) }
+    var gregorianOffset by rememberSaveable { mutableIntStateOf(0) }
+    val initialHijriPage = remember { currentHijriPage() }
+    var hijriYear by rememberSaveable { mutableIntStateOf(initialHijriPage.year) }
+    var hijriMonthValue by rememberSaveable { mutableIntStateOf(initialHijriPage.monthValue) }
+    val hijriPage = remember(hijriYear, hijriMonthValue) { HijriCalendarPage(hijriYear, hijriMonthValue) }
+    val gregorianMonth = remember(gregorianOffset) { YearMonth.now().plusMonths(gregorianOffset.toLong()) }
+    val cells = remember(displayMode, gregorianMonth, hijriPage) {
+        if (displayMode == CalendarDisplayMode.HIJRI) {
+            buildHijriCalendarCells(hijriPage)
+        } else {
+            buildGregorianCalendarCells(gregorianMonth)
+        }
+    }
+    val events = remember(appLanguage) { upcomingIslamicEvents(appLanguage) }
+    val monthLabel = if (displayMode == CalendarDisplayMode.HIJRI) {
+        hijriRangeLabel(appLanguage, hijriPage)
+    } else {
+        gregorianMonthLabel(appLanguage, gregorianMonth)
+    }
 
     OverlayShell(
         title = if (displayMode == CalendarDisplayMode.HIJRI) {
@@ -252,7 +274,7 @@ fun IslamicCalendarScreen(
         } else {
             if (isEnglish) "Gregorian Calendar" else "Kalender Masehi"
         },
-        subtitle = hijriRangeLabel(appLanguage, month),
+        subtitle = monthLabel,
         onBack = onBack
     ) {
         SanctuaryCard {
@@ -276,13 +298,37 @@ fun IslamicCalendarScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("<", modifier = Modifier.clickable { monthOffset -= 1 })
                 Text(
-                    text = "${month.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${month.year}",
+                    "<",
+                    modifier = Modifier.clickable {
+                        if (displayMode == CalendarDisplayMode.HIJRI) {
+                            shiftHijriPage(hijriPage, -1).also {
+                                hijriYear = it.year
+                                hijriMonthValue = it.monthValue
+                            }
+                        } else {
+                            gregorianOffset -= 1
+                        }
+                    }
+                )
+                Text(
+                    text = monthLabel,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold
                 )
-                Text(">", modifier = Modifier.clickable { monthOffset += 1 })
+                Text(
+                    ">",
+                    modifier = Modifier.clickable {
+                        if (displayMode == CalendarDisplayMode.HIJRI) {
+                            shiftHijriPage(hijriPage, 1).also {
+                                hijriYear = it.year
+                                hijriMonthValue = it.monthValue
+                            }
+                        } else {
+                            gregorianOffset += 1
+                        }
+                    }
+                )
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -388,6 +434,8 @@ fun RamadanModeScreen(
     prayerTime: PrayerTime?,
     onOpenPrayer: () -> Unit,
     onOpenQuran: () -> Unit,
+    onOpenPractices: () -> Unit,
+    onOpenRamadanDua: () -> Unit,
     onBack: (() -> Unit)? = null
 ) {
     val isEnglish = settings.appLanguage.isEnglish()
@@ -445,32 +493,231 @@ fun RamadanModeScreen(
             }
         }
 
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        SanctuaryCard(
+            modifier = Modifier.clickable(onClick = onOpenPrayer),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ) {
-            HubCard(if (isEnglish) "Prayer Schedule" else "Jadwal Sahur & Buka", Icons.Rounded.CalendarMonth, onOpenPrayer)
-            HubCard(if (isEnglish) "Khatam Qur'an" else "Khatam Qur'an", Icons.Rounded.Bookmark, onOpenQuran)
-            HubCard(if (isEnglish) "Ramadan Deeds" else "Amalan Ramadhan", Icons.Rounded.Mosque, {})
-            HubCard(if (isEnglish) "Dua & Suhoor" else "Doa Berbuka & Sahur", Icons.Rounded.HistoryEdu, {})
+            RamadanActionRow(
+                icon = Icons.Rounded.CalendarMonth,
+                title = if (isEnglish) "Suhur and iftar schedule" else "Jadwal sahur dan buka",
+                subtitle = if (isEnglish) "Open today's prayer times" else "Buka jadwal sholat hari ini"
+            )
         }
 
-        SanctuaryCard(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)) {
-            Text(
-                text = "\"Whoever fasts Ramadan out of faith and hope for reward will be forgiven.\"",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
+        SanctuaryCard(
+            modifier = Modifier.clickable(onClick = onOpenQuran),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ) {
+            RamadanActionRow(
+                icon = Icons.Rounded.MenuBook,
+                title = if (isEnglish) "Khatam Qur'an" else "Khatam Qur'an",
+                subtitle = if (isEnglish) "Continue your tilawah plan" else "Lanjutkan target tilawah harian"
             )
-            Text(
-                text = "Sahih Bukhari",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
+        }
+
+        SanctuaryCard(
+            modifier = Modifier.clickable(onClick = onOpenPractices),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ) {
+            RamadanActionRow(
+                icon = Icons.Rounded.Mosque,
+                title = if (isEnglish) "Ramadan practices" else "Amalan Ramadhan",
+                subtitle = if (isEnglish) "Daily worship checklist" else "Panduan amalan harian Ramadhan"
+            )
+        }
+
+        SanctuaryCard(
+            modifier = Modifier.clickable(onClick = onOpenRamadanDua),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ) {
+            RamadanActionRow(
+                icon = Icons.Rounded.Bookmark,
+                title = if (isEnglish) "Iftar and suhur duas" else "Doa berbuka dan sahur",
+                subtitle = if (isEnglish) "Read and save important duas" else "Baca doa penting untuk sahur dan berbuka"
             )
         }
     }
 }
+
+@Composable
+private fun RamadanActionRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(46.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+fun RamadanPracticesScreen(
+    appLanguage: AppLanguage,
+    onBack: () -> Unit
+) {
+    OverlayShell(
+        title = appLanguage.pick("Amalan Ramadhan", "Ramadan Practices"),
+        subtitle = appLanguage.pick("Panduan singkat ibadah harian", "A concise daily worship guide"),
+        onBack = onBack
+    ) {
+        RAMADAN_PRACTICES.forEachIndexed { index, practice ->
+            SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+                Text(
+                    text = "%02d".format(index + 1),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = appLanguage.pick(practice.titleId, practice.titleEn),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                Text(
+                    text = appLanguage.pick(practice.descriptionId, practice.descriptionEn),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RamadanDuaScreen(
+    appLanguage: AppLanguage,
+    onBack: () -> Unit
+) {
+    OverlayShell(
+        title = appLanguage.pick("Doa Berbuka & Sahur", "Iftar and Suhur Duas"),
+        subtitle = appLanguage.pick("Doa yang sering dipakai saat Ramadhan", "Common duas used in Ramadan"),
+        onBack = onBack
+    ) {
+        RAMADAN_DUAS.forEach { dua ->
+            SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+                Text(
+                    text = appLanguage.pick(dua.titleId, dua.titleEn),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                Text(
+                    text = dua.arabic,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (dua.transliteration.isNotBlank()) {
+                    Text(
+                        text = dua.transliteration,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    text = appLanguage.pick(dua.translationId, dua.translationEn),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
+private data class RamadanPracticeContent(
+    val titleId: String,
+    val titleEn: String,
+    val descriptionId: String,
+    val descriptionEn: String
+)
+
+private data class RamadanDuaContent(
+    val titleId: String,
+    val titleEn: String,
+    val arabic: String,
+    val transliteration: String,
+    val translationId: String,
+    val translationEn: String
+)
+
+private val RAMADAN_PRACTICES = listOf(
+    RamadanPracticeContent(
+        titleId = "Niat dan sahur tepat waktu",
+        titleEn = "Renew intention and take suhur on time",
+        descriptionId = "Awali malam dengan niat puasa, lalu usahakan sahur mendekati waktu Subuh agar tubuh tetap kuat.",
+        descriptionEn = "Begin the night with the intention to fast, then take suhur close to Fajr so your body stays strong."
+    ),
+    RamadanPracticeContent(
+        titleId = "Jaga sholat fardhu berjamaah",
+        titleEn = "Protect the five daily prayers",
+        descriptionId = "Jadikan setiap sholat wajib sebagai poros aktivitas Ramadhan, lalu tambah witir dan tarawih semampunya.",
+        descriptionEn = "Make each obligatory prayer the anchor of your Ramadan, then add tarawih and witr as much as you can."
+    ),
+    RamadanPracticeContent(
+        titleId = "Tilawah harian yang realistis",
+        titleEn = "Keep a realistic daily tilawah plan",
+        descriptionId = "Bagi target bacaan menjadi beberapa sesi pendek setelah sholat agar lebih mudah konsisten sampai akhir bulan.",
+        descriptionEn = "Split your recitation target into shorter sessions after prayers so it stays consistent through the month."
+    ),
+    RamadanPracticeContent(
+        titleId = "Perbanyak sedekah dan doa",
+        titleEn = "Increase charity and dua",
+        descriptionId = "Gunakan waktu menjelang berbuka untuk berdoa, dan sisihkan sedekah rutin walau nilainya kecil.",
+        descriptionEn = "Use the minutes before iftar for dua, and keep a steady charity habit even if the amount is small."
+    ),
+    RamadanPracticeContent(
+        titleId = "Qiyam dan evaluasi harian",
+        titleEn = "Night prayer and daily reflection",
+        descriptionId = "Sempatkan qiyamul lail walau singkat, lalu evaluasi ibadah harian supaya Ramadhan tidak lewat tanpa arah.",
+        descriptionEn = "Set aside some time for night prayer, then review each day so Ramadan does not pass without direction."
+    )
+)
+
+private val RAMADAN_DUAS = listOf(
+    RamadanDuaContent(
+        titleId = "Doa berbuka puasa",
+        titleEn = "Dua for breaking the fast",
+        arabic = "اللَّهُمَّ إِنِّي لَكَ صُمْتُ وَبِكَ آمَنْتُ وَعَلَيْكَ تَوَكَّلْتُ وَعَلَى رِزْقِكَ أَفْطَرْتُ",
+        transliteration = "Allahumma inni laka sumtu wa bika amantu wa 'alayka tawakkaltu wa 'ala rizqika aftartu",
+        translationId = "Ya Allah, aku berpuasa untuk-Mu, aku beriman kepada-Mu, aku bertawakal kepada-Mu, dan dengan rezeki-Mu aku berbuka.",
+        translationEn = "O Allah, I fasted for You, I believed in You, I relied upon You, and with Your provision I break my fast."
+    ),
+    RamadanDuaContent(
+        titleId = "Dzikir setelah berbuka",
+        titleEn = "Dhikr after iftar",
+        arabic = "ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ وَثَبَتَ الْأَجْرُ إِنْ شَاءَ اللَّهُ",
+        transliteration = "Dhahaba az-zama'u wabtallatil-'uruqu wa thabatal-ajru in sha' Allah",
+        translationId = "Telah hilang dahaga, urat-urat telah basah, dan pahala telah tetap insya Allah.",
+        translationEn = "The thirst is gone, the veins are moistened, and the reward is confirmed, if Allah wills."
+    ),
+    RamadanDuaContent(
+        titleId = "Doa sebelum sahur",
+        titleEn = "Dua before suhur",
+        arabic = "وَبِصَوْمِ غَدٍ نَوَيْتُ مِنْ شَهْرِ رَمَضَانَ",
+        transliteration = "Wa bisawmi ghadin nawaitu min shahri Ramadan",
+        translationId = "Aku berniat puasa esok hari untuk menunaikan kewajiban Ramadhan.",
+        translationEn = "I intend to fast tomorrow in fulfillment of the Ramadan obligation."
+    )
+)

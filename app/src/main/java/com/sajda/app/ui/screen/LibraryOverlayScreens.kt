@@ -53,8 +53,9 @@ import com.sajda.app.ui.component.SanctuaryCard
 import com.sajda.app.ui.component.formatStorageSize
 import com.sajda.app.ui.theme.surfaceContainerLow
 import com.sajda.app.ui.theme.surfaceContainerLowest
+import com.sajda.app.util.audioBundleSizeBytes
+import com.sajda.app.util.hasAnyDownloadedAudio
 import com.sajda.app.util.pick
-import java.io.File
 
 private data class BookmarkEntryUi(
     val bookmark: Bookmark,
@@ -366,10 +367,8 @@ fun AudioManagementScreen(
     onDelete: (Surah) -> Unit,
     onDownload: (Surah) -> Unit
 ) {
-    val downloaded = surahList.filter { it.localAudioPath != null }
-    val storageUsage = downloaded.sumOf { surah ->
-        surah.localAudioPath?.let { path -> File(path).takeIf { it.exists() }?.length() } ?: 0L
-    }
+    val downloaded = surahList.filter { it.hasAnyDownloadedAudio() }
+    val storageUsage = downloaded.sumOf { surah -> surah.audioBundleSizeBytes() }
 
     OverlayShell(
         title = appLanguage.pick("Manajemen Audio", "Audio Management"),
@@ -414,9 +413,17 @@ fun AudioManagementScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Text(
+                            text = appLanguage.pick(
+                                "${surah.downloadedReciterIds.size}/${com.sajda.app.domain.model.QuranReciter.entries.size} qari • ${formatStorageSize(surah.audioBundleSizeBytes())}",
+                                "${surah.downloadedReciterIds.size}/${com.sajda.app.domain.model.QuranReciter.entries.size} reciters • ${formatStorageSize(surah.audioBundleSizeBytes())}"
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                     Row {
-                        if (surah.localAudioPath != null) {
+                        if (surah.hasAnyDownloadedAudio()) {
                             IconButton(onClick = { onPlay(surah) }) {
                                 Icon(Icons.Rounded.Headphones, contentDescription = appLanguage.pick("Putar", "Play"))
                             }
@@ -439,10 +446,10 @@ fun AudioManagementScreen(
                 MetadataChip(
                     text = when {
                         state?.isDownloading == true -> appLanguage.pick("Mengunduh ${state.progress}%", "Downloading ${state.progress}%")
-                        surah.localAudioPath != null -> appLanguage.pick("Siap offline", "Offline ready")
+                        surah.hasAnyDownloadedAudio() -> appLanguage.pick("Semua qari siap offline", "All reciters ready offline")
                         else -> appLanguage.pick("Belum diunduh", "Not downloaded")
                     },
-                    active = surah.localAudioPath != null
+                    active = surah.hasAnyDownloadedAudio()
                 )
             }
         }

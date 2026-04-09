@@ -1,6 +1,7 @@
 package com.sajda.app.data.repository
 
 import android.content.Context
+import android.os.Environment
 import com.sajda.app.data.local.AyatEntity
 import com.sajda.app.data.local.BookmarkEntity
 import com.sajda.app.data.local.LastReadEntity
@@ -9,19 +10,26 @@ import com.sajda.app.data.local.SurahEntity
 import com.sajda.app.domain.model.Ayat
 import com.sajda.app.domain.model.Bookmark
 import com.sajda.app.domain.model.LastRead
+import com.sajda.app.domain.model.QuranReciter
 import com.sajda.app.domain.model.QuranSearchResult
 import com.sajda.app.domain.model.SearchResultType
 import com.sajda.app.domain.model.Surah
+import com.sajda.app.util.Constants
 import com.sajda.app.util.QuranDataLoader
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
+import java.io.File
 
 import javax.inject.Inject
 import javax.inject.Singleton
+import dagger.hilt.android.qualifiers.ApplicationContext
 
 @Singleton
-class QuranRepository @Inject constructor(private val database: SajdaDatabase) {
+class QuranRepository @Inject constructor(
+    private val database: SajdaDatabase,
+    @ApplicationContext private val appContext: Context
+) {
 
     private val surahDao = database.surahDao()
     private val ayatDao = database.ayatDao()
@@ -185,6 +193,11 @@ class QuranRepository @Inject constructor(private val database: SajdaDatabase) {
     }
 
     private fun SurahEntity.toModel(): Surah {
+        val downloadedFiles = downloadedAudioFiles(number)
+        val downloadedIds = downloadedFiles.keys
+        val activeAudioPath = localAudioPath
+            ?.takeIf { File(it).exists() }
+            ?: downloadedFiles.values.firstOrNull()?.absolutePath
         return Surah(
             number = number,
             nameArabic = nameArabic,
@@ -194,10 +207,12 @@ class QuranRepository @Inject constructor(private val database: SajdaDatabase) {
             revelationPlace = revelationPlace,
             totalVerses = totalVerses,
             audioUrl = audioUrl,
-            isDownloaded = isDownloaded,
-            localAudioPath = localAudioPath,
+            isDownloaded = isDownloaded || downloadedIds.isNotEmpty(),
+            localAudioPath = activeAudioPath,
             downloadedAt = downloadedAt,
-            downloadedReciterId = downloadedReciterId
+            downloadedReciterId = downloadedReciterId,
+            downloadedReciterIds = downloadedIds,
+            downloadedAudioBytes = downloadedFiles.values.sumOf { it.length() }
         )
     }
 
@@ -215,6 +230,23 @@ class QuranRepository @Inject constructor(private val database: SajdaDatabase) {
             downloadedAt = downloadedAt,
             downloadedReciterId = downloadedReciterId
         )
+    }
+
+    private fun downloadedAudioFiles(surahNumber: Int): Map<String, File> {
+        return QuranReciter.entries.mapNotNull { reciter ->
+            val file = audioFileFor(surahNumber, reciter.id)
+            if (file.exists()) {
+                reciter.id to file
+            } else {
+                null
+            }
+        }.toMap()
+    }
+
+    private fun audioFileFor(surahNumber: Int, reciterId: String): File {
+        val musicDir = appContext.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
+        val targetDir = File(musicDir, Constants.AUDIO_DOWNLOAD_DIR).apply { mkdirs() }
+        return File(targetDir, Constants.formatAudioFileName(surahNumber, reciterId))
     }
 
     private fun AyatEntity.toModel(): Ayat {

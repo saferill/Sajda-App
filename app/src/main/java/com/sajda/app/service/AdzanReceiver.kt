@@ -33,6 +33,13 @@ class AdzanReceiver : BroadcastReceiver() {
         val serviceAlreadyRunning = AdzanService.isRunning()
 
         Log.d(TAG, "Alarm fired for $prayerName at $prayerTime on $prayerDate ($locationName)")
+        AdzanAlertNotifier.showTriggeredAlert(
+            context = appContext,
+            prayerName = prayerName,
+            prayerKey = prayerKey,
+            prayerTime = prayerTime,
+            locationName = locationName
+        )
 
         CoroutineScope(Dispatchers.IO).launch {
             runCatching {

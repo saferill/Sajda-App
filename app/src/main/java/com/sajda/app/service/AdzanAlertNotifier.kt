@@ -22,6 +22,80 @@ import kotlinx.coroutines.runBlocking
 
 object AdzanAlertNotifier {
 
+    fun showTriggeredAlert(
+        context: Context,
+        prayerName: String,
+        prayerKey: String,
+        prayerTime: String,
+        locationName: String
+    ) {
+        val appContext = context.applicationContext
+        ensurePrimaryChannel(appContext)
+        val language = runBlocking { PreferencesDataStore(appContext).settingsFlow.first().appLanguage }
+        val displayName = localizedPrayerName(prayerName, language)
+
+        val openPrayerIntent = Intent(appContext, MainActivity::class.java).apply {
+            action = Constants.ACTION_OPEN_PRAYER_TAB
+            putExtra(Constants.EXTRA_OPEN_TAB, "prayer")
+            putExtra(Constants.EXTRA_PRAYER_NAME, prayerName)
+            putExtra(Constants.EXTRA_PRAYER_KEY, prayerKey)
+            putExtra(Constants.EXTRA_PRAYER_TIME, prayerTime)
+            putExtra(Constants.EXTRA_LOCATION_NAME, locationName)
+            putExtra("is_adhan", true)
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val requestCode = "$prayerKey-$prayerTime-$locationName-trigger".hashCode()
+        val contentIntent = PendingIntent.getActivity(
+            appContext,
+            requestCode,
+            openPrayerIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val fullScreenIntent = Intent(appContext, MainActivity::class.java).apply {
+            action = Constants.ACTION_OPEN_PRAYER_TAB
+            putExtra(Constants.EXTRA_OPEN_TAB, "prayer")
+            putExtra(Constants.EXTRA_PRAYER_NAME, prayerName)
+            putExtra(Constants.EXTRA_PRAYER_KEY, prayerKey)
+            putExtra(Constants.EXTRA_PRAYER_TIME, prayerTime)
+            putExtra(Constants.EXTRA_LOCATION_NAME, locationName)
+            putExtra("is_adhan", true)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val fullScreenPendingIntent = PendingIntent.getActivity(
+            appContext,
+            requestCode + 1,
+            fullScreenIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val summaryText = buildString {
+            append(language.pick("Saatnya sholat ", "Time for "))
+            append(displayName)
+            if (prayerTime.isNotBlank()) {
+                append(" | ")
+                append(prayerTime)
+            }
+        }
+
+        val notification = NotificationCompat.Builder(appContext, Constants.ADZAN_NOTIFICATION_CHANNEL)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(language.pick("Waktu $displayName telah tiba", "$displayName time has arrived"))
+            .setContentText(summaryText)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setAutoCancel(false)
+            .setContentIntent(contentIntent)
+            .setFullScreenIntent(fullScreenPendingIntent, true)
+            .setTimeoutAfter(10 * 60_000L)
+            .build()
+
+        NotificationManagerCompat.from(appContext).notify(Constants.ADZAN_NOTIFICATION_ID, notification)
+    }
+
     fun showServiceFailureAlert(
         context: Context,
         prayerName: String,
@@ -141,6 +215,27 @@ object AdzanAlertNotifier {
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .build()
             setSound(alertTone, audioAttributes)
+        }
+        manager.createNotificationChannel(channel)
+    }
+
+    private fun ensurePrimaryChannel(context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return
+        }
+
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        val channel = NotificationChannel(
+            Constants.ADZAN_NOTIFICATION_CHANNEL,
+            "NurApp Adhan",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "NurApp adhan alerts and controls"
+            enableVibration(true)
+            vibrationPattern = VIBRATION_PATTERN
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            setShowBadge(false)
+            setSound(null, null)
         }
         manager.createNotificationChannel(channel)
     }

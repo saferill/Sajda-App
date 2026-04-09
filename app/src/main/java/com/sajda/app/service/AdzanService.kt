@@ -103,9 +103,7 @@ class AdzanService : Service() {
         currentLocationName = currentLocationName.ifBlank { resolveLocationLabel(settings) }
         val audioManager = getSystemService(AudioManager::class.java)
         val alarmVolumeAudible = audioManager.getStreamVolume(AudioManager.STREAM_ALARM) > 0
-        val canPlaySound = (
-            settings.overrideSilentMode || audioManager.ringerMode == AudioManager.RINGER_MODE_NORMAL
-            ) && alarmVolumeAudible
+        val canPlaySound = alarmVolumeAudible
 
         if (settings.vibrationEnabled) {
             vibrate()
@@ -116,10 +114,10 @@ class AdzanService : Service() {
                 preferencesDataStore.updateAdhanLastEvent(
                     prayerName = prayerName,
                     status = settings.pick(
-                        "Notif tampil, suara mengikuti mode perangkat",
-                        "Notification shown, sound follows the device mode"
+                        "Notif tampil, volume alarm sedang nol",
+                        "Notification shown, alarm volume is zero"
                     ),
-                    details = "Silent override=${settings.overrideSilentMode}, ringer=${audioManager.ringerMode}, volumeAlarm=${audioManager.getStreamVolume(AudioManager.STREAM_ALARM)}"
+                    details = "ringer=${audioManager.ringerMode}, volumeAlarm=${audioManager.getStreamVolume(AudioManager.STREAM_ALARM)}"
                 )
             }
             keepNotificationVisibleAndStop(
@@ -263,39 +261,30 @@ class AdzanService : Service() {
         )
 
         val summaryText = buildSummaryText(prayerName)
-        val expandedText = when {
+        val detailText = when {
             soundDisabled -> {
                 language.pick(
-                    "Notifikasi tetap tampil. Suara mengikuti mode perangkat atau izin sistem belum lengkap.",
-                    "The notification is still shown. Sound follows the device mode or system access is incomplete."
+                    "Notifikasi tetap tampil. Naikkan volume alarm HP bila ingin adzan terdengar.",
+                    "The notification is still shown. Raise the phone alarm volume if you want the adhan to be heard."
                 )
             }
             isPlaying -> {
                 language.pick(
-                    "Adzan sedang diputar. Gunakan tombol volume HP untuk mengatur besar suara.",
-                    "The adhan is playing. Use your phone volume buttons to adjust the sound."
+                    "Adzan sedang diputar. Gunakan tombol volume HP untuk mengatur suaranya.",
+                    "The adhan is playing. Use your phone volume buttons to adjust it."
                 )
             }
             else -> {
                 language.pick(
-                    "Buka halaman Sholat untuk melihat jadwal lengkap berikutnya.",
-                    "Open the Prayer page to view the next full schedule."
+                    "Buka halaman Sholat untuk melihat jadwal berikutnya.",
+                    "Open the Prayer page to view the next schedule."
                 )
             }
         }
-
-        val compactView = buildCompactNotificationView(
-            prayerName = prayerName,
-            statusLine = language.pick("Saatnya menunaikan sholat", "It is time to pray"),
-            accentLine = buildMetaLine(language)
-        )
-        val expandedView = buildExpandedNotificationView(
-            prayerName = prayerName,
-            summaryText = summaryText,
-            expandedText = expandedText,
-            isPlaying = isPlaying,
-            soundDisabled = soundDisabled
-        )
+        val metaLine = buildMetaLine(language)
+        val expandedText = listOf(summaryText, detailText, metaLine)
+            .filter { it.isNotBlank() }
+            .joinToString("\n")
 
         val fullScreenIntent = Intent(this, MainActivity::class.java).apply {
             action = Constants.ACTION_OPEN_PRAYER_TAB
@@ -313,7 +302,7 @@ class AdzanService : Service() {
         return NotificationCompat.Builder(this, Constants.ADZAN_NOTIFICATION_CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(language.pick("Waktu $displayName telah tiba", "$displayName time has arrived"))
-            .setContentText(summaryText)
+            .setContentText(detailText)
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -321,13 +310,8 @@ class AdzanService : Service() {
             .setOngoing(isPlaying)
             .setOnlyAlertOnce(true)
             .setAutoCancel(!isPlaying)
-            .setColor(Color.parseColor("#0F5238"))
-            .setColorized(true)
-            .setLargeIcon(renderBrandBitmap())
-            .setCustomContentView(compactView)
-            .setCustomBigContentView(expandedView)
-            .setCustomHeadsUpContentView(compactView)
-            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+            .setSubText(metaLine.takeIf { it.isNotBlank() })
+            .setStyle(NotificationCompat.BigTextStyle().bigText(expandedText))
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .addAction(
                 NotificationCompat.Action(
@@ -582,69 +566,6 @@ class AdzanService : Service() {
             append(displayName)
             append('.')
         }
-    }
-
-    private fun buildCompactNotificationView(
-        prayerName: String,
-        statusLine: String,
-        accentLine: String
-    ): RemoteViews {
-        val language = currentLanguage()
-        val displayName = displayPrayerName(prayerName, language)
-        return RemoteViews(packageName, R.layout.notification_adhan_compact).apply {
-            setImageViewResource(R.id.logoView, R.drawable.nurapp_logo_mark)
-            setTextViewText(R.id.badgeView, "ADHAN")
-            setTextViewText(R.id.titleView, language.pick("Waktu $displayName", "$displayName time"))
-            setTextViewText(R.id.statusView, statusLine)
-            setTextViewText(R.id.metaView, accentLine)
-        }
-    }
-
-    private fun buildExpandedNotificationView(
-        prayerName: String,
-        summaryText: String,
-        expandedText: String,
-        isPlaying: Boolean,
-        soundDisabled: Boolean
-    ): RemoteViews {
-        val language = currentLanguage()
-        val displayName = displayPrayerName(prayerName, language)
-        val locationLabel = resolveLocationLabel()
-        return RemoteViews(packageName, R.layout.notification_adhan_expanded).apply {
-            setImageViewResource(R.id.logoView, R.drawable.nurapp_logo_mark)
-            setTextViewText(R.id.badgeView, "NURAPP")
-            setTextViewText(R.id.titleView, language.pick("Waktu $displayName telah tiba", "$displayName time has arrived"))
-            setTextViewText(R.id.metaView, currentPrayerTime.ifBlank { language.pick("Sekarang", "Now") })
-            if (locationLabel.isBlank()) {
-                setViewVisibility(R.id.locationView, android.view.View.GONE)
-            } else {
-                setViewVisibility(R.id.locationView, android.view.View.VISIBLE)
-                setTextViewText(R.id.locationView, locationLabel)
-            }
-            setTextViewText(R.id.summaryView, summaryText)
-            setTextViewText(R.id.statusView, expandedText)
-            setTextViewText(
-                R.id.stateChipView,
-                when {
-                    soundDisabled -> language.pick("Suara mengikuti perangkat", "Sound follows the device")
-                    isPlaying -> language.pick("Adzan sedang diputar", "Adhan is playing")
-                    else -> language.pick("Notifikasi aktif", "Notification active")
-                }
-            )
-        }
-    }
-
-    private fun renderBrandBitmap(sizePx: Int = 192): Bitmap? {
-        val drawable = ContextCompat.getDrawable(this, R.drawable.nurapp_logo_mark) ?: return null
-        return drawable.toBitmap(sizePx, sizePx)
-    }
-
-    private fun Drawable.toBitmap(width: Int, height: Int): Bitmap {
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        setBounds(0, 0, width, height)
-        draw(canvas)
-        return bitmap
     }
 
     private fun requestAudioFocus() {

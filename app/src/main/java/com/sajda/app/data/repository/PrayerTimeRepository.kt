@@ -55,6 +55,14 @@ class PrayerTimeRepository @Inject constructor(private val database: SajdaDataba
         return times
     }
 
+    suspend fun savePrayerTimes(prayerTimes: List<PrayerTime>) {
+        if (prayerTimes.isEmpty()) return
+        prayerTimeDao.insertAllPrayerTimes(prayerTimes.map { it.toEntity() })
+        val firstDate = prayerTimes.minOf { LocalDate.parse(it.date) }
+        val lastDate = prayerTimes.maxOf { LocalDate.parse(it.date) }
+        prayerTimeDao.pruneOutsideRange(firstDate.toString(), lastDate.toString())
+    }
+
     suspend fun getTodayPrayerTime(): PrayerTime? =
         prayerTimeDao.getPrayerTimeByDate(DateTimeUtils.todayString())?.toModel()
 

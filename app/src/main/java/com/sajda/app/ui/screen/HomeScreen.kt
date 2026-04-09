@@ -20,11 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Explore
-import androidx.compose.material.icons.rounded.Headphones
-import androidx.compose.material.icons.rounded.HistoryEdu
 import androidx.compose.material.icons.rounded.LocationOn
-import androidx.compose.material.icons.rounded.MenuBook
-import androidx.compose.material.icons.rounded.Mosque
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -47,7 +43,6 @@ import com.sajda.app.ui.component.MetadataChip
 import com.sajda.app.ui.component.SajdaLogoTile
 import com.sajda.app.ui.component.SajdaTopAction
 import com.sajda.app.ui.component.SanctuaryCard
-import com.sajda.app.ui.component.SectionHeader
 import com.sajda.app.ui.theme.surfaceContainerLow
 import com.sajda.app.ui.viewmodel.HomeViewModel
 import com.sajda.app.util.DateTimeUtils
@@ -104,11 +99,9 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     SajdaLogoTile()
-                    androidx.compose.foundation.layout.Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = if (isEnglish) "Assalamu'alaikum" else "Assalamu'alaikum",
+                            text = "Assalamu'alaikum",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.ExtraBold
                         )
@@ -148,7 +141,7 @@ fun HomeScreen(
         item {
             HeroCard {
                 Text(
-                    text = "${currentHijriSummary(state.appLanguage, today)}  •  ${currentGregorianSummary(state.appLanguage, today)}",
+                    text = "${currentHijriSummary(state.appLanguage, today)} | ${currentGregorianSummary(state.appLanguage, today)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.86f)
                 )
@@ -157,12 +150,12 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
-                    androidx.compose.foundation.layout.Column(
+                    Column(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = if (isEnglish) "NEXT ADHAN" else "ADZAN BERIKUTNYA",
+                            text = if (isEnglish) "Next Adhan" else "Adzan Berikutnya",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.secondaryContainer
                         )
@@ -174,9 +167,9 @@ fun HomeScreen(
                         )
                         Text(
                             text = if (isEnglish) {
-                                "In ${state.countdown} • ${state.nextPrayerTime}"
+                                "In ${state.countdown} | ${state.nextPrayerTime}"
                             } else {
-                                "Dalam ${state.countdown} • ${state.nextPrayerTime}"
+                                "Dalam ${state.countdown} | ${state.nextPrayerTime}"
                             },
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onPrimary
@@ -196,75 +189,31 @@ fun HomeScreen(
                         )
                     }
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    ActionPill(
-                        label = if (isEnglish) "Prayer Schedule" else "Jadwal Adzan",
-                        onClick = onNavigateToPrayer
-                    )
-                    ActionPill(
-                        label = if (isEnglish) "Hadith" else "Hadist",
-                        onClick = onOpenHadith
-                    )
-                }
+                ActionPill(
+                    label = if (isEnglish) "Prayer Schedule" else "Jadwal Adzan",
+                    onClick = onNavigateToPrayer
+                )
             }
         }
 
         item {
-            SectionHeader(
-                eyebrow = if (isEnglish) "Quick Access" else "Akses Cepat",
-                title = if (isEnglish) "Open what you need" else "Buka yang paling sering dipakai"
-            )
-        }
-
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    QuickAccessCard(
-                        label = "Qur'an",
-                        icon = Icons.Rounded.MenuBook,
-                        modifier = Modifier.weight(1f),
-                        onClick = onNavigateToQuran
-                    )
-                    QuickAccessCard(
-                        label = if (isEnglish) "Adhan" else "Adzan",
-                        icon = Icons.Rounded.NotificationsActive,
-                        modifier = Modifier.weight(1f),
-                        onClick = onNavigateToPrayer
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    QuickAccessCard(
-                        label = if (isEnglish) "Hadith" else "Hadist",
-                        icon = Icons.Rounded.HistoryEdu,
-                        modifier = Modifier.weight(1f),
-                        onClick = onOpenHadith
-                    )
-                    QuickAccessCard(
-                        label = if (isEnglish) "Ramadan" else "Ramadhan",
-                        icon = Icons.Rounded.Mosque,
-                        modifier = Modifier.weight(1f),
-                        onClick = onOpenRamadan
-                    )
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (isEnglish) "Prayer Times" else "Jadwal Sholat",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                Text(
+                    text = if (isEnglish) "Open" else "Buka",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable(onClick = onNavigateToPrayer)
+                )
             }
-        }
-
-        item {
-            SectionHeader(
-                eyebrow = if (isEnglish) "Today" else "Hari Ini",
-                title = if (isEnglish) "Prayer timetable" else "Jadwal sholat",
-                actionLabel = if (isEnglish) "Open Adhan" else "Buka Adzan",
-                onAction = onNavigateToPrayer
-            )
         }
 
         item {
@@ -286,57 +235,26 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                SanctuaryCard(
+                QuickSummaryCard(
                     modifier = Modifier.weight(1f),
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                ) {
-                    Text(
-                        text = if (isEnglish) "LAST READ" else "TERAKHIR DIBACA",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = state.lastReadSurah?.let { "${it.transliteration}:${state.lastReadAyat?.ayatNumber ?: 1}" }
-                            ?: if (isEnglish) "No reading history" else "Belum ada riwayat baca",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                    Text(
-                        text = if (isEnglish) "Continue reading" else "Lanjutkan baca",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.clickable(onClick = onNavigateToQuran)
-                    )
-                }
-
-                SanctuaryCard(
+                    title = if (isEnglish) "Last Read" else "Terakhir Dibaca",
+                    value = state.lastReadSurah?.let { "${it.transliteration}:${state.lastReadAyat?.ayatNumber ?: 1}" }
+                        ?: if (isEnglish) "No history" else "Belum ada",
+                    action = if (isEnglish) "Continue" else "Lanjutkan",
+                    onClick = onNavigateToQuran
+                )
+                QuickSummaryCard(
                     modifier = Modifier.weight(1f),
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                ) {
-                    Text(
-                        text = if (isEnglish) "MURATTAL" else "MURATTAL",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = state.quickPlaySurah?.transliteration
-                            ?: if (isEnglish) "No downloaded audio" else "Belum ada audio offline",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                    Text(
-                        text = if (state.quickPlaySurah != null) {
-                            if (isEnglish) "Play now" else "Putar sekarang"
-                        } else {
-                            if (isEnglish) "Open Qur'an library" else "Buka pustaka Qur'an"
-                        },
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.clickable {
-                            state.quickPlaySurah?.let(onPlayLastAudio) ?: onNavigateToQuran()
-                        }
-                    )
-                }
+                    title = "Murattal",
+                    value = state.quickPlaySurah?.transliteration
+                        ?: if (isEnglish) "No audio" else "Belum ada",
+                    action = if (state.quickPlaySurah != null) {
+                        if (isEnglish) "Play" else "Putar"
+                    } else {
+                        if (isEnglish) "Library" else "Pustaka"
+                    },
+                    onClick = { state.quickPlaySurah?.let(onPlayLastAudio) ?: onNavigateToQuran() }
+                )
             }
         }
 
@@ -348,7 +266,7 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (isEnglish) "VERSE OF THE DAY" else "AYAT HARI INI",
+                        text = if (isEnglish) "Verse of the Day" else "Ayat Hari Ini",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.secondaryContainer
                     )
@@ -366,22 +284,19 @@ fun HomeScreen(
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "\"${state.appLanguage.pick(ayat.translation, ayat.englishTranslation.ifBlank { ayat.translation })}\"",
+                        text = state.appLanguage.pick(ayat.translation, ayat.englishTranslation.ifBlank { ayat.translation }),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.88f),
                         textAlign = TextAlign.Center
                     )
-                } ?: Text(
-                    text = if (isEnglish) "Daily verse is loading." else "Ayat harian sedang dimuat.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
+                }
             }
         }
 
         item {
             SanctuaryCard(
-                modifier = Modifier.clickable(onClick = onOpenBookmarks)
+                modifier = Modifier.clickable(onClick = onOpenBookmarks),
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -405,18 +320,11 @@ fun HomeScreen(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
-                        androidx.compose.foundation.layout.Column {
-                            Text(
-                                text = if (isEnglish) "Bookmarks & Notes" else "Bookmark & Catatan",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.ExtraBold
-                            )
-                            Text(
-                                text = if (isEnglish) "Open saved ayat, folders, and reflections" else "Buka ayat tersimpan, folder, dan refleksi",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        Text(
+                            text = if (isEnglish) "Bookmarks" else "Bookmark",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold
+                        )
                     }
                     Text(
                         text = if (isEnglish) "Open" else "Buka",
@@ -426,6 +334,37 @@ fun HomeScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun QuickSummaryCard(
+    title: String,
+    value: String,
+    action: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    SanctuaryCard(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+    ) {
+        Text(
+            text = title.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.ExtraBold
+        )
+        Text(
+            text = action,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.clickable(onClick = onClick)
+        )
     }
 }
 
@@ -444,36 +383,4 @@ private fun ActionPill(
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp)
     )
-}
-
-@Composable
-private fun QuickAccessCard(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    SanctuaryCard(
-        modifier = modifier.clickable(onClick = onClick),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-    ) {
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.ExtraBold
-        )
-    }
 }

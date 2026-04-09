@@ -1,12 +1,14 @@
 package com.sajda.app
 
 import android.Manifest
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -32,27 +34,33 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.core.view.isVisible
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.activity.viewModels
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import com.sajda.app.data.local.PreferencesDataStore
+import com.sajda.app.data.repository.AudioRepository
 import com.sajda.app.data.repository.HadithRepository
 import com.sajda.app.data.repository.PrayerTimeRepository
 import com.sajda.app.data.repository.QuranRepository
 import com.sajda.app.data.repository.TafsirRepository
+import com.sajda.app.databinding.ActivityMainBinding
+import com.sajda.app.databinding.ViewUpdateBannerBinding
 import com.sajda.app.domain.model.Ayat
 import com.sajda.app.domain.model.Bookmark
 import com.sajda.app.domain.model.QuranSearchResult
 import com.sajda.app.domain.model.SearchResultType
 import com.sajda.app.domain.model.Surah
 import com.sajda.app.domain.model.UserSettings
+import com.sajda.app.service.AdzanManager
 import com.sajda.app.service.AdzanScheduler
-import com.sajda.app.service.AppUpdateWorker
 import com.sajda.app.service.AudioPlaybackStore
 import com.sajda.app.service.AudioService
+import com.sajda.app.service.LocationWorker
 import com.sajda.app.service.PrayerScheduleWorker
-import com.sajda.app.ui.component.AnimatedSajdaSplashOverlay
 import com.sajda.app.ui.component.DockItem
 import com.sajda.app.ui.component.FloatingDock
 import com.sajda.app.ui.component.FloatingMiniPlayer
@@ -75,7 +83,9 @@ import com.sajda.app.ui.screen.NurAppOnboardingScreen
 import com.sajda.app.ui.screen.PermissionSetupScreen
 import com.sajda.app.ui.screen.PrayerTimeScreen
 import com.sajda.app.ui.screen.QiblaScreen
+import com.sajda.app.ui.screen.RamadanDuaScreen
 import com.sajda.app.ui.screen.RamadanModeScreen
+import com.sajda.app.ui.screen.RamadanPracticesScreen
 import com.sajda.app.ui.screen.SearchScreen
 import com.sajda.app.ui.screen.SettingsScreen
 import com.sajda.app.ui.screen.SmartReminderScreen
@@ -86,16 +96,15 @@ import com.sajda.app.ui.screen.WidgetPreviewScreen
 import com.sajda.app.ui.screen.WorshipProgressScreen
 import com.sajda.app.ui.theme.SajdaAppTheme
 import com.sajda.app.util.AdhanSystemHelper
-import com.sajda.app.util.DeviceLocationHelper
-import com.sajda.app.util.DeviceLocationResult
 import com.sajda.app.util.pick
 import com.sajda.app.ui.viewmodel.HomeViewModel
 import com.sajda.app.ui.viewmodel.QuranViewModel
 import com.sajda.app.ui.viewmodel.PrayerTimeViewModel
 import com.sajda.app.ui.viewmodel.SettingsViewModel
 import com.sajda.app.ui.viewmodel.SpiritualContentViewModel
+import com.sajda.app.utils.UpdateManager
+import com.sajda.app.worker.DownloadUpdateWorker
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -117,6 +126,8 @@ private sealed interface OverlayDestination {
     data object Hadith : OverlayDestination
     data object Calendar : OverlayDestination
     data object Ramadan : OverlayDestination
+    data object RamadanPractices : OverlayDestination
+    data object RamadanDua : OverlayDestination
     data object WeeklyPrayer : OverlayDestination
     data object WorshipProgress : OverlayDestination
     data object SmartReminder : OverlayDestination
@@ -139,11 +150,18 @@ private sealed interface OverlayDestination {
 class MainActivity : ComponentActivity() {
 
     @Inject lateinit var preferencesDataStore: PreferencesDataStore
+    @Inject lateinit var audioRepository: AudioRepository
     @Inject lateinit var quranRepository: QuranRepository
     @Inject lateinit var hadithRepository: HadithRepository
     @Inject lateinit var prayerTimeRepository: PrayerTimeRepository
     @Inject lateinit var tafsirRepository: TafsirRepository
     @Inject lateinit var adzanScheduler: AdzanScheduler
+
+    private val requestedTabOrdinalState = mutableIntStateOf(RootTab.HOME.ordinal)
+    private lateinit var binding: ActivityMainBinding
+    private lateinit var updateBannerBinding: ViewUpdateBannerBinding
+    private lateinit var updateManager: UpdateManager
+    private var downloadedApkPath: String? = null
 
     private val homeViewModel: HomeViewModel by viewModels()
     private val quranViewModel: QuranViewModel by viewModels()
@@ -154,41 +172,35 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        updateBannerBinding = binding.updateBanner
+        updateManager = UpdateManager(this)
 
-        if (intent?.getBooleanExtra("is_adhan", false) == true) {
-            volumeControlStream = android.media.AudioManager.STREAM_ALARM
-        } else {
-            volumeControlStream = android.media.AudioManager.STREAM_MUSIC
-        }
+        requestedTabOrdinalState.intValue = resolveStartTab(intent).ordinal
+        updateVolumeControlStream(intent)
+        setupUpdateBanner()
+        observeDownloadWorker()
+        checkForUpdateOnOpen()
+        LocationWorker.enqueuePeriodic(this)
 
         lifecycleScope.launch {
             quranRepository.seedIfNeeded(this@MainActivity)
-            val savedSettings = preferencesDataStore.settingsFlow.first()
-            if (savedSettings.autoLocation && DeviceLocationHelper.hasLocationPermission(this@MainActivity)) {
-                when (val locationResult = DeviceLocationHelper.getCurrentLocation(this@MainActivity)) {
-                    is DeviceLocationResult.Success -> {
-                        preferencesDataStore.updateLocation(
-                            locationName = locationResult.location.label,
-                            latitude = locationResult.location.latitude,
-                            longitude = locationResult.location.longitude,
-                            automatic = true
-                        )
-                    }
-
-                    is DeviceLocationResult.Error -> Unit
-                }
+            runCatching {
+                AdzanManager(this@MainActivity).checkAndUpdateLocation()
+            }.onFailure { error ->
+                android.util.Log.e("MainActivity", "Gagal auto update lokasi adzan", error)
             }
 
             val refreshedSettings = preferencesDataStore.settingsFlow.first()
-            val prayerTimes = prayerTimeRepository.refreshPrayerTimes(refreshedSettings)
+            val prayerTimes = prayerTimeRepository.getNextDaysPrayerTimes(30)
+                .ifEmpty { prayerTimeRepository.refreshPrayerTimes(refreshedSettings) }
             adzanScheduler.reschedule(prayerTimes, refreshedSettings)
             PrayerScheduleWorker.enqueueImmediate(this@MainActivity)
             PrayerScheduleWorker.ensurePeriodic(this@MainActivity)
-            AppUpdateWorker.enqueueImmediate(this@MainActivity)
-            AppUpdateWorker.ensurePeriodic(this@MainActivity)
         }
 
-        setContent {
+        binding.composeHost.setContent {
             val settings by preferencesDataStore.settingsFlow.collectAsStateWithLifecycle(
                 initialValue = UserSettings()
             )
@@ -203,8 +215,10 @@ class MainActivity : ComponentActivity() {
             var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
             var overlay by remember { mutableStateOf<OverlayDestination?>(null) }
             var notificationPermissionPrompted by rememberSaveable { mutableStateOf(false) }
-            var showSplashOverlay by rememberSaveable { mutableStateOf(true) }
-            val requestedTabOrdinal = resolveStartTab(intent).ordinal
+            val requestedTabOrdinal = requestedTabOrdinalState.intValue
+            val playSelectedSurah: (Surah) -> Unit = { surah ->
+                playSurahAudio(surah, settings.selectedQuranReciter)
+            }
 
             val notificationPermissionLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.RequestPermission()
@@ -216,14 +230,9 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            androidx.compose.runtime.LaunchedEffect(Unit) {
-                delay(720)
-                showSplashOverlay = false
-            }
-
             val currentTab = RootTab.entries[selectedTabIndex]
             val currentAudioSurah = quranState.surahList.firstOrNull { it.number == audioState.surahNumber }
-            val downloadedSurahList = quranState.surahList.filter { it.localAudioPath != null }
+            val downloadedSurahList = quranState.surahList.filter { it.downloadedReciterIds.isNotEmpty() }
             val currentAudioIndex = downloadedSurahList.indexOfFirst { it.number == audioState.surahNumber }
             val previousAudioSurah = downloadedSurahList.getOrNull(currentAudioIndex - 1)
             val nextAudioSurah = downloadedSurahList.getOrNull(currentAudioIndex + 1)
@@ -274,13 +283,13 @@ class MainActivity : ComponentActivity() {
                                         onOpenSearch = { overlay = OverlayDestination.Search },
                                         onOpenReminders = { overlay = OverlayDestination.SmartReminder },
                                         onOpenProgress = { overlay = OverlayDestination.WorshipProgress },
-                                        onPlayLastAudio = ::playSurahAudio
+                                        onPlayLastAudio = playSelectedSurah
                                     )
 
                                     RootTab.QURAN -> ModernQuranScreen(
                                         viewModel = quranViewModel,
                                         settingsViewModel = settingsViewModel,
-                                        onPlayAudio = ::playSurahAudio,
+                                        onPlayAudio = playSelectedSurah,
                                         onOpenBookmarks = { overlay = OverlayDestination.Bookmarks },
                                         onOpenSearch = { overlay = OverlayDestination.Search },
                                         onOpenTafsir = { surah, ayat ->
@@ -304,7 +313,9 @@ class MainActivity : ComponentActivity() {
                                         settings = settingsState,
                                         prayerTime = prayerState.todayPrayerTime,
                                         onOpenPrayer = { selectedTabIndex = RootTab.ADHAN.ordinal },
-                                        onOpenQuran = { selectedTabIndex = RootTab.QURAN.ordinal }
+                                        onOpenQuran = { selectedTabIndex = RootTab.QURAN.ordinal },
+                                        onOpenPractices = { overlay = OverlayDestination.RamadanPractices },
+                                        onOpenRamadanDua = { overlay = OverlayDestination.RamadanDua }
                                     )
 
                                     RootTab.SETTINGS -> SettingsScreen(
@@ -353,7 +364,7 @@ class MainActivity : ComponentActivity() {
                                             surahList = quranState.surahList,
                                             downloadStates = quranState.downloadStates,
                                             onBack = { overlay = null },
-                                            onPlay = ::playSurahAudio,
+                                            onPlay = playSelectedSurah,
                                             onDelete = { quranViewModel.deleteAudio(it.number) },
                                             onDownload = quranViewModel::downloadAudio
                                         )
@@ -395,6 +406,18 @@ class MainActivity : ComponentActivity() {
                                                 selectedTabIndex = RootTab.QURAN.ordinal
                                                 overlay = null
                                             },
+                                            onOpenPractices = { overlay = OverlayDestination.RamadanPractices },
+                                            onOpenRamadanDua = { overlay = OverlayDestination.RamadanDua },
+                                            onBack = { overlay = null }
+                                        )
+
+                                        OverlayDestination.RamadanPractices -> RamadanPracticesScreen(
+                                            appLanguage = settingsState.appLanguage,
+                                            onBack = { overlay = null }
+                                        )
+
+                                        OverlayDestination.RamadanDua -> RamadanDuaScreen(
+                                            appLanguage = settingsState.appLanguage,
                                             onBack = { overlay = null }
                                         )
 
@@ -500,8 +523,8 @@ class MainActivity : ComponentActivity() {
                                             nextSurah = nextAudioSurah,
                                             onBack = { overlay = null },
                                             onTogglePlayback = { togglePlayback(audioState) },
-                                            onPrevious = { previousAudioSurah?.let(::playSurahAudio) },
-                                            onNext = { nextAudioSurah?.let(::playSurahAudio) },
+                                            onPrevious = { previousAudioSurah?.let(playSelectedSurah) },
+                                            onNext = { nextAudioSurah?.let(playSelectedSurah) },
                                             onStop = { AudioService.stop(this@MainActivity) }
                                         )
 
@@ -550,15 +573,18 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
-                            AnimatedSajdaSplashOverlay(
-                                visible = showSplashOverlay,
-                                modifier = Modifier.fillMaxSize()
-                            )
                         }
                     }
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        requestedTabOrdinalState.intValue = resolveStartTab(intent).ordinal
+        updateVolumeControlStream(intent)
     }
 
     private fun togglePlayback(audioState: com.sajda.app.domain.model.AudioPlaybackState) {
@@ -595,12 +621,144 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun playSurahAudio(surah: Surah) {
-        val audioPath = surah.localAudioPath ?: return
+    private fun playSurahAudio(
+        surah: Surah,
+        preferredReciter: com.sajda.app.domain.model.QuranReciter
+    ) {
+        val audioPath = audioRepository
+            .resolveBestAudioFile(surah, preferredReciter)
+            ?.absolutePath
+            ?: return
         lifecycleScope.launch {
             preferencesDataStore.setLastPlayedSurah(surah.number)
         }
         AudioService.play(this, audioPath, surah.transliteration, surah.number)
+    }
+
+    private fun updateVolumeControlStream(intent: android.content.Intent?) {
+        val isAdhan = intent?.getBooleanExtra("is_adhan", false) == true
+        volumeControlStream = if (isAdhan) {
+            android.media.AudioManager.STREAM_ALARM
+        } else {
+            android.media.AudioManager.STREAM_MUSIC
+        }
+        if (isAdhan) {
+            intent?.removeExtra("is_adhan")
+        }
+    }
+
+    private fun setupUpdateBanner() {
+        updateBannerBinding.buttonInstallNow.setOnClickListener {
+            val apkPath = downloadedApkPath ?: return@setOnClickListener
+            if (!updateManager.canRequestPackageInstalls()) {
+                showUpdateBanner(
+                    status = "Izinkan pemasangan aplikasi dari sumber ini terlebih dulu",
+                    progress = 100,
+                    showInstallButton = true
+                )
+                updateManager.openInstallPermissionSettings()
+                return@setOnClickListener
+            }
+            updateManager.installApk(apkPath)
+        }
+        hideUpdateBanner()
+    }
+
+    private fun checkForUpdateOnOpen() {
+        lifecycleScope.launch {
+            if (!isNetworkAvailable()) {
+                showUpdateBanner(
+                    status = "Tidak ada koneksi internet untuk cek update",
+                    progress = 0,
+                    showInstallButton = false
+                )
+                return@launch
+            }
+
+            val updateInfo = updateManager.checkForUpdate()
+            if (updateInfo == null) {
+                hideUpdateBanner()
+                return@launch
+            }
+
+            showUpdateBanner(
+                status = "Update ${updateInfo.latestVersion} ditemukan, mengunduh di background...",
+                progress = 0,
+                showInstallButton = false
+            )
+            DownloadUpdateWorker.enqueue(this@MainActivity, updateInfo.downloadUrl)
+        }
+    }
+
+    private fun observeDownloadWorker() {
+        WorkManager.getInstance(this)
+            .getWorkInfosForUniqueWorkLiveData(DownloadUpdateWorker.UNIQUE_WORK_NAME)
+            .observe(this) { workInfos ->
+                val workInfo = workInfos.lastOrNull() ?: return@observe
+                val progress = workInfo.progress.getInt(DownloadUpdateWorker.KEY_PROGRESS, 0)
+                val progressStatus = workInfo.progress.getString(DownloadUpdateWorker.KEY_STATUS)
+                val outputStatus = workInfo.outputData.getString(DownloadUpdateWorker.KEY_STATUS)
+                val status = progressStatus ?: outputStatus ?: "Mengunduh update..."
+
+                when (workInfo.state) {
+                    WorkInfo.State.ENQUEUED,
+                    WorkInfo.State.RUNNING -> {
+                        showUpdateBanner(status, progress, showInstallButton = false)
+                    }
+
+                    WorkInfo.State.SUCCEEDED -> {
+                        downloadedApkPath = workInfo.outputData.getString(DownloadUpdateWorker.KEY_APK_PATH)
+                        showUpdateBanner(
+                            status = "Download selesai. Tekan tombol untuk memasang.",
+                            progress = 100,
+                            showInstallButton = true
+                        )
+                    }
+
+                    WorkInfo.State.FAILED -> {
+                        showUpdateBanner(
+                            status = workInfo.outputData.getString(DownloadUpdateWorker.KEY_ERROR)
+                                ?: "Download update gagal",
+                            progress = 0,
+                            showInstallButton = false
+                        )
+                    }
+
+                    WorkInfo.State.CANCELLED -> {
+                        showUpdateBanner(
+                            status = "Download update dibatalkan",
+                            progress = 0,
+                            showInstallButton = false
+                        )
+                    }
+
+                    WorkInfo.State.BLOCKED -> Unit
+                }
+            }
+    }
+
+    private fun showUpdateBanner(
+        status: String,
+        progress: Int,
+        showInstallButton: Boolean
+    ) {
+        updateBannerBinding.root.isVisible = true
+        updateBannerBinding.textStatus.text = status
+        updateBannerBinding.progressDownload.progress = progress
+        updateBannerBinding.textPercent.text = "$progress%"
+        updateBannerBinding.buttonInstallNow.isVisible = showInstallButton
+    }
+
+    private fun hideUpdateBanner() {
+        updateBannerBinding.root.isVisible = false
+        updateBannerBinding.buttonInstallNow.isVisible = false
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
     private fun resolveStartTab(intent: android.content.Intent?): RootTab {

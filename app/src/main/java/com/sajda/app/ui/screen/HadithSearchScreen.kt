@@ -1,16 +1,18 @@
 package com.sajda.app.ui.screen
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -28,19 +30,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.sajda.app.data.repository.HadithRepository
 import com.sajda.app.domain.model.HadithBook
 import com.sajda.app.domain.model.HadithEntry
 import com.sajda.app.domain.model.UserSettings
+import com.sajda.app.ui.component.ArabicVerseText
 import com.sajda.app.ui.component.SajdaTopAction
 import com.sajda.app.ui.component.SajdaTopBar
 import com.sajda.app.ui.component.SanctuaryCard
-import com.sajda.app.ui.component.SectionHeader
 import com.sajda.app.util.isEnglish
 import com.sajda.app.util.pick
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HadithSearchScreen(
     settings: UserSettings,
@@ -100,16 +102,19 @@ fun HadithSearchScreen(
                             onClick = backAction
                         )
                     }
+                },
+                trailing = {
+                    SajdaTopAction(
+                        icon = Icons.Rounded.Refresh,
+                        label = settings.pick("Muat ulang", "Refresh"),
+                        onClick = { refreshKey++ }
+                    )
                 }
             )
         }
 
         item {
             SanctuaryCard {
-                SectionHeader(
-                    eyebrow = settings.pick("Pencarian Hadist", "Hadith Search"),
-                    title = settings.pick("Cari sendiri kitab dan nomor hadist", "Browse books and search hadith yourself")
-                )
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
@@ -126,9 +131,11 @@ fun HadithSearchScreen(
                     },
                     singleLine = true
                 )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     HadithBook.entries.forEach { book ->
                         ChoiceChip(
@@ -138,24 +145,13 @@ fun HadithSearchScreen(
                         )
                     }
                 }
-                Text(
-                    text = if (errorMessage != null) {
-                        errorMessage.orEmpty()
-                    } else {
-                        settings.pick(
-                            "${filteredItems.size} hadist tampil dari ${selectedBook.title}",
-                            "${filteredItems.size} hadiths shown from ${selectedBook.title}"
-                        )
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (errorMessage != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = settings.pick("Muat ulang", "Refresh"),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { refreshKey++ }
-                )
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             }
         }
 
@@ -163,10 +159,6 @@ fun HadithSearchScreen(
             item {
                 SanctuaryCard {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                    Text(
-                        text = settings.pick("Sedang memuat hadist...", "Loading hadith..."),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
                 }
             }
         } else if (filteredItems.isEmpty()) {
@@ -176,11 +168,6 @@ fun HadithSearchScreen(
                         text = settings.pick("Hadist tidak ditemukan", "No hadith found"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = settings.pick("Coba kata kunci lain atau ganti kitab hadist.", "Try another keyword or switch to a different hadith collection."),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -199,15 +186,15 @@ private fun HadithEntryCard(
 ) {
     SanctuaryCard {
         Text(
-            text = "${hadith.collection} • ${hadith.reference}",
+            text = "${hadith.collection} | ${hadith.reference}",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary
         )
         if (hadith.arabicText.isNotBlank()) {
-            Text(
+            ArabicVerseText(
                 text = hadith.arabicText,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
+                fontSize = 34,
+                textAlign = TextAlign.Right
             )
         }
         Text(

@@ -7,6 +7,8 @@ import java.time.YearMonth
 import java.time.chrono.HijrahDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
+import java.time.temporal.ChronoField
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 data class HijriCalendarCell(
@@ -20,22 +22,126 @@ data class HijriCalendarCell(
     val isRamadan: Boolean
 )
 
+data class HijriCalendarPage(
+    val year: Int,
+    val monthValue: Int
+)
+
 data class IslamicEventSummary(
     val title: String,
     val hijriLabel: String,
     val gregorianDate: LocalDate
 )
 
-private val indonesianLocale = Locale("id", "ID")
-private val englishLocale = Locale.ENGLISH
+private val languageLocales = mapOf(
+    AppLanguage.INDONESIAN to Locale("id", "ID"),
+    AppLanguage.ENGLISH to Locale.ENGLISH,
+    AppLanguage.ARABIC to Locale("ar"),
+    AppLanguage.TURKISH to Locale("tr", "TR"),
+    AppLanguage.URDU to Locale("ur", "PK"),
+    AppLanguage.FRENCH to Locale.FRENCH,
+    AppLanguage.MALAY to Locale("ms", "MY"),
+    AppLanguage.HINDI to Locale("hi", "IN")
+)
 
-private fun AppLanguage.locale(): Locale = if (this == AppLanguage.ENGLISH) englishLocale else indonesianLocale
+private fun AppLanguage.locale(): Locale = languageLocales[this] ?: Locale.ENGLISH
 
 private fun LocalDate.toHijriDate(): HijrahDate = HijrahDate.from(this)
 
+private fun HijrahDate.page(): HijriCalendarPage {
+    return HijriCalendarPage(
+        year = get(ChronoField.YEAR),
+        monthValue = get(ChronoField.MONTH_OF_YEAR)
+    )
+}
+
 fun hijriMonthName(monthValue: Int, appLanguage: AppLanguage): String {
-    val names = if (appLanguage == AppLanguage.ENGLISH) {
-        listOf(
+    val names = when (appLanguage) {
+        AppLanguage.ARABIC -> listOf(
+            "محرم",
+            "صفر",
+            "ربيع الأول",
+            "ربيع الآخر",
+            "جمادى الأولى",
+            "جمادى الآخرة",
+            "رجب",
+            "شعبان",
+            "رمضان",
+            "شوال",
+            "ذو القعدة",
+            "ذو الحجة"
+        )
+        AppLanguage.TURKISH -> listOf(
+            "Muharrem",
+            "Safer",
+            "Rebiülevvel",
+            "Rebiülahir",
+            "Cemaziyelevvel",
+            "Cemaziyelahir",
+            "Recep",
+            "Şaban",
+            "Ramazan",
+            "Şevval",
+            "Zilkade",
+            "Zilhicce"
+        )
+        AppLanguage.URDU -> listOf(
+            "محرم",
+            "صفر",
+            "ربیع الاول",
+            "ربیع الثانی",
+            "جمادی الاول",
+            "جمادی الثانی",
+            "رجب",
+            "شعبان",
+            "رمضان",
+            "شوال",
+            "ذوالقعدہ",
+            "ذوالحجہ"
+        )
+        AppLanguage.FRENCH -> listOf(
+            "Mouharram",
+            "Safar",
+            "Rabi al-awwal",
+            "Rabi ath-thani",
+            "Joumada al-oula",
+            "Joumada ath-thania",
+            "Rajab",
+            "Chaabane",
+            "Ramadan",
+            "Chawwal",
+            "Dhou al-qi`da",
+            "Dhou al-hijja"
+        )
+        AppLanguage.MALAY -> listOf(
+            "Muharam",
+            "Safar",
+            "Rabiulawal",
+            "Rabiulakhir",
+            "Jamadilawal",
+            "Jamadilakhir",
+            "Rejab",
+            "Syaaban",
+            "Ramadan",
+            "Syawal",
+            "Zulkaedah",
+            "Zulhijjah"
+        )
+        AppLanguage.HINDI -> listOf(
+            "मुहर्रम",
+            "सफ़र",
+            "रबी अल-अव्वल",
+            "रबी अल-आख़िर",
+            "जुमादा अल-अव्वल",
+            "जुमादा अल-आख़िर",
+            "रजब",
+            "शाबान",
+            "रमज़ान",
+            "शव्वाल",
+            "ज़ुल-क़ादा",
+            "ज़ुल-हिज्जा"
+        )
+        AppLanguage.ENGLISH -> listOf(
             "Muharram",
             "Safar",
             "Rabi' al-Awwal",
@@ -49,8 +155,7 @@ fun hijriMonthName(monthValue: Int, appLanguage: AppLanguage): String {
             "Dhu al-Qi'dah",
             "Dhu al-Hijjah"
         )
-    } else {
-        listOf(
+        AppLanguage.INDONESIAN -> listOf(
             "Muharram",
             "Safar",
             "Rabiul Awal",
@@ -68,14 +173,28 @@ fun hijriMonthName(monthValue: Int, appLanguage: AppLanguage): String {
     return names.getOrElse(monthValue - 1) { monthValue.toString() }
 }
 
+fun currentHijriPage(date: LocalDate = LocalDate.now()): HijriCalendarPage = date.toHijriDate().page()
+
+fun shiftHijriPage(
+    page: HijriCalendarPage,
+    monthDelta: Int
+): HijriCalendarPage {
+    val shifted = HijrahDate.of(page.year, page.monthValue, 1)
+        .plus(monthDelta.toLong(), ChronoUnit.MONTHS)
+    return HijriCalendarPage(
+        year = shifted.get(ChronoField.YEAR),
+        monthValue = shifted.get(ChronoField.MONTH_OF_YEAR)
+    )
+}
+
 fun currentHijriSummary(
     appLanguage: AppLanguage,
     date: LocalDate = LocalDate.now()
 ): String {
     val hijri = date.toHijriDate()
-    val month = hijriMonthName(hijri.get(java.time.temporal.ChronoField.MONTH_OF_YEAR), appLanguage)
-    val year = hijri.get(java.time.temporal.ChronoField.YEAR)
-    val day = hijri.get(java.time.temporal.ChronoField.DAY_OF_MONTH)
+    val month = hijriMonthName(hijri.get(ChronoField.MONTH_OF_YEAR), appLanguage)
+    val year = hijri.get(ChronoField.YEAR)
+    val day = hijri.get(ChronoField.DAY_OF_MONTH)
     return "$day $month $year H"
 }
 
@@ -83,39 +202,72 @@ fun currentGregorianSummary(
     appLanguage: AppLanguage,
     date: LocalDate = LocalDate.now()
 ): String {
-    val formatter = if (appLanguage == AppLanguage.ENGLISH) {
-        DateTimeFormatter.ofPattern("d MMMM yyyy", englishLocale)
-    } else {
-        DateTimeFormatter.ofPattern("d MMMM yyyy", indonesianLocale)
-    }
-    return date.format(formatter)
+    return date.format(DateTimeFormatter.ofPattern("d MMMM yyyy", appLanguage.locale()))
 }
 
 fun currentDayName(
     appLanguage: AppLanguage,
     date: LocalDate = LocalDate.now()
 ): String {
-    return date.dayOfWeek.getDisplayName(TextStyle.FULL, appLanguage.locale())
-        .replaceFirstChar { it.titlecase(appLanguage.locale()) }
+    val locale = appLanguage.locale()
+    val raw = date.dayOfWeek.getDisplayName(TextStyle.FULL, locale)
+    return if (appLanguage == AppLanguage.ARABIC) raw else raw.replaceFirstChar { it.titlecase(locale) }
+}
+
+fun gregorianMonthLabel(
+    appLanguage: AppLanguage,
+    month: YearMonth = YearMonth.now()
+): String {
+    return month.atDay(1).format(DateTimeFormatter.ofPattern("MMMM yyyy", appLanguage.locale()))
 }
 
 fun buildHijriCalendarCells(
+    page: HijriCalendarPage = currentHijriPage(),
+    today: LocalDate = LocalDate.now()
+): List<HijriCalendarCell> {
+    val firstOfMonth = LocalDate.from(HijrahDate.of(page.year, page.monthValue, 1))
+    val gridStart = firstOfMonth.minusDays((firstOfMonth.dayOfWeek.value % 7).toLong())
+    return buildCalendarCells(
+        gridStart = gridStart,
+        today = today
+    ) { hijriMonth, hijriYear ->
+        hijriMonth == page.monthValue && hijriYear == page.year
+    }
+}
+
+fun buildGregorianCalendarCells(
     month: YearMonth = YearMonth.now(),
     today: LocalDate = LocalDate.now()
 ): List<HijriCalendarCell> {
     val firstOfMonth = month.atDay(1)
-    val gridStart = firstOfMonth.minusDays(((firstOfMonth.dayOfWeek.value % 7).toLong()))
+    val gridStart = firstOfMonth.minusDays((firstOfMonth.dayOfWeek.value % 7).toLong())
+    return buildCalendarCells(
+        gridStart = gridStart,
+        today = today
+    ) { _, _ ->
+        false
+    }.map { cell ->
+        cell.copy(isCurrentMonth = YearMonth.from(cell.date) == month)
+    }
+}
+
+private fun buildCalendarCells(
+    gridStart: LocalDate,
+    today: LocalDate,
+    currentMonthMatcher: (Int, Int) -> Boolean
+): List<HijriCalendarCell> {
     return (0 until 42).map { offset ->
         val date = gridStart.plusDays(offset.toLong())
         val hijri = date.toHijriDate()
-        val hijriMonth = hijri.get(java.time.temporal.ChronoField.MONTH_OF_YEAR)
+        val hijriMonth = hijri.get(ChronoField.MONTH_OF_YEAR)
+        val hijriYear = hijri.get(ChronoField.YEAR)
         HijriCalendarCell(
             date = date,
             gregorianDay = date.dayOfMonth,
-            hijriDay = hijri.get(java.time.temporal.ChronoField.DAY_OF_MONTH),
+            hijriDay = hijri.get(ChronoField.DAY_OF_MONTH),
             hijriMonthValue = hijriMonth,
-            hijriYear = hijri.get(java.time.temporal.ChronoField.YEAR),
-            isCurrentMonth = date.month == month.month,
+            hijriYear = hijriYear,
+            isCurrentMonth = currentMonthMatcher(hijriMonth, hijriYear),
             isToday = date == today,
             isRamadan = hijriMonth == 9
         )
@@ -124,31 +276,26 @@ fun buildHijriCalendarCells(
 
 fun hijriRangeLabel(
     appLanguage: AppLanguage,
-    month: YearMonth = YearMonth.now()
+    page: HijriCalendarPage = currentHijriPage()
 ): String {
-    val cells = buildHijriCalendarCells(month).filter { it.isCurrentMonth }
-    val first = cells.firstOrNull() ?: return currentHijriSummary(appLanguage)
-    val last = cells.lastOrNull() ?: return currentHijriSummary(appLanguage)
-    val firstMonth = hijriMonthName(first.hijriMonthValue, appLanguage)
-    val lastMonth = hijriMonthName(last.hijriMonthValue, appLanguage)
-    return if (first.hijriMonthValue == last.hijriMonthValue) {
-        "$firstMonth ${first.hijriYear} H"
-    } else {
-        "$firstMonth - $lastMonth ${last.hijriYear} H"
-    }
+    return "${hijriMonthName(page.monthValue, appLanguage)} ${page.year} H"
 }
 
 fun hijriWeekdayHeaders(appLanguage: AppLanguage): List<String> {
-    return if (appLanguage == AppLanguage.ENGLISH) {
-        listOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
-    } else {
-        listOf("MIN", "SEN", "SEL", "RAB", "KAM", "JUM", "SAB")
+    val locale = appLanguage.locale()
+    val baseSunday = LocalDate.of(2026, 1, 4)
+    return (0..6).map { offset ->
+        val raw = baseSunday.plusDays(offset.toLong())
+            .dayOfWeek
+            .getDisplayName(TextStyle.SHORT, locale)
+            .replace(".", "")
+        if (appLanguage == AppLanguage.ARABIC) raw else raw.uppercase(locale)
     }
 }
 
 fun nextRamadanStart(date: LocalDate = LocalDate.now()): LocalDate {
     val hijriNow = date.toHijriDate()
-    val currentHijriYear = hijriNow.get(java.time.temporal.ChronoField.YEAR)
+    val currentHijriYear = hijriNow.get(ChronoField.YEAR)
     val thisYearRamadan = LocalDate.from(HijrahDate.of(currentHijriYear, 9, 1))
     return if (!date.isAfter(thisYearRamadan)) {
         thisYearRamadan
@@ -159,9 +306,9 @@ fun nextRamadanStart(date: LocalDate = LocalDate.now()): LocalDate {
 
 fun ramadanProgress(date: LocalDate = LocalDate.now()): Pair<Int, Int>? {
     val hijri = date.toHijriDate()
-    val month = hijri.get(java.time.temporal.ChronoField.MONTH_OF_YEAR)
+    val month = hijri.get(ChronoField.MONTH_OF_YEAR)
     if (month != 9) return null
-    val day = hijri.get(java.time.temporal.ChronoField.DAY_OF_MONTH)
+    val day = hijri.get(ChronoField.DAY_OF_MONTH)
     val monthLength = hijri.lengthOfMonth()
     return day to monthLength
 }
@@ -170,7 +317,7 @@ fun upcomingIslamicEvents(
     appLanguage: AppLanguage,
     date: LocalDate = LocalDate.now()
 ): List<IslamicEventSummary> {
-    val hijriYear = date.toHijriDate().get(java.time.temporal.ChronoField.YEAR)
+    val hijriYear = date.toHijriDate().get(ChronoField.YEAR)
     val candidates = listOf(
         IslamicEventSummary(
             title = if (appLanguage == AppLanguage.ENGLISH) "Start of Ramadan" else "Awal Ramadhan",
@@ -215,7 +362,7 @@ fun upcomingIslamicEvents(
 }
 
 fun daysUntil(targetDate: LocalDate, from: LocalDate = LocalDate.now()): Long {
-    return java.time.temporal.ChronoUnit.DAYS.between(from, targetDate)
+    return ChronoUnit.DAYS.between(from, targetDate)
 }
 
 fun isFriday(date: LocalDate = LocalDate.now()): Boolean = date.dayOfWeek == DayOfWeek.FRIDAY

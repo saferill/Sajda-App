@@ -37,19 +37,15 @@ object DateTimeUtils {
     )
 
     fun nextPrayer(prayerTime: PrayerTime, now: LocalTime = LocalTime.now()): Pair<PrayerName, String> {
-        return prayerEntries(prayerTime).firstOrNull { (_, time) ->
-            parseTime(time).isAfter(now)
-        } ?: (PrayerName.FAJR to prayerTime.fajr)
+        val nextPrayer = nextPrayerDateTime(
+            prayerTime = prayerTime,
+            now = LocalDateTime.of(LocalDate.now(), now)
+        )
+        return nextPrayer.first to nextPrayer.second.toLocalTime().format(timeFormatter)
     }
 
     fun countdownToNextPrayer(prayerTime: PrayerTime, now: LocalTime = LocalTime.now()): String {
-        val (_, nextPrayerTime) = nextPrayer(prayerTime, now)
-        val nextTime = parseTime(nextPrayerTime)
-        val duration = if (nextTime.isAfter(now)) {
-            Duration.between(now, nextTime)
-        } else {
-            Duration.between(now, nextTime.plusHours(24))
-        }
+        val duration = durationUntilNextPrayer(prayerTime, now)
 
         val totalMinutes = duration.toMinutes().coerceAtLeast(0)
         val hours = totalMinutes / 60
@@ -58,19 +54,40 @@ object DateTimeUtils {
     }
 
     fun countdownClockToNextPrayer(prayerTime: PrayerTime, now: LocalTime = LocalTime.now()): String {
-        val (_, nextPrayerTime) = nextPrayer(prayerTime, now)
-        val nextTime = parseTime(nextPrayerTime)
-        val duration = if (nextTime.isAfter(now)) {
-            Duration.between(now, nextTime)
-        } else {
-            Duration.between(now, nextTime.plusHours(24))
-        }
+        val duration = durationUntilNextPrayer(prayerTime, now)
 
         val totalSeconds = duration.seconds.coerceAtLeast(0)
         val hours = totalSeconds / 3600
         val minutes = (totalSeconds % 3600) / 60
         val seconds = totalSeconds % 60
         return "%02d:%02d:%02d".format(hours, minutes, seconds)
+    }
+
+    private fun durationUntilNextPrayer(
+        prayerTime: PrayerTime,
+        now: LocalTime
+    ): Duration {
+        val currentDateTime = LocalDateTime.of(LocalDate.now(), now)
+        return Duration.between(currentDateTime, nextPrayerDateTime(prayerTime, currentDateTime).second)
+    }
+
+    private fun nextPrayerDateTime(
+        prayerTime: PrayerTime,
+        now: LocalDateTime = LocalDateTime.now()
+    ): Pair<PrayerName, LocalDateTime> {
+        val today = now.toLocalDate()
+        val todaysSchedule = prayerEntries(prayerTime).map { (prayerName, time) ->
+            prayerName to LocalDateTime.of(today, parseTime(time))
+        }
+
+        return todaysSchedule.firstOrNull { (_, prayerDateTime) ->
+            prayerDateTime.isAfter(now)
+        } ?: (
+            PrayerName.FAJR to LocalDateTime.of(
+                today.plusDays(1),
+                parseTime(prayerTime.fajr)
+            )
+            )
     }
 }
 

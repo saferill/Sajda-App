@@ -11,21 +11,18 @@ import com.sajda.app.domain.model.AudioDownloadState
 import com.sajda.app.domain.model.QuranReciter
 import com.sajda.app.domain.model.Surah
 import com.sajda.app.util.Constants
-import kotlinx.coroutines.CoroutineScope
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withContext
 import java.io.File
-
 import javax.inject.Inject
 import javax.inject.Singleton
-import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlin.math.roundToInt
 
 @Singleton
 class AudioRepository @Inject constructor(
@@ -35,58 +32,80 @@ class AudioRepository @Inject constructor(
     private val equranApi: EquranApi
 ) {
     private val downloadManager = appContext.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _downloadStates = MutableStateFlow<Map<Int, AudioDownloadState>>(emptyMap())
     val downloadStates: StateFlow<Map<Int, AudioDownloadState>> = _downloadStates.asStateFlow()
 
-    fun audioFileFor(surahNumber: Int, reciter: QuranReciter): File {
-        val musicDir = appContext.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
-        val targetDir = File(musicDir, Constants.AUDIO_DOWNLOAD_DIR).apply { mkdirs() }
-        return File(targetDir, Constants.formatAudioFileName(surahNumber, reciter.id))
+    fun audioFileFor(surahNumber: Int, reciter: QuranReciter): File = audioFileFor(surahNumber, reciter.id)
+
+    fun resolveBestAudioFile(
+        surah: Surah,
+        preferredReciter: QuranReciter
+    ): File? {
+        val preferredFile = audioFileFor(surah.number, preferredReciter)
+        if (preferredFile.exists()) return preferredFile
+
+        return QuranReciter.entries
+            .map { audioFileFor(surah.number, it) }
+            .firstOrNull { it.exists() }
+            ?: surah.localAudioPath
+                ?.let(::File)
+                ?.takeIf { it.exists() }
     }
 
-    suspend fun downloadSurah(surah: Surah) {
-        val reciter = preferencesDataStore.settingsFlow.first().selectedQuranReciter
-        val targetFile = audioFileFor(surah.number, reciter)
-        targetFile.parentFile?.mkdirs()
-        if (targetFile.exists()) {
-            quranRepository.updateAudioState(
+    suspend fun downloadSurah(surah: Surah) = withContext(Dispatchers.IO) {
+        val selectedReciter = preferencesDataStore.settingsFlow.first().selectedQuranReciter
+        val audioUrls = resolveAudioUrls(surah.number)
+        val totalReciters = QuranReciter.entries.size
+
+        updateProgress(surah.number, 0, isDownloading = true)
+
+        QuranReciter.entries.forEachIndexed { index, reciter ->
+            val targetFile = audioFileFor(surah.number, reciter)
+            targetFile.parentFile?.mkdirs()
+            val completedProgress = ((index.toFloat() / totalReciters) * 100f).roundToInt()
+
+            if (targetFile.exists()) {
+                updateProgress(surah.number, completedProgress, isDownloading = true)
+                return@forEachIndexed
+            }
+
+            val audioUrl = audioUrls[reciter.id] ?: surah.audioUrl
+            val downloadId = enqueueDownload(surah, reciter, targetFile, audioUrl)
+            val success = monitorDownload(
+                downloadId = downloadId,
                 surahNumber = surah.number,
-                isDownloaded = true,
-                localAudioPath = targetFile.absolutePath,
-                downloadedAt = targetFile.lastModified(),
-                downloadedReciterId = reciter.id
+                completedReciters = index,
+                totalReciters = totalReciters
             )
-            return
+            if (!success) {
+                markFailed(surah.number)
+                return@withContext
+            }
         }
 
-        val audioUrl = resolveAudioUrl(surah.number, reciter) ?: surah.audioUrl
+        val representativeFile = audioFileFor(surah.number, selectedReciter)
+            .takeIf { it.exists() }
+            ?: QuranReciter.entries
+                .map { audioFileFor(surah.number, it) }
+                .firstOrNull { it.exists() }
 
-        val request = DownloadManager.Request(Uri.parse(audioUrl))
-            .setTitle("Murattal ${surah.transliteration} • ${reciter.title}")
-            .setDescription("Mengunduh audio surah untuk pemutaran offline")
-            .setMimeType("audio/mpeg")
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            .setAllowedOverMetered(true)
-            .setAllowedOverRoaming(true)
-            .setDestinationUri(Uri.fromFile(targetFile))
-
-        val downloadId = downloadManager.enqueue(request)
-        _downloadStates.update { current ->
-            current + (surah.number to AudioDownloadState(surah.number, progress = 0, isDownloading = true))
-        }
-
-        scope.launch {
-            monitorDownload(downloadId, surah, targetFile, reciter)
-        }
+        quranRepository.updateAudioState(
+            surahNumber = surah.number,
+            isDownloaded = representativeFile != null,
+            localAudioPath = representativeFile?.absolutePath,
+            downloadedAt = System.currentTimeMillis(),
+            downloadedReciterId = selectedReciter.id
+        )
+        _downloadStates.update { it - surah.number }
     }
 
-    suspend fun deleteSurahAudio(surahNumber: Int) {
-        val reciter = preferencesDataStore.settingsFlow.first().selectedQuranReciter
-        val file = audioFileFor(surahNumber, reciter)
-        if (file.exists()) {
-            file.delete()
+    suspend fun deleteSurahAudio(surahNumber: Int) = withContext(Dispatchers.IO) {
+        QuranReciter.entries.forEach { reciter ->
+            val file = audioFileFor(surahNumber, reciter)
+            if (file.exists()) {
+                file.delete()
+            }
         }
         quranRepository.updateAudioState(
             surahNumber = surahNumber,
@@ -98,18 +117,34 @@ class AudioRepository @Inject constructor(
         _downloadStates.update { it - surahNumber }
     }
 
+    private fun enqueueDownload(
+        surah: Surah,
+        reciter: QuranReciter,
+        targetFile: File,
+        audioUrl: String
+    ): Long {
+        val request = DownloadManager.Request(Uri.parse(audioUrl))
+            .setTitle("Murattal ${surah.transliteration} - ${reciter.title}")
+            .setDescription("Mengunduh paket audio surah untuk offline")
+            .setMimeType("audio/mpeg")
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setAllowedOverMetered(true)
+            .setAllowedOverRoaming(true)
+            .setDestinationUri(Uri.fromFile(targetFile))
+        return downloadManager.enqueue(request)
+    }
+
     private suspend fun monitorDownload(
         downloadId: Long,
-        surah: Surah,
-        targetFile: File,
-        reciter: QuranReciter
-    ) {
+        surahNumber: Int,
+        completedReciters: Int,
+        totalReciters: Int
+    ): Boolean = withContext(Dispatchers.IO) {
         while (true) {
             val query = DownloadManager.Query().setFilterById(downloadId)
             downloadManager.query(query).use { cursor ->
                 if (!cursor.moveToFirst()) {
-                    markFailed(surah.number)
-                    return
+                    return@withContext false
                 }
 
                 val status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
@@ -117,73 +152,79 @@ class AudioRepository @Inject constructor(
                     cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
                 )
                 val total = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
-                val progress = if (total > 0L) ((downloaded * 100L) / total).toInt() else 0
+                val currentProgress = if (total > 0L) {
+                    ((downloaded * 100L) / total).toInt().coerceIn(0, 100)
+                } else {
+                    0
+                }
+                val overallProgress = (
+                    ((completedReciters * 100f) + currentProgress.toFloat()) / totalReciters.toFloat()
+                    ).roundToInt()
 
                 when (status) {
                     DownloadManager.STATUS_PENDING,
                     DownloadManager.STATUS_RUNNING,
                     DownloadManager.STATUS_PAUSED -> {
-                        _downloadStates.update { current ->
-                            current + (
-                                surah.number to AudioDownloadState(
-                                    surahNumber = surah.number,
-                                    progress = progress.coerceIn(0, 100),
-                                    isDownloading = true
-                                )
-                                )
-                        }
+                        updateProgress(surahNumber, overallProgress, isDownloading = true)
                     }
 
                     DownloadManager.STATUS_SUCCESSFUL -> {
-                        surah.localAudioPath
-                            ?.takeIf { it != targetFile.absolutePath }
-                            ?.let(::File)
-                            ?.takeIf { it.exists() }
-                            ?.delete()
-                        quranRepository.updateAudioState(
-                            surahNumber = surah.number,
-                            isDownloaded = true,
-                            localAudioPath = targetFile.absolutePath,
-                            downloadedAt = System.currentTimeMillis(),
-                            downloadedReciterId = reciter.id
-                        )
-                        _downloadStates.update { it - surah.number }
-                        return
+                        val completedProgress = (((completedReciters + 1) * 100f) / totalReciters.toFloat()).roundToInt()
+                        updateProgress(surahNumber, completedProgress, isDownloading = true)
+                        return@withContext true
                     }
 
-                    DownloadManager.STATUS_FAILED -> {
-                        markFailed(surah.number)
-                        return
-                    }
+                    DownloadManager.STATUS_FAILED -> return@withContext false
                 }
             }
-            delay(500)
+            kotlinx.coroutines.delay(500)
         }
+        @Suppress("UNREACHABLE_CODE")
+        false
     }
 
-    private fun markFailed(surahNumber: Int) {
+    private fun updateProgress(
+        surahNumber: Int,
+        progress: Int,
+        isDownloading: Boolean,
+        isFailed: Boolean = false
+    ) {
         _downloadStates.update { current ->
             current + (
                 surahNumber to AudioDownloadState(
                     surahNumber = surahNumber,
-                    progress = 0,
-                    isDownloading = false,
-                    isFailed = true
+                    progress = progress.coerceIn(0, 100),
+                    isDownloading = isDownloading,
+                    isFailed = isFailed
                 )
                 )
         }
     }
 
-    private suspend fun resolveAudioUrl(
-        surahNumber: Int,
-        reciter: QuranReciter
-    ): String? {
+    private fun markFailed(surahNumber: Int) {
+        updateProgress(
+            surahNumber = surahNumber,
+            progress = 0,
+            isDownloading = false,
+            isFailed = true
+        )
+    }
+
+    private suspend fun resolveAudioUrls(surahNumber: Int): Map<String, String> {
         val detail = runCatching {
             equranApi.getSurahDetail("https://equran.id/api/v2/surat/$surahNumber")
-        }.getOrNull() ?: return null
-        val data = detail.getAsJsonObject("data") ?: return null
-        val audioFull = data.getAsJsonObject("audioFull") ?: return null
-        return audioFull.stringValue(reciter.id)
+        }.getOrNull() ?: return emptyMap()
+        val data = detail.getAsJsonObject("data") ?: return emptyMap()
+        val audioFull = data.getAsJsonObject("audioFull") ?: return emptyMap()
+        return QuranReciter.entries.mapNotNull { reciter ->
+            audioFull.stringValue(reciter.id)?.let { reciter.id to it }
+        }.toMap()
+    }
+
+    private fun audioFileFor(surahNumber: Int, reciterId: String): File {
+        val musicDir = appContext.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
+        val targetDir = File(musicDir, Constants.AUDIO_DOWNLOAD_DIR).apply { mkdirs() }
+        return File(targetDir, Constants.formatAudioFileName(surahNumber, reciterId))
     }
 
     private fun JsonObject.stringValue(key: String): String? {
