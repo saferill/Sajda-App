@@ -34,6 +34,7 @@ import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.util.Constants
+import com.sajda.app.util.isEnglish
 import com.sajda.app.util.localizedPrayerName
 import com.sajda.app.util.pick
 import kotlinx.coroutines.cancel
@@ -342,7 +343,7 @@ class AdzanService : Service() {
             .addAction(
                 NotificationCompat.Action(
                     android.R.drawable.ic_lock_idle_alarm,
-                    if (language == AppLanguage.ENGLISH) "Snooze ${snoozeMinutes}m" else "Tunda ${snoozeMinutes}m",
+                    if (language.isEnglish()) "Snooze ${snoozeMinutes}m" else "Tunda ${snoozeMinutes}m",
                     snoozePendingIntent
                 )
             )
@@ -421,7 +422,7 @@ class AdzanService : Service() {
         serviceScope.launch {
             preferencesDataStore.updateAdhanLastEvent(
                 prayerName = prayerName,
-                status = if (cachedLanguage == AppLanguage.ENGLISH) {
+                status = if (cachedLanguage.isEnglish()) {
                     "Snoozed ${safeMinutes} minutes"
                 } else {
                     "Ditunda $safeMinutes menit"

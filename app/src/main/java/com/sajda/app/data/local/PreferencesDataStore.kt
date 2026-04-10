@@ -53,6 +53,7 @@ class PreferencesDataStore(private val context: Context) {
         private val OVERRIDE_SILENT_MODE = booleanPreferencesKey("override_silent_mode")
         private val VIBRATION_ENABLED = booleanPreferencesKey("vibration_enabled")
         private val AUTO_LOCATION = booleanPreferencesKey("auto_location")
+        private val LOCATION_PERMISSION_PROMPTED = booleanPreferencesKey("location_permission_prompted")
         private val LATITUDE = doublePreferencesKey("latitude")
         private val LONGITUDE = doublePreferencesKey("longitude")
         private val LOCATION = stringPreferencesKey("location")
@@ -118,6 +119,7 @@ class PreferencesDataStore(private val context: Context) {
             overrideSilentMode = preferences[OVERRIDE_SILENT_MODE] ?: false,
             vibrationEnabled = preferences[VIBRATION_ENABLED] ?: true,
             autoLocation = preferences[AUTO_LOCATION] ?: false,
+            locationPermissionPrompted = preferences[LOCATION_PERMISSION_PROMPTED] ?: false,
             locationName = preferences[LOCATION] ?: "",
             latitude = preferences[LATITUDE] ?: LocationConstants.DEFAULT_LATITUDE,
             longitude = preferences[LONGITUDE] ?: LocationConstants.DEFAULT_LONGITUDE,
@@ -156,7 +158,7 @@ class PreferencesDataStore(private val context: Context) {
             adhanHistory = parseAdhanHistory(preferences[ADHAN_HISTORY_JSON]),
             nextScheduledPrayer = preferences[NEXT_SCHEDULED_PRAYER] ?: "",
             nextScheduledAt = preferences[NEXT_SCHEDULED_AT] ?: "",
-            autoUpdateCheckEnabled = preferences[AUTO_UPDATE_CHECK_ENABLED] ?: true,
+            autoUpdateCheckEnabled = preferences[AUTO_UPDATE_CHECK_ENABLED] ?: false,
             lastUpdateCheckAt = preferences[LAST_UPDATE_CHECK_AT] ?: "",
             adhanSnoozeMinutes = preferences[ADHAN_SNOOZE_MINUTES] ?: 10,
             fajrAdzanEnabled = preferences[FAJR_ENABLED] ?: true,
@@ -236,6 +238,10 @@ class PreferencesDataStore(private val context: Context) {
     }
 
     suspend fun setAutoLocation(enabled: Boolean) = context.dataStore.edit { it[AUTO_LOCATION] = enabled }
+
+    suspend fun setLocationPermissionPrompted(prompted: Boolean) = context.dataStore.edit {
+        it[LOCATION_PERMISSION_PROMPTED] = prompted
+    }
 
     suspend fun updateLocation(locationName: String, latitude: Double, longitude: Double, automatic: Boolean) {
         context.dataStore.edit {
@@ -428,6 +434,7 @@ class PreferencesDataStore(private val context: Context) {
         preferences[OVERRIDE_SILENT_MODE] = snapshot.overrideSilentMode
         preferences[VIBRATION_ENABLED] = snapshot.vibrationEnabled
         preferences[AUTO_LOCATION] = snapshot.autoLocation
+        preferences[LOCATION_PERMISSION_PROMPTED] = snapshot.locationPermissionPrompted
         preferences[LOCATION] = snapshot.locationName
         preferences[LATITUDE] = snapshot.latitude
         preferences[LONGITUDE] = snapshot.longitude

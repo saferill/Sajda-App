@@ -101,7 +101,7 @@ fun DailyDuaScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = if (settings.appLanguage == AppLanguage.ENGLISH) "Refresh content" else "Segarkan konten",
+                    text = if (settings.appLanguage.isEnglish()) "Refresh content" else "Segarkan konten",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable(onClick = onRefresh)
@@ -136,7 +136,7 @@ fun DailyDuaScreen(
             }
         if (spiritualState.hadithCategories.isNotEmpty()) {
             Text(
-                text = if (settings.appLanguage == AppLanguage.ENGLISH) "HADITH CATEGORIES" else "KATEGORI HADITS",
+                text = if (settings.appLanguage.isEnglish()) "HADITH CATEGORIES" else "KATEGORI HADITS",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

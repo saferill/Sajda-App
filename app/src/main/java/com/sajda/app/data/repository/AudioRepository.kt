@@ -57,9 +57,14 @@ class AudioRepository @Inject constructor(
                 ?.takeIf { it.exists() }
     }
 
-    suspend fun downloadSurah(surah: Surah) = withContext(Dispatchers.IO) {
+    suspend fun downloadSurah(
+        surah: Surah,
+        modeOverride: AudioDownloadMode? = null,
+        wifiOnlyOverride: Boolean? = null
+    ) = withContext(Dispatchers.IO) {
         val settings = preferencesDataStore.settingsFlow.first()
-        if (AudioDownloadPlanner.shouldBlockForNetwork(settings.wifiOnlyAudioDownloads, isWifiConnected())) {
+        val wifiOnly = wifiOnlyOverride ?: settings.wifiOnlyAudioDownloads
+        if (AudioDownloadPlanner.shouldBlockForNetwork(wifiOnly, isWifiConnected())) {
             throw IllegalStateException("Unduhan audio diatur hanya lewat Wi-Fi")
         }
 
@@ -67,7 +72,7 @@ class AudioRepository @Inject constructor(
         val plan = AudioDownloadPlanner.plan(
             totalVerses = surah.totalVerses,
             selectedReciter = selectedReciter,
-            mode = settings.audioDownloadMode
+            mode = modeOverride ?: settings.audioDownloadMode
         )
         val audioUrls = resolveAudioUrls(surah.number)
         val totalReciters = plan.reciters.size

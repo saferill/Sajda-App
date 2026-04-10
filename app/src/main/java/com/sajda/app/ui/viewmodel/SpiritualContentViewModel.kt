@@ -49,8 +49,8 @@ class SpiritualContentViewModel @Inject constructor(
     fun refresh(forceLanguage: AppLanguage? = null) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-            val language = forceLanguage ?: preferencesDataStore.settingsFlow.first().appLanguage
             runCatching {
+                val language = forceLanguage ?: preferencesDataStore.settingsFlow.first().appLanguage
                 repository.load(language)
             }.onSuccess { bundle ->
                 _uiState.value = bundle.toUiState()

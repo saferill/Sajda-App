@@ -29,8 +29,6 @@ class BootReceiver : BroadcastReceiver() {
             }
             PrayerScheduleWorker.enqueueImmediate(context)
             PrayerScheduleWorker.ensurePeriodic(context)
-            AppUpdateWorker.enqueueImmediate(context)
-            AppUpdateWorker.ensurePeriodic(context)
         }
     }
 }

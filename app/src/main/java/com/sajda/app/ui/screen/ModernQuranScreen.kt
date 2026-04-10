@@ -26,13 +26,17 @@ import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +50,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sajda.app.domain.model.AppLanguage
+import com.sajda.app.domain.model.AudioDownloadMode
 import com.sajda.app.domain.model.QuranReadingMode
 import com.sajda.app.domain.model.QuranReciter
 import com.sajda.app.domain.model.Surah
@@ -53,6 +59,7 @@ import com.sajda.app.ui.component.ArabicVerseText
 import com.sajda.app.ui.component.MetadataChip
 import com.sajda.app.ui.component.SanctuaryCard
 import com.sajda.app.ui.component.formatStorageSize
+import com.sajda.app.ui.theme.surfaceContainerHigh
 import com.sajda.app.ui.theme.surfaceContainerLow
 import com.sajda.app.ui.viewmodel.QuranViewModel
 import com.sajda.app.ui.viewmodel.SettingsViewModel
@@ -78,6 +85,32 @@ fun ModernQuranScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val isEnglish = state.appLanguage.isEnglish()
     val selectedReciter = state.selectedQuranReciter
+    var pendingDownloadSurah by remember { mutableStateOf<Surah?>(null) }
+    var downloadMode by remember { mutableStateOf(state.audioDownloadMode) }
+    var wifiOnlyDownload by remember { mutableStateOf(state.wifiOnlyAudioDownloads) }
+
+    androidx.compose.runtime.LaunchedEffect(pendingDownloadSurah) {
+        if (pendingDownloadSurah != null) {
+            downloadMode = state.audioDownloadMode
+            wifiOnlyDownload = state.wifiOnlyAudioDownloads
+        }
+    }
+
+    pendingDownloadSurah?.let { surah ->
+        AudioDownloadOptionsDialog(
+            appLanguage = state.appLanguage,
+            selectedReciter = selectedReciter,
+            mode = downloadMode,
+            wifiOnly = wifiOnlyDownload,
+            onModeChange = { downloadMode = it },
+            onWifiOnlyChange = { wifiOnlyDownload = it },
+            onDismiss = { pendingDownloadSurah = null },
+            onConfirm = {
+                viewModel.downloadAudio(surah, downloadMode, wifiOnlyDownload)
+                pendingDownloadSurah = null
+            }
+        )
+    }
     var query by rememberSaveable { mutableStateOf("") }
     var filter by rememberSaveable { mutableStateOf(QuranFilter.ALL) }
     var readerMode by rememberSaveable(state.selectedSurah?.number) { mutableStateOf(ReaderMode.TRANSLATION) }
@@ -259,7 +292,7 @@ fun ModernQuranScreen(
                                 }
                             } else {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    IconButton(onClick = { viewModel.downloadAudio(surah) }) {
+                                    IconButton(onClick = { pendingDownloadSurah = surah }) {
                                         Icon(Icons.Rounded.Download, contentDescription = null)
                                     }
                                     Text(
@@ -376,7 +409,7 @@ fun ModernQuranScreen(
                                 }
                             } else {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    IconButton(onClick = { viewModel.downloadAudio(surah) }) {
+                                    IconButton(onClick = { pendingDownloadSurah = surah }) {
                                         Icon(Icons.Rounded.Download, contentDescription = null)
                                     }
                                     Text(
@@ -573,6 +606,98 @@ fun ModernQuranScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AudioDownloadOptionsDialog(
+    appLanguage: AppLanguage,
+    selectedReciter: QuranReciter,
+    mode: AudioDownloadMode,
+    wifiOnly: Boolean,
+    onModeChange: (AudioDownloadMode) -> Unit,
+    onWifiOnlyChange: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val isEnglish = appLanguage.isEnglish()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = appLanguage.pick("Unduh audio", "Download audio")) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = appLanguage.pick("Pilih paket unduhan:", "Choose a download package:"),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                DownloadOptionRow(
+                    label = appLanguage.pick(
+                        "Qari aktif saja (${selectedReciter.title})",
+                        "Active reciter only (${selectedReciter.title})"
+                    ),
+                    selected = mode == AudioDownloadMode.SELECTED_RECITER_ONLY,
+                    onClick = { onModeChange(AudioDownloadMode.SELECTED_RECITER_ONLY) }
+                )
+                DownloadOptionRow(
+                    label = appLanguage.pick("Semua qari", "All reciters"),
+                    selected = mode == AudioDownloadMode.ALL_RECITERS,
+                    onClick = { onModeChange(AudioDownloadMode.ALL_RECITERS) }
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = appLanguage.pick("Unduh hanya via Wi-Fi", "Download via Wi-Fi only"),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = appLanguage.pick(
+                                "Cegah unduhan besar lewat data seluler.",
+                                "Avoid large downloads over mobile data."
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = wifiOnly, onCheckedChange = onWifiOnlyChange)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(if (isEnglish) "Download" else "Unduh")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(if (isEnglish) "Cancel" else "Batal")
+            }
+        }
+    )
+}
+
+@Composable
+private fun DownloadOptionRow(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainerLow)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Text(text = label, style = MaterialTheme.typography.bodyMedium)
     }
 }
 

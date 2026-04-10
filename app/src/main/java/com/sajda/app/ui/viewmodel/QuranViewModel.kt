@@ -1,5 +1,6 @@
 package com.sajda.app.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sajda.app.data.local.PreferencesDataStore
@@ -49,6 +50,10 @@ class QuranViewModel @Inject constructor(
     private val preferencesDataStore: PreferencesDataStore
 ) : ViewModel() {
 
+    companion object {
+        private const val TAG = "QuranViewModel"
+    }
+
     private val _uiState = MutableStateFlow(QuranUiState())
     val uiState = _uiState.asStateFlow()
 
@@ -61,55 +66,71 @@ class QuranViewModel @Inject constructor(
 
     private fun observeSurahList() {
         viewModelScope.launch {
-            quranRepository.observeAllSurah().collect { surahList ->
-                _uiState.update { current ->
-                    current.copy(
-                        surahList = surahList,
-                        selectedSurah = current.selectedSurah?.let { selected ->
-                            surahList.firstOrNull { it.number == selected.number }
-                        },
-                        isLoading = false
-                    )
+            runCatching {
+                quranRepository.observeAllSurah().collect { surahList ->
+                    _uiState.update { current ->
+                        current.copy(
+                            surahList = surahList,
+                            selectedSurah = current.selectedSurah?.let { selected ->
+                                surahList.firstOrNull { it.number == selected.number }
+                            },
+                            isLoading = false
+                        )
+                    }
                 }
+            }.onFailure { error ->
+                handleQuranError("observeSurahList", error)
             }
         }
     }
 
     private fun observeBookmarks() {
         viewModelScope.launch {
-            quranRepository.observeBookmarks().collect { bookmarks ->
-                _uiState.update { it.copy(bookmarks = bookmarks) }
+            runCatching {
+                quranRepository.observeBookmarks().collect { bookmarks ->
+                    _uiState.update { it.copy(bookmarks = bookmarks) }
+                }
+            }.onFailure { error ->
+                handleQuranError("observeBookmarks", error)
             }
         }
     }
 
     private fun observeDownloadStates() {
         viewModelScope.launch {
-            audioRepository.downloadStates.collect { states ->
-                _uiState.update { it.copy(downloadStates = states) }
+            runCatching {
+                audioRepository.downloadStates.collect { states ->
+                    _uiState.update { it.copy(downloadStates = states) }
+                }
+            }.onFailure { error ->
+                handleQuranError("observeDownloadStates", error)
             }
         }
     }
 
     private fun observeSettings() {
         viewModelScope.launch {
-            preferencesDataStore.settingsFlow.collect { settings ->
-                _uiState.update {
-                    it.copy(
-                        focusMode = settings.focusMode,
-                        appLanguage = settings.appLanguage,
-                        selectedQuranReciter = settings.selectedQuranReciter,
-                        audioDownloadMode = settings.audioDownloadMode,
-                        wifiOnlyAudioDownloads = settings.wifiOnlyAudioDownloads,
-                        quranReadingMode = settings.quranReadingMode,
-                        showTranslation = settings.showTranslation,
-                        arabicOnly = settings.arabicOnly,
-                        showTransliteration = settings.showTransliteration,
-                        arabicFontSize = settings.arabicFontSize,
-                        translationFontSize = settings.translationFontSize,
-                        verseSpacing = settings.verseSpacing
-                    )
+            runCatching {
+                preferencesDataStore.settingsFlow.collect { settings ->
+                    _uiState.update {
+                        it.copy(
+                            focusMode = settings.focusMode,
+                            appLanguage = settings.appLanguage,
+                            selectedQuranReciter = settings.selectedQuranReciter,
+                            audioDownloadMode = settings.audioDownloadMode,
+                            wifiOnlyAudioDownloads = settings.wifiOnlyAudioDownloads,
+                            quranReadingMode = settings.quranReadingMode,
+                            showTranslation = settings.showTranslation,
+                            arabicOnly = settings.arabicOnly,
+                            showTransliteration = settings.showTransliteration,
+                            arabicFontSize = settings.arabicFontSize,
+                            translationFontSize = settings.translationFontSize,
+                            verseSpacing = settings.verseSpacing
+                        )
+                    }
                 }
+            }.onFailure { error ->
+                handleQuranError("observeSettings", error)
             }
         }
     }
@@ -117,8 +138,13 @@ class QuranViewModel @Inject constructor(
     fun openSurah(surah: Surah) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, selectedSurah = surah) }
-            val ayats = quranRepository.getAyatBySurah(surah.number)
-            _uiState.update { it.copy(ayatList = ayats, isLoading = false) }
+            runCatching {
+                quranRepository.getAyatBySurah(surah.number)
+            }.onSuccess { ayats ->
+                _uiState.update { it.copy(ayatList = ayats, isLoading = false) }
+            }.onFailure { error ->
+                handleQuranError("openSurah", error)
+            }
         }
     }
 
@@ -126,9 +152,13 @@ class QuranViewModel @Inject constructor(
         _uiState.update { it.copy(selectedSurah = null, ayatList = emptyList(), errorMessage = null) }
     }
 
-    fun downloadAudio(surah: Surah) {
+    fun downloadAudio(
+        surah: Surah,
+        modeOverride: AudioDownloadMode? = null,
+        wifiOnlyOverride: Boolean? = null
+    ) {
         viewModelScope.launch {
-            runCatching { audioRepository.downloadSurah(surah) }
+            runCatching { audioRepository.downloadSurah(surah, modeOverride, wifiOnlyOverride) }
                 .onFailure { error ->
                     _uiState.update { it.copy(errorMessage = error.message ?: "Gagal mengunduh audio") }
                 }
@@ -155,45 +185,61 @@ class QuranViewModel @Inject constructor(
 
     fun toggleBookmark(ayat: Ayat) {
         viewModelScope.launch {
-            val selectedSurah = uiState.value.selectedSurah ?: return@launch
-            val existing = quranRepository.getBookmark(selectedSurah.number, ayat.ayatNumber)
-            if (existing != null) {
-                quranRepository.removeBookmark(selectedSurah.number, ayat.ayatNumber)
-            } else {
-                quranRepository.addBookmark(
-                    Bookmark(
-                        surahNumber = selectedSurah.number,
-                        ayatNumber = ayat.ayatNumber,
-                        surahName = selectedSurah.transliteration,
-                        updatedAt = System.currentTimeMillis()
+            runCatching {
+                val selectedSurah = uiState.value.selectedSurah ?: return@launch
+                val existing = quranRepository.getBookmark(selectedSurah.number, ayat.ayatNumber)
+                if (existing != null) {
+                    quranRepository.removeBookmark(selectedSurah.number, ayat.ayatNumber)
+                } else {
+                    quranRepository.addBookmark(
+                        Bookmark(
+                            surahNumber = selectedSurah.number,
+                            ayatNumber = ayat.ayatNumber,
+                            surahName = selectedSurah.transliteration,
+                            updatedAt = System.currentTimeMillis()
+                        )
                     )
-                )
-            }
+                }
+            }.onFailure { error -> handleQuranError("toggleBookmark", error) }
         }
     }
 
     fun saveBookmarkReflection(ayat: Ayat, folderName: String, note: String, highlightColor: String) {
         viewModelScope.launch {
-            val selectedSurah = uiState.value.selectedSurah ?: return@launch
-            quranRepository.saveBookmarkReflection(
-                surahNumber = selectedSurah.number,
-                ayatNumber = ayat.ayatNumber,
-                surahName = selectedSurah.transliteration,
-                folderName = folderName,
-                note = note.trim(),
-                highlightColor = highlightColor
-            )
+            runCatching {
+                val selectedSurah = uiState.value.selectedSurah ?: return@launch
+                quranRepository.saveBookmarkReflection(
+                    surahNumber = selectedSurah.number,
+                    ayatNumber = ayat.ayatNumber,
+                    surahName = selectedSurah.transliteration,
+                    folderName = folderName,
+                    note = note.trim(),
+                    highlightColor = highlightColor
+                )
+            }.onFailure { error -> handleQuranError("saveBookmarkReflection", error) }
         }
     }
 
     fun recordLastRead(ayat: Ayat) {
         viewModelScope.launch {
-            quranRepository.updateLastRead(ayat.surahNumber, ayat.ayatNumber)
-            preferencesDataStore.recordAyatRead()
+            runCatching {
+                quranRepository.updateLastRead(ayat.surahNumber, ayat.ayatNumber)
+                preferencesDataStore.recordAyatRead()
+            }.onFailure { error -> handleQuranError("recordLastRead", error) }
         }
     }
 
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    private fun handleQuranError(step: String, error: Throwable) {
+        Log.e(TAG, "Qur'an pipeline failed at $step", error)
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                errorMessage = error.message ?: "Gagal memuat data Qur'an"
+            )
+        }
     }
 }

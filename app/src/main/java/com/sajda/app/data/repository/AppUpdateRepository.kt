@@ -111,6 +111,17 @@ class AppUpdateRepository @Inject constructor(
         }
     }
 
+    fun installDownloadedUpdate(downloadId: Long): Boolean {
+        if (!canRequestPackageInstalls()) {
+            buildUnknownSourcesIntent()?.let(appContext::startActivity)
+            return false
+        }
+
+        val installIntent = buildInstallIntent(downloadId) ?: return false
+        appContext.startActivity(installIntent)
+        return true
+    }
+
     fun buildUnknownSourcesIntent(): Intent? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return null
         return Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {

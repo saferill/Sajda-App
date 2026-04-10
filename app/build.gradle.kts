@@ -15,8 +15,8 @@ configurations.all {
     )
 }
 
-val appVersionCode = 8
-val appVersionName = "1.4.0"
+val appVersionCode = 9
+val appVersionName = "1.4.1"
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -69,7 +69,28 @@ android {
         versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        resourceConfigurations += listOf("id", "in", "en", "ar", "tr", "ur", "fr", "ms", "hi")
+        resourceConfigurations += listOf(
+            "id",
+            "in",
+            "en",
+            "ar",
+            "es",
+            "de",
+            "pt",
+            "zh",
+            "ja",
+            "ko",
+            "it",
+            "pl",
+            "uk",
+            "sw",
+            "tl",
+            "tr",
+            "ur",
+            "fr",
+            "ms",
+            "hi"
+        )
         buildConfigField(
             "String",
             "HADITH_API_KEY",

@@ -1,11 +1,9 @@
 package com.sajda.app
 
 import android.Manifest
-import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Bundle
+import android.app.Activity
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -25,23 +23,28 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.res.stringResource
-import androidx.core.view.isVisible
+import com.sajda.app.util.AppTranslations
+import com.sajda.app.util.pick
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.activity.viewModels
-import androidx.work.WorkInfo
 import androidx.work.WorkManager
+import androidx.core.view.WindowCompat
 import com.sajda.app.data.local.PreferencesDataStore
 import com.sajda.app.data.repository.AudioRepository
 import com.sajda.app.data.repository.HadithRepository
@@ -49,7 +52,6 @@ import com.sajda.app.data.repository.PrayerTimeRepository
 import com.sajda.app.data.repository.QuranRepository
 import com.sajda.app.data.repository.TafsirRepository
 import com.sajda.app.databinding.ActivityMainBinding
-import com.sajda.app.databinding.ViewUpdateBannerBinding
 import com.sajda.app.domain.model.Ayat
 import com.sajda.app.domain.model.Bookmark
 import com.sajda.app.domain.model.QuranSearchResult
@@ -93,13 +95,13 @@ import com.sajda.app.ui.screen.WeeklyPrayerScheduleScreen
 import com.sajda.app.ui.theme.SajdaAppTheme
 import com.sajda.app.util.AdhanSystemHelper
 import com.sajda.app.util.AppLocaleManager
+import com.sajda.app.util.DeviceLocationHelper
+import com.sajda.app.util.DeviceLocationResult
 import com.sajda.app.ui.viewmodel.HomeViewModel
 import com.sajda.app.ui.viewmodel.QuranViewModel
 import com.sajda.app.ui.viewmodel.PrayerTimeViewModel
 import com.sajda.app.ui.viewmodel.SettingsViewModel
 import com.sajda.app.ui.viewmodel.SpiritualContentViewModel
-import com.sajda.app.utils.UpdateManager
-import com.sajda.app.worker.DownloadUpdateWorker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -147,9 +149,6 @@ class MainActivity : ComponentActivity() {
 
     private val requestedTabOrdinalState = mutableIntStateOf(RootTab.HOME.ordinal)
     private lateinit var binding: ActivityMainBinding
-    private lateinit var updateBannerBinding: ViewUpdateBannerBinding
-    private lateinit var updateManager: UpdateManager
-    private var downloadedApkPath: String? = null
 
     private val homeViewModel: HomeViewModel by viewModels()
     private val quranViewModel: QuranViewModel by viewModels()
@@ -162,14 +161,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        updateBannerBinding = binding.updateBanner
-        updateManager = UpdateManager(this)
 
         requestedTabOrdinalState.intValue = resolveStartTab(intent).ordinal
         updateVolumeControlStream(intent)
-        setupUpdateBanner()
-        observeDownloadWorker()
-        checkForUpdateOnOpen()
+        cancelAutomaticUpdateChecks()
         LocationWorker.enqueuePeriodic(this)
 
         lifecycleScope.launch {
@@ -196,6 +191,9 @@ class MainActivity : ComponentActivity() {
             val settings by preferencesDataStore.settingsFlow.collectAsStateWithLifecycle(
                 initialValue = UserSettings()
             )
+            val context = LocalContext.current
+            val view = LocalView.current
+            val scope = rememberCoroutineScope()
             val quranState by quranViewModel.uiState.collectAsStateWithLifecycle()
             val prayerState by prayerTimeViewModel.uiState.collectAsStateWithLifecycle()
             val settingsState by settingsViewModel.settings.collectAsStateWithLifecycle()
@@ -204,6 +202,8 @@ class MainActivity : ComponentActivity() {
             val duaBookmarks by preferencesDataStore.duaBookmarksFlow.collectAsStateWithLifecycle(initialValue = emptySet())
             val audioState by AudioPlaybackStore.state.collectAsStateWithLifecycle()
             val adhanPlaybackState by AdhanPlaybackStore.state.collectAsStateWithLifecycle()
+            @Suppress("UNUSED_VARIABLE")
+            val translationTick by AppTranslations.updates.collectAsStateWithLifecycle()
 
             var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
             var overlay by remember { mutableStateOf<OverlayDestination?>(null) }
@@ -212,10 +212,35 @@ class MainActivity : ComponentActivity() {
             val playSelectedSurah: (Surah) -> Unit = { surah ->
                 playSurahAudio(surah, settings.selectedQuranReciter)
             }
+            val appLanguage = settingsState.appLanguage
 
             val notificationPermissionLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.RequestPermission()
             ) { notificationPermissionPrompted = true }
+
+            val locationPermissionLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.RequestMultiplePermissions()
+            ) { permissions ->
+                settingsViewModel.setLocationPermissionPrompted(true)
+                if (permissions.any { it.value }) {
+                    settingsViewModel.setAutoLocation(true)
+                    scope.launch {
+                        when (val result = DeviceLocationHelper.getCurrentLocation(context)) {
+                            is DeviceLocationResult.Success -> {
+                                settingsViewModel.setCurrentLocation(
+                                    locationName = result.location.label,
+                                    latitude = result.location.latitude,
+                                    longitude = result.location.longitude,
+                                    automatic = true
+                                )
+                            }
+                            is DeviceLocationResult.Error -> {
+                                android.util.Log.w("MainActivity", result.message)
+                            }
+                        }
+                    }
+                }
+            }
 
             androidx.compose.runtime.LaunchedEffect(requestedTabOrdinal) {
                 if (selectedTabIndex != requestedTabOrdinal) {
@@ -245,6 +270,20 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            androidx.compose.runtime.LaunchedEffect(settings.locationPermissionPrompted) {
+                if (!settings.locationPermissionPrompted &&
+                    !DeviceLocationHelper.hasLocationPermission(context)
+                ) {
+                    settingsViewModel.setLocationPermissionPrompted(true)
+                    locationPermissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                        )
+                    )
+                }
+            }
+
             androidx.compose.runtime.LaunchedEffect(settings.appLanguage) {
                 AppLocaleManager.apply(settings.appLanguage)
                 spiritualContentViewModel.refresh(settings.appLanguage)
@@ -258,7 +297,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            SajdaAppTheme(darkTheme = settings.darkMode || settings.nightMode) {
+            val isDarkTheme = settings.darkMode || settings.nightMode
+            SajdaAppTheme(darkTheme = isDarkTheme) {
+                val backgroundColor = MaterialTheme.colorScheme.background.toArgb()
+                SideEffect {
+                    val window = (context as Activity).window
+                    window.statusBarColor = backgroundColor
+                    window.navigationBarColor = backgroundColor
+                    WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDarkTheme
+                    WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !isDarkTheme
+                }
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -485,12 +533,12 @@ class MainActivity : ComponentActivity() {
                             if (settingsState.onboardingCompleted && overlay == null) {
                                 FloatingDock(
                                     items = listOf(
-                                        DockItem(stringResource(R.string.tab_home), Icons.Rounded.Home),
-                                        DockItem(stringResource(R.string.tab_quran), Icons.Rounded.MenuBook),
-                                        DockItem(stringResource(R.string.tab_adhan), Icons.Rounded.NotificationsActive),
-                                        DockItem(stringResource(R.string.tab_hadith), Icons.Rounded.HistoryEdu),
-                                        DockItem(stringResource(R.string.tab_ramadan), Icons.Rounded.Mosque),
-                                        DockItem(stringResource(R.string.tab_settings), Icons.Rounded.Settings)
+                                        DockItem(appLanguage.pick("Beranda", "Home"), Icons.Rounded.Home),
+                                        DockItem(appLanguage.pick("Al-Qur'an", "Qur'an"), Icons.Rounded.MenuBook),
+                                        DockItem(appLanguage.pick("Adzan", "Adhan"), Icons.Rounded.NotificationsActive),
+                                        DockItem(appLanguage.pick("Hadist", "Hadith"), Icons.Rounded.HistoryEdu),
+                                        DockItem(appLanguage.pick("Ramadhan", "Ramadan"), Icons.Rounded.Mosque),
+                                        DockItem(appLanguage.pick("Pengaturan", "Settings"), Icons.Rounded.Settings)
                                     ),
                                     selectedIndex = selectedTabIndex,
                                     modifier = Modifier
@@ -577,123 +625,14 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun setupUpdateBanner() {
-        updateBannerBinding.buttonInstallNow.setOnClickListener {
-            val apkPath = downloadedApkPath ?: return@setOnClickListener
-            if (!updateManager.canRequestPackageInstalls()) {
-                showUpdateBanner(
-                    status = "Izinkan pemasangan aplikasi dari sumber ini terlebih dulu",
-                    progress = 100,
-                    showInstallButton = true
-                )
-                updateManager.openInstallPermissionSettings()
-                return@setOnClickListener
-            }
-            updateManager.installApk(apkPath)
+    private fun cancelAutomaticUpdateChecks() {
+        runCatching {
+            val workManager = WorkManager.getInstance(this)
+            workManager.cancelUniqueWork(com.sajda.app.util.Constants.APP_UPDATE_WORK_NAME)
+            workManager.cancelUniqueWork("${com.sajda.app.util.Constants.APP_UPDATE_WORK_NAME}_immediate")
+        }.onFailure { error ->
+            android.util.Log.e("MainActivity", "Gagal membatalkan update otomatis", error)
         }
-        hideUpdateBanner()
-    }
-
-    private fun checkForUpdateOnOpen() {
-        lifecycleScope.launch {
-            runCatching {
-                if (!isNetworkAvailable()) {
-                    showUpdateBanner(
-                        status = "Tidak ada koneksi internet untuk cek update",
-                        progress = 0,
-                        showInstallButton = false
-                    )
-                    return@launch
-                }
-
-                val updateInfo = updateManager.checkForUpdate()
-                if (updateInfo == null) {
-                    hideUpdateBanner()
-                    return@launch
-                }
-
-                showUpdateBanner(
-                    status = "Update ${updateInfo.latestVersion} ditemukan, mengunduh di background...",
-                    progress = 0,
-                    showInstallButton = false
-                )
-                DownloadUpdateWorker.enqueue(this@MainActivity, updateInfo.downloadUrl, updateInfo.checksum)
-            }.onFailure { error ->
-                android.util.Log.e("MainActivity", "Update check failed on launch", error)
-                hideUpdateBanner()
-            }
-        }
-    }
-
-    private fun observeDownloadWorker() {
-        WorkManager.getInstance(this)
-            .getWorkInfosForUniqueWorkLiveData(DownloadUpdateWorker.UNIQUE_WORK_NAME)
-            .observe(this) { workInfos ->
-                val workInfo = workInfos.lastOrNull() ?: return@observe
-                val progress = workInfo.progress.getInt(DownloadUpdateWorker.KEY_PROGRESS, 0)
-                val progressStatus = workInfo.progress.getString(DownloadUpdateWorker.KEY_STATUS)
-                val outputStatus = workInfo.outputData.getString(DownloadUpdateWorker.KEY_STATUS)
-                val status = progressStatus ?: outputStatus ?: "Mengunduh update..."
-
-                when (workInfo.state) {
-                    WorkInfo.State.ENQUEUED,
-                    WorkInfo.State.RUNNING -> {
-                        showUpdateBanner(status, progress, showInstallButton = false)
-                    }
-
-                    WorkInfo.State.SUCCEEDED -> {
-                        downloadedApkPath = workInfo.outputData.getString(DownloadUpdateWorker.KEY_APK_PATH)
-                        showUpdateBanner(
-                            status = "Download selesai. Tekan tombol untuk memasang.",
-                            progress = 100,
-                            showInstallButton = true
-                        )
-                    }
-
-                    WorkInfo.State.FAILED -> {
-                        showUpdateBanner(
-                            status = workInfo.outputData.getString(DownloadUpdateWorker.KEY_ERROR)
-                                ?: "Download update gagal",
-                            progress = 0,
-                            showInstallButton = false
-                        )
-                    }
-
-                    WorkInfo.State.CANCELLED -> {
-                        showUpdateBanner(
-                            status = "Download update dibatalkan",
-                            progress = 0,
-                            showInstallButton = false
-                        )
-                    }
-
-                    WorkInfo.State.BLOCKED -> Unit
-                }
-            }
-    }
-
-    private fun showUpdateBanner(
-        status: String,
-        progress: Int,
-        showInstallButton: Boolean
-    ) {
-        updateBannerBinding.root.isVisible = true
-        updateBannerBinding.textStatus.text = status
-        updateBannerBinding.progressDownload.progress = progress
-        updateBannerBinding.textPercent.text = "$progress%"
-        updateBannerBinding.buttonInstallNow.isVisible = showInstallButton
-    }
-
-    private fun hideUpdateBanner() {
-        updateBannerBinding.root.isVisible = false
-        updateBannerBinding.buttonInstallNow.isVisible = false
-    }
-
-    private fun isNetworkAvailable(): Boolean {
-        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val network = connectivityManager.activeNetwork ?: return false
-        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
     private fun resolveStartTab(intent: android.content.Intent?): RootTab {

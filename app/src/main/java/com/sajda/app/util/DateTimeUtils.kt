@@ -1,5 +1,6 @@
 package com.sajda.app.util
 
+import android.util.Log
 import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.PrayerTime
 import java.time.Duration
@@ -10,8 +11,15 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 object DateTimeUtils {
+    private const val TAG = "DateTimeUtils"
     private val indonesianLocale = Locale("id", "ID")
     private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm", indonesianLocale)
+    private val flexibleTimeFormatters = listOf(
+        DateTimeFormatter.ofPattern("HH:mm", indonesianLocale),
+        DateTimeFormatter.ofPattern("H:mm", indonesianLocale),
+        DateTimeFormatter.ofPattern("HH:mm:ss", indonesianLocale),
+        DateTimeFormatter.ofPattern("H:mm:ss", indonesianLocale)
+    )
     private val displayDateFormatter = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", indonesianLocale)
     private val displayDateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", indonesianLocale)
 
@@ -24,9 +32,44 @@ object DateTimeUtils {
     fun dateTimeString(dateTime: LocalDateTime = LocalDateTime.now()): String =
         dateTime.format(displayDateTimeFormatter)
 
-    fun parseTime(value: String): LocalTime = LocalTime.parse(value, timeFormatter)
+    fun parseTime(value: String): LocalTime {
+        val trimmed = value.trim()
+        if (trimmed.isBlank()) {
+            Log.e(TAG, "Prayer time is blank")
+            return LocalTime.MIDNIGHT
+        }
 
-    fun formatDateLabel(date: String): String = LocalDate.parse(date).format(displayDateFormatter)
+        val normalized = trimmed
+            .substringBefore(" ")
+            .replace('.', ':')
+
+        val candidates = linkedSetOf(normalized)
+        if (normalized.count { it == ':' } == 1) {
+            candidates += "$normalized:00"
+        }
+
+        for (candidate in candidates) {
+            for (formatter in flexibleTimeFormatters) {
+                try {
+                    return LocalTime.parse(candidate, formatter)
+                } catch (_: Throwable) {
+                    // Try the next supported format.
+                }
+            }
+        }
+
+        Log.e(TAG, "Unable to parse prayer time: '$value'")
+        return LocalTime.MIDNIGHT
+    }
+
+    fun formatDateLabel(date: String): String {
+        return runCatching {
+            LocalDate.parse(date).format(displayDateFormatter)
+        }.getOrElse {
+            Log.e(TAG, "Unable to format date label: '$date'", it)
+            date
+        }
+    }
 
     fun prayerEntries(prayerTime: PrayerTime): List<Pair<PrayerName, String>> = listOf(
         PrayerName.FAJR to prayerTime.fajr,

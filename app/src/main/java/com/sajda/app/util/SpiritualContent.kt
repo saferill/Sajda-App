@@ -256,13 +256,13 @@ object SpiritualContent {
         surahName: String,
         appLanguage: AppLanguage = AppLanguage.INDONESIAN
     ): List<String> {
-        val normalized = if (appLanguage == AppLanguage.ENGLISH) {
+        val normalized = if (appLanguage.isEnglish()) {
             ayat.englishTranslation.ifBlank { ayat.translation }.trim()
         } else {
             ayat.translation.trim()
         }
 
-        val emphasis = if (appLanguage == AppLanguage.ENGLISH) {
+        val emphasis = if (appLanguage.isEnglish()) {
             when {
                 normalized.contains("mercy", ignoreCase = true) ->
                     "This verse reminds us that Allah's mercy is always greater than our fear."
@@ -292,7 +292,7 @@ object SpiritualContent {
             }
         }
 
-        return if (appLanguage == AppLanguage.ENGLISH) {
+        return if (appLanguage.isEnglish()) {
             listOf(
                 "$surahName verse ${ayat.ayatNumber} highlights this meaning: $normalized",
                 emphasis,

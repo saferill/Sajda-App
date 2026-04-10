@@ -14,6 +14,17 @@ fun AppLanguage.displayName(): String {
         AppLanguage.INDONESIAN -> "Indonesia"
         AppLanguage.ENGLISH -> "English"
         AppLanguage.ARABIC -> "Arabic"
+        AppLanguage.SPANISH -> "Spanish"
+        AppLanguage.GERMAN -> "German"
+        AppLanguage.PORTUGUESE -> "Portuguese"
+        AppLanguage.CHINESE -> "Chinese"
+        AppLanguage.JAPANESE -> "Japanese"
+        AppLanguage.KOREAN -> "Korean"
+        AppLanguage.ITALIAN -> "Italian"
+        AppLanguage.POLISH -> "Polish"
+        AppLanguage.UKRAINIAN -> "Ukrainian"
+        AppLanguage.SWAHILI -> "Swahili"
+        AppLanguage.TAGALOG -> "Tagalog"
         AppLanguage.TURKISH -> "Turkish"
         AppLanguage.URDU -> "Urdu"
         AppLanguage.FRENCH -> "French"
@@ -23,7 +34,11 @@ fun AppLanguage.displayName(): String {
 }
 
 fun AppLanguage.pick(indonesian: String, english: String): String {
-    return if (this == AppLanguage.INDONESIAN) indonesian else english
+    return when (this) {
+        AppLanguage.INDONESIAN -> indonesian
+        AppLanguage.ENGLISH -> english
+        else -> AppTranslations.translate(english, this)
+    }
 }
 
 fun UserSettings.pick(indonesian: String, english: String): String = appLanguage.pick(indonesian, english)

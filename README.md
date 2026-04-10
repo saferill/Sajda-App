@@ -12,13 +12,13 @@
   <img src="https://img.shields.io/badge/Platform-Android-0F5238?style=for-the-badge&logo=android&logoColor=white" alt="Android" />
   <img src="https://img.shields.io/badge/Kotlin-Jetpack%20Compose-16423C?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin Compose" />
   <img src="https://img.shields.io/badge/Architecture-MVVM%20%7C%20Repository-D6B66A?style=for-the-badge&logo=android&logoColor=1A1A1A" alt="Architecture" />
-  <img src="https://img.shields.io/badge/Release-v1.4.0-0F5238?style=for-the-badge&logo=github&logoColor=white" alt="Release v1.4.0" />
+  <img src="https://img.shields.io/badge/Release-v1.4.1-0F5238?style=for-the-badge&logo=github&logoColor=white" alt="Release v1.4.1" />
 </p>
 
 <p align="center">
-  <a href="https://github.com/saferill/Nur-App/releases/tag/v1.4.0">Release Notes</a>
+  <a href="https://github.com/saferill/Nur-App/releases/tag/v1.4.1">Release Notes</a>
   |
-  <a href="https://github.com/saferill/Nur-App/releases/download/v1.4.0/NurApp-v1.4.0.apk">Download APK</a>
+  <a href="https://github.com/saferill/Nur-App/releases/download/v1.4.1/NurApp-v1.4.1.apk">Download APK</a>
   |
   <a href="ROADMAP.md">Roadmap</a>
 </p>
@@ -196,13 +196,13 @@ Release build wajib memakai keystore lama dari `keystore.properties`.
 Output:
 
 ```text
-app/build/outputs/apk/release/NurApp-v1.4.0.apk
+app/build/outputs/apk/release/NurApp-v1.4.1.apk
 ```
 
 ## Latest Release
 
-- Release page: [v1.4.0](https://github.com/saferill/Nur-App/releases/tag/v1.4.0)
-- Direct APK: [NurApp-v1.4.0.apk](https://github.com/saferill/Nur-App/releases/download/v1.4.0/NurApp-v1.4.0.apk)
+- Release page: [v1.4.1](https://github.com/saferill/Nur-App/releases/tag/v1.4.1)
+- Direct APK: [NurApp-v1.4.1.apk](https://github.com/saferill/Nur-App/releases/download/v1.4.1/NurApp-v1.4.1.apk)
 
 ## Documentation
 

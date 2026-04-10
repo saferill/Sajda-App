@@ -175,6 +175,7 @@ data class UserSettings(
     val overrideSilentMode: Boolean = false,
     val vibrationEnabled: Boolean = true,
     val autoLocation: Boolean = false,
+    val locationPermissionPrompted: Boolean = false,
     val locationName: String = "",
     val latitude: Double = -6.2088,
     val longitude: Double = 106.8456,
@@ -204,7 +205,7 @@ data class UserSettings(
     val adhanHistory: List<AdhanLogEntry> = emptyList(),
     val nextScheduledPrayer: String = "",
     val nextScheduledAt: String = "",
-    val autoUpdateCheckEnabled: Boolean = true,
+    val autoUpdateCheckEnabled: Boolean = false,
     val lastUpdateCheckAt: String = "",
     val adhanSnoozeMinutes: Int = 10,
     val fajrAdzanEnabled: Boolean = true,
@@ -295,6 +296,17 @@ enum class AppLanguage {
     INDONESIAN,
     ENGLISH,
     ARABIC,
+    SPANISH,
+    GERMAN,
+    PORTUGUESE,
+    CHINESE,
+    JAPANESE,
+    KOREAN,
+    ITALIAN,
+    POLISH,
+    UKRAINIAN,
+    SWAHILI,
+    TAGALOG,
     TURKISH,
     URDU,
     FRENCH,
@@ -306,6 +318,17 @@ enum class AppLanguage {
             INDONESIAN -> "id"
             ENGLISH -> "en"
             ARABIC -> "ar"
+            SPANISH -> "es"
+            GERMAN -> "de"
+            PORTUGUESE -> "pt"
+            CHINESE -> "zh"
+            JAPANESE -> "ja"
+            KOREAN -> "ko"
+            ITALIAN -> "it"
+            POLISH -> "pl"
+            UKRAINIAN -> "uk"
+            SWAHILI -> "sw"
+            TAGALOG -> "tl"
             TURKISH -> "tr"
             URDU -> "ur"
             FRENCH -> "fr"

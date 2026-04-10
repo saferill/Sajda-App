@@ -113,13 +113,14 @@ fun SajdaLogoTile(
                 ambientColor = Color(0xFF143D44).copy(alpha = 0.10f),
                 spotColor = Color(0xFF143D44).copy(alpha = 0.18f)
             )
-            .clip(RoundedCornerShape((size * 0.35f).dp)),
+            .clip(RoundedCornerShape((size * 0.35f).dp))
+            .background(Color(0xFFFFFDF8)),
         contentAlignment = Alignment.Center
     ) {
         Image(
-            painter = painterResource(R.drawable.nurapp_logo_badge),
+            painter = painterResource(R.drawable.nurapp_logo_mark),
             contentDescription = "NurApp",
-            modifier = Modifier.size(size.dp)
+            modifier = Modifier.size((size * 0.72f).dp)
         )
     }
 }
@@ -225,11 +226,25 @@ fun AnimatedSajdaSplashOverlay(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Image(
-                    painter = painterResource(R.drawable.nurapp_logo_badge),
-                    contentDescription = "NurApp",
-                    modifier = Modifier.size(138.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(138.dp)
+                        .shadow(
+                            elevation = 24.dp,
+                            shape = RoundedCornerShape(48.dp),
+                            ambientColor = Color.Black.copy(alpha = 0.12f),
+                            spotColor = Color.Black.copy(alpha = 0.18f)
+                        )
+                        .clip(RoundedCornerShape(48.dp))
+                        .background(Color(0xFFFFFDF8)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.nurapp_logo_mark),
+                        contentDescription = "NurApp",
+                        modifier = Modifier.size(100.dp)
+                    )
+                }
             }
             Text(
                 text = "NURAPP",
@@ -398,7 +413,7 @@ fun MetadataChip(text: String, active: Boolean = false) {
             .clip(RoundedCornerShape(14.dp))
             .background(
                 if (active) {
-                    MaterialTheme.colorScheme.secondaryContainer
+                    MaterialTheme.colorScheme.surfaceContainerHigh
                 } else {
                     MaterialTheme.colorScheme.surfaceContainerLow
                 }
@@ -408,7 +423,7 @@ fun MetadataChip(text: String, active: Boolean = false) {
         Text(
             text = text.uppercase(),
             style = MaterialTheme.typography.labelMedium,
-            color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            color = if (active) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

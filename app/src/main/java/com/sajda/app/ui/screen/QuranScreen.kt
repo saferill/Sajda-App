@@ -32,6 +32,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -50,8 +52,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sajda.app.domain.model.AppLanguage
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sajda.app.domain.model.AudioDownloadMode
 import com.sajda.app.domain.model.Ayat
 import com.sajda.app.domain.model.Bookmark
+import com.sajda.app.domain.model.QuranReciter
 import com.sajda.app.domain.model.QuranReadingMode
 import com.sajda.app.domain.model.Surah
 import com.sajda.app.ui.component.ArabicVerseText
@@ -64,10 +68,11 @@ import com.sajda.app.ui.theme.surfaceContainerLow
 import com.sajda.app.ui.theme.surfaceContainerLowest
 import com.sajda.app.ui.viewmodel.QuranViewModel
 import com.sajda.app.util.displayLabel
+import com.sajda.app.util.isEnglish
 import com.sajda.app.util.pick
 
 private fun Surah.localizedMeaning(language: AppLanguage): String {
-    return if (language == AppLanguage.ENGLISH && englishTranslation.isNotBlank()) {
+    return if (language.isEnglish() && englishTranslation.isNotBlank()) {
         englishTranslation
     } else {
         translation
@@ -96,10 +101,36 @@ fun QuranScreen(
     var query by rememberSaveable { mutableStateOf("") }
     var showFocusMode by rememberSaveable(state.selectedSurah?.number) { mutableStateOf(false) }
     val selectedSurah = state.selectedSurah
+    var pendingDownloadSurah by remember { mutableStateOf<Surah?>(null) }
+    var downloadMode by remember { mutableStateOf(state.audioDownloadMode) }
+    var wifiOnlyDownload by remember { mutableStateOf(state.wifiOnlyAudioDownloads) }
     val selectedBookmarkMap = remember(state.bookmarks, selectedSurah?.number) {
         state.bookmarks
             .filter { bookmark -> bookmark.surahNumber == selectedSurah?.number }
             .associateBy { it.ayatNumber }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(pendingDownloadSurah) {
+        if (pendingDownloadSurah != null) {
+            downloadMode = state.audioDownloadMode
+            wifiOnlyDownload = state.wifiOnlyAudioDownloads
+        }
+    }
+
+    pendingDownloadSurah?.let { surah ->
+        AudioDownloadOptionsDialog(
+            appLanguage = state.appLanguage,
+            selectedReciter = state.selectedQuranReciter,
+            mode = downloadMode,
+            wifiOnly = wifiOnlyDownload,
+            onModeChange = { downloadMode = it },
+            onWifiOnlyChange = { wifiOnlyDownload = it },
+            onDismiss = { pendingDownloadSurah = null },
+            onConfirm = {
+                viewModel.downloadAudio(surah, downloadMode, wifiOnlyDownload)
+                pendingDownloadSurah = null
+            }
+        )
     }
 
     if (selectedSurah == null) {
@@ -115,7 +146,7 @@ fun QuranScreen(
             onQueryChange = { query = it },
             downloadStates = state.downloadStates,
             onOpenSurah = viewModel::openSurah,
-            onDownload = viewModel::downloadAudio,
+            onDownload = { pendingDownloadSurah = it },
             onDelete = { viewModel.deleteAudio(it.number) },
             onPlayAudio = onPlayAudio,
             onOpenBookmarks = onOpenBookmarks,
@@ -151,7 +182,7 @@ fun QuranScreen(
             isLoading = state.isLoading,
             onBack = viewModel::closeSurah,
             onOpenFocusMode = { showFocusMode = true },
-            onDownload = { viewModel.downloadAudio(selectedSurah) },
+            onDownload = { pendingDownloadSurah = selectedSurah },
             onDelete = { viewModel.deleteAudio(selectedSurah.number) },
             onPlayAudio = { onPlayAudio(selectedSurah) },
             onRecordLastRead = viewModel::recordLastRead,
@@ -177,7 +208,7 @@ private fun SurahListContent(
     onOpenSearch: () -> Unit,
     onOpenAudioManager: () -> Unit
 ) {
-    val isEnglish = appLanguage == AppLanguage.ENGLISH
+    val isEnglish = appLanguage.isEnglish()
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -342,7 +373,7 @@ private fun SurahDetailContent(
     onSaveBookmarkReflection: (Ayat, String, String, String) -> Unit,
     onOpenTafsir: (Ayat) -> Unit
 ) {
-    val isEnglish = appLanguage == AppLanguage.ENGLISH
+    val isEnglish = appLanguage.isEnglish()
     var editingAyatNumber by rememberSaveable(surah.number) { mutableStateOf<Int?>(null) }
     val editingAyat = ayatList.firstOrNull { it.ayatNumber == editingAyatNumber }
     val editingBookmark = editingAyatNumber?.let { bookmarks[it] }
@@ -551,6 +582,98 @@ private fun SurahDetailContent(
 }
 
 @Composable
+private fun AudioDownloadOptionsDialog(
+    appLanguage: AppLanguage,
+    selectedReciter: QuranReciter,
+    mode: AudioDownloadMode,
+    wifiOnly: Boolean,
+    onModeChange: (AudioDownloadMode) -> Unit,
+    onWifiOnlyChange: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val isEnglish = appLanguage.isEnglish()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = appLanguage.pick("Unduh audio", "Download audio")) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = appLanguage.pick("Pilih paket unduhan:", "Choose a download package:"),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                DownloadOptionRow(
+                    label = appLanguage.pick(
+                        "Qari aktif saja (${selectedReciter.title})",
+                        "Active reciter only (${selectedReciter.title})"
+                    ),
+                    selected = mode == AudioDownloadMode.SELECTED_RECITER_ONLY,
+                    onClick = { onModeChange(AudioDownloadMode.SELECTED_RECITER_ONLY) }
+                )
+                DownloadOptionRow(
+                    label = appLanguage.pick("Semua qari", "All reciters"),
+                    selected = mode == AudioDownloadMode.ALL_RECITERS,
+                    onClick = { onModeChange(AudioDownloadMode.ALL_RECITERS) }
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = appLanguage.pick("Unduh hanya via Wi-Fi", "Download via Wi-Fi only"),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = appLanguage.pick(
+                                "Cegah unduhan besar lewat data seluler.",
+                                "Avoid large downloads over mobile data."
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = wifiOnly, onCheckedChange = onWifiOnlyChange)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(if (isEnglish) "Download" else "Unduh")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(if (isEnglish) "Cancel" else "Batal")
+            }
+        }
+    )
+}
+
+@Composable
+private fun DownloadOptionRow(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainerLow)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
 private fun FocusModeContent(
     surah: Surah,
     ayatList: List<Ayat>,
@@ -562,7 +685,7 @@ private fun FocusModeContent(
     onPlayAudio: () -> Unit,
     onOpenTafsir: (Ayat) -> Unit
 ) {
-    val isEnglish = appLanguage == AppLanguage.ENGLISH
+    val isEnglish = appLanguage.isEnglish()
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()

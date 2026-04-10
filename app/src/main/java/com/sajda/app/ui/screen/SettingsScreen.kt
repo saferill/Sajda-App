@@ -3,8 +3,6 @@ package com.sajda.app.ui.screen
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,9 +34,9 @@ import com.sajda.app.ui.viewmodel.BackupUiState
 import com.sajda.app.ui.viewmodel.SettingsViewModel
 import com.sajda.app.util.displayLabel
 import com.sajda.app.util.displayName
+import com.sajda.app.util.isEnglish
 import com.sajda.app.util.pick
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
@@ -53,7 +51,7 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val backupState by viewModel.backupState.collectAsStateWithLifecycle()
-    val isEnglish = settings.appLanguage == com.sajda.app.domain.model.AppLanguage.ENGLISH
+    val isEnglish = settings.appLanguage.isEnglish()
 
     androidx.compose.foundation.lazy.LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -115,21 +113,14 @@ fun SettingsScreen(
                     value = settings.pick("Kelola unduhan", "Manage downloads"),
                     onClick = onOpenAudioManagement
                 )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    AudioDownloadMode.entries.forEach { mode ->
-                        ChoiceChip(
-                            label = when (mode) {
-                                AudioDownloadMode.SELECTED_RECITER_ONLY -> settings.pick("Qari aktif saja", "Selected reciter only")
-                                AudioDownloadMode.ALL_RECITERS -> settings.pick("Semua qari", "All reciters")
-                            },
-                            selected = settings.audioDownloadMode == mode,
-                            onClick = { viewModel.setAudioDownloadMode(mode) }
-                        )
-                    }
-                }
+                ActionRow(
+                    title = settings.pick("Mode unduhan audio", "Audio download mode"),
+                    value = when (settings.audioDownloadMode) {
+                        AudioDownloadMode.SELECTED_RECITER_ONLY -> settings.pick("Qari aktif saja", "Selected reciter only")
+                        AudioDownloadMode.ALL_RECITERS -> settings.pick("Semua qari", "All reciters")
+                    },
+                    onClick = onOpenAudioManagement
+                )
                 ToggleRow(
                     title = settings.pick("Unduh hanya lewat Wi-Fi", "Download on Wi-Fi only"),
                     subtitle = settings.pick("Berlaku untuk audio Qur'an offline", "Applies to offline Qur'an audio"),
@@ -162,21 +153,16 @@ fun SettingsScreen(
                     valueLabel = settings.arabicFontSize.toString(),
                     onValueChange = { viewModel.setArabicFontSize(it.toInt()) }
                 )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    ChoiceChip(
-                        label = settings.pick("Hijriah", "Hijri"),
-                        selected = settings.calendarDisplayMode == CalendarDisplayMode.HIJRI,
-                        onClick = { viewModel.setCalendarDisplayMode(CalendarDisplayMode.HIJRI) }
-                    )
-                    ChoiceChip(
-                        label = settings.pick("Masehi", "Gregorian"),
-                        selected = settings.calendarDisplayMode == CalendarDisplayMode.GREGORIAN,
-                        onClick = { viewModel.setCalendarDisplayMode(CalendarDisplayMode.GREGORIAN) }
-                    )
-                }
+                ToggleRow(
+                    title = settings.pick("Kalender Hijriah", "Hijri calendar"),
+                    subtitle = settings.pick("Matikan untuk kalender Masehi", "Turn off for Gregorian"),
+                    checked = settings.calendarDisplayMode == CalendarDisplayMode.HIJRI,
+                    onCheckedChange = { enabled ->
+                        viewModel.setCalendarDisplayMode(
+                            if (enabled) CalendarDisplayMode.HIJRI else CalendarDisplayMode.GREGORIAN
+                        )
+                    }
+                )
             }
         }
 
@@ -216,10 +202,16 @@ fun SettingsScreen(
                 SettingsCardTitle(settings.pick("Data & Update", "Data & Updates"))
                 ActionRow(
                     title = settings.pick("Pembaruan aplikasi", "App updates"),
-                    value = if (updateState.hasUpdate) {
-                        settings.pick("Versi ${updateState.latestVersionName}", "Version ${updateState.latestVersionName}")
-                    } else {
-                        settings.pick("Sudah terbaru", "Up to date")
+                    value = when {
+                        updateState.hasUpdate -> settings.pick(
+                            "Versi ${updateState.latestVersionName}",
+                            "Version ${updateState.latestVersionName}"
+                        )
+                        updateState.lastCheckedAt.isBlank() -> settings.pick(
+                            "Cek manual",
+                            "Manual check"
+                        )
+                        else -> settings.pick("Sudah terbaru", "Up to date")
                     },
                     onClick = onOpenUpdateCenter
                 )

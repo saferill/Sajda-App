@@ -1,6 +1,7 @@
 package com.sajda.app.util
 
 import com.sajda.app.domain.model.AppLanguage
+import com.sajda.app.util.isEnglish
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -37,6 +38,17 @@ private val languageLocales = mapOf(
     AppLanguage.INDONESIAN to Locale("id", "ID"),
     AppLanguage.ENGLISH to Locale.ENGLISH,
     AppLanguage.ARABIC to Locale("ar"),
+    AppLanguage.SPANISH to Locale("es", "ES"),
+    AppLanguage.GERMAN to Locale("de", "DE"),
+    AppLanguage.PORTUGUESE to Locale("pt", "PT"),
+    AppLanguage.CHINESE to Locale.SIMPLIFIED_CHINESE,
+    AppLanguage.JAPANESE to Locale.JAPAN,
+    AppLanguage.KOREAN to Locale.KOREA,
+    AppLanguage.ITALIAN to Locale("it", "IT"),
+    AppLanguage.POLISH to Locale("pl", "PL"),
+    AppLanguage.UKRAINIAN to Locale("uk", "UA"),
+    AppLanguage.SWAHILI to Locale("sw", "KE"),
+    AppLanguage.TAGALOG to Locale("tl", "PH"),
     AppLanguage.TURKISH to Locale("tr", "TR"),
     AppLanguage.URDU to Locale("ur", "PK"),
     AppLanguage.FRENCH to Locale.FRENCH,
@@ -56,6 +68,20 @@ private fun HijrahDate.page(): HijriCalendarPage {
 }
 
 fun hijriMonthName(monthValue: Int, appLanguage: AppLanguage): String {
+    val englishNames = listOf(
+        "Muharram",
+        "Safar",
+        "Rabi' al-Awwal",
+        "Rabi' al-Thani",
+        "Jumada al-Awwal",
+        "Jumada al-Thani",
+        "Rajab",
+        "Sha'ban",
+        "Ramadan",
+        "Shawwal",
+        "Dhu al-Qi'dah",
+        "Dhu al-Hijjah"
+    )
     val names = when (appLanguage) {
         AppLanguage.ARABIC -> listOf(
             "محرم",
@@ -141,20 +167,18 @@ fun hijriMonthName(monthValue: Int, appLanguage: AppLanguage): String {
             "ज़ुल-क़ादा",
             "ज़ुल-हिज्जा"
         )
-        AppLanguage.ENGLISH -> listOf(
-            "Muharram",
-            "Safar",
-            "Rabi' al-Awwal",
-            "Rabi' al-Thani",
-            "Jumada al-Awwal",
-            "Jumada al-Thani",
-            "Rajab",
-            "Sha'ban",
-            "Ramadan",
-            "Shawwal",
-            "Dhu al-Qi'dah",
-            "Dhu al-Hijjah"
-        )
+        AppLanguage.ENGLISH,
+        AppLanguage.SPANISH,
+        AppLanguage.GERMAN,
+        AppLanguage.PORTUGUESE,
+        AppLanguage.CHINESE,
+        AppLanguage.JAPANESE,
+        AppLanguage.KOREAN,
+        AppLanguage.ITALIAN,
+        AppLanguage.POLISH,
+        AppLanguage.UKRAINIAN,
+        AppLanguage.SWAHILI,
+        AppLanguage.TAGALOG -> englishNames
         AppLanguage.INDONESIAN -> listOf(
             "Muharram",
             "Safar",
@@ -320,17 +344,17 @@ fun upcomingIslamicEvents(
     val hijriYear = date.toHijriDate().get(ChronoField.YEAR)
     val candidates = listOf(
         IslamicEventSummary(
-            title = if (appLanguage == AppLanguage.ENGLISH) "Start of Ramadan" else "Awal Ramadhan",
+            title = if (appLanguage.isEnglish()) "Start of Ramadan" else "Awal Ramadhan",
             hijriLabel = "1 ${hijriMonthName(9, appLanguage)} $hijriYear H",
             gregorianDate = LocalDate.from(HijrahDate.of(hijriYear, 9, 1))
         ),
         IslamicEventSummary(
-            title = if (appLanguage == AppLanguage.ENGLISH) "Nuzulul Qur'an" else "Nuzulul Qur'an",
+            title = if (appLanguage.isEnglish()) "Nuzulul Qur'an" else "Nuzulul Qur'an",
             hijriLabel = "17 ${hijriMonthName(9, appLanguage)} $hijriYear H",
             gregorianDate = LocalDate.from(HijrahDate.of(hijriYear, 9, 17))
         ),
         IslamicEventSummary(
-            title = if (appLanguage == AppLanguage.ENGLISH) "Eid al-Fitr" else "Hari Raya Idul Fitri",
+            title = if (appLanguage.isEnglish()) "Eid al-Fitr" else "Hari Raya Idul Fitri",
             hijriLabel = "1 ${hijriMonthName(10, appLanguage)} $hijriYear H",
             gregorianDate = LocalDate.from(HijrahDate.of(hijriYear, 10, 1))
         )
@@ -339,17 +363,17 @@ fun upcomingIslamicEvents(
     val nextYear = hijriYear + 1
     val nextYearCandidates = listOf(
         IslamicEventSummary(
-            title = if (appLanguage == AppLanguage.ENGLISH) "Start of Ramadan" else "Awal Ramadhan",
+            title = if (appLanguage.isEnglish()) "Start of Ramadan" else "Awal Ramadhan",
             hijriLabel = "1 ${hijriMonthName(9, appLanguage)} $nextYear H",
             gregorianDate = LocalDate.from(HijrahDate.of(nextYear, 9, 1))
         ),
         IslamicEventSummary(
-            title = if (appLanguage == AppLanguage.ENGLISH) "Nuzulul Qur'an" else "Nuzulul Qur'an",
+            title = if (appLanguage.isEnglish()) "Nuzulul Qur'an" else "Nuzulul Qur'an",
             hijriLabel = "17 ${hijriMonthName(9, appLanguage)} $nextYear H",
             gregorianDate = LocalDate.from(HijrahDate.of(nextYear, 9, 17))
         ),
         IslamicEventSummary(
-            title = if (appLanguage == AppLanguage.ENGLISH) "Eid al-Fitr" else "Hari Raya Idul Fitri",
+            title = if (appLanguage.isEnglish()) "Eid al-Fitr" else "Hari Raya Idul Fitri",
             hijriLabel = "1 ${hijriMonthName(10, appLanguage)} $nextYear H",
             gregorianDate = LocalDate.from(HijrahDate.of(nextYear, 10, 1))
         )

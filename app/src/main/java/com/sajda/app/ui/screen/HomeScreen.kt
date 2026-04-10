@@ -1,5 +1,6 @@
 package com.sajda.app.ui.screen
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +54,8 @@ import com.sajda.app.util.localizedPrayerName
 import com.sajda.app.util.pick
 import java.time.LocalDate
 
+private const val HOME_SCREEN_TAG = "HomeScreen"
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HomeScreen(
@@ -75,7 +78,18 @@ fun HomeScreen(
     }
 
     val today = LocalDate.now()
-    val prayerEntries = state.todayPrayerTime?.let(DateTimeUtils::prayerEntries).orEmpty()
+    val prayerEntries = runCatching {
+        state.todayPrayerTime?.let(DateTimeUtils::prayerEntries).orEmpty()
+    }.getOrElse { error ->
+        Log.e(HOME_SCREEN_TAG, "Failed to render prayer entries", error)
+        emptyList()
+    }
+    val dateSummary = runCatching {
+        "${currentHijriSummary(state.appLanguage, today)} | ${currentGregorianSummary(state.appLanguage, today)}"
+    }.getOrElse { error ->
+        Log.e(HOME_SCREEN_TAG, "Failed to render date summary", error)
+        if (isEnglish) "Today" else "Hari ini"
+    }
     val nextPrayerLabel = localizedPrayerName(state.nextPrayerLabel, state.appLanguage)
 
     LazyColumn(
@@ -138,7 +152,7 @@ fun HomeScreen(
         item {
             HeroCard {
                 Text(
-                    text = "${currentHijriSummary(state.appLanguage, today)} | ${currentGregorianSummary(state.appLanguage, today)}",
+                    text = dateSummary,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.86f)
                 )

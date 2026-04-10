@@ -11,6 +11,25 @@ All notable changes to this project are documented in this file.
 - Refine prayer, qibla, and location UX
 - Polish release workflow and public project documentation
 
+## v1.4.1 - 2026-04-10
+
+### Added
+
+- Auto-translated app UI cache for the full language list adopted from the World News Reports language set
+- First-launch location permission prompt for GPS-based adhan location setup
+- Qur'an audio download choices for active qari or all qari, with Wi-Fi-only control
+
+### Changed
+
+- Updated release metadata and APK version to `1.4.1`
+- Refined prayer and settings UI colors to reduce inconsistent highlights
+- Improved status and navigation bar appearance so system indicators remain readable
+
+### Fixed
+
+- Non-English app language options no longer stay stuck on the English fallback after translations are cached
+- Bottom navigation labels now follow the selected app language path
+
 ## v1.4.0 - 2026-04-09
 
 ### Added

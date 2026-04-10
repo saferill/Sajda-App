@@ -58,6 +58,7 @@ import com.sajda.app.ui.theme.surfaceContainerLowest
 import com.sajda.app.util.audioBundleSizeBytes
 import com.sajda.app.util.buildHighlightedText
 import com.sajda.app.util.hasAnyDownloadedAudio
+import com.sajda.app.util.isEnglish
 import com.sajda.app.util.pick
 
 private data class BookmarkEntryUi(
@@ -86,7 +87,7 @@ fun SearchScreen(
         }
     }
     val suggestions = remember(appLanguage) {
-        if (appLanguage == AppLanguage.ENGLISH) {
+        if (appLanguage.isEnglish()) {
             listOf("Patience", "Prayer", "Mercy")
         } else {
             listOf("Sabar", "Sholat", "Rahmat")
@@ -257,7 +258,7 @@ fun BookmarksScreen(
                 )
                 ArabicVerseText(text = featured.arabic, fontSize = 24)
                 Text(
-                    text = if (appLanguage == AppLanguage.ENGLISH) {
+                    text = if (appLanguage.isEnglish()) {
                         featured.englishTranslation.ifBlank { featured.translation }
                     } else {
                         featured.translation
@@ -321,7 +322,7 @@ fun BookmarksScreen(
                                 maxLines = 1
                             )
                             Text(
-                                text = if (appLanguage == AppLanguage.ENGLISH) {
+                                text = if (appLanguage.isEnglish()) {
                                     entry.englishTranslation.ifBlank { entry.translation }
                                 } else {
                                     entry.translation
@@ -495,7 +496,7 @@ fun AudioManagementScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${if (appLanguage == AppLanguage.ENGLISH) surah.englishTranslation.ifBlank { surah.translation } else surah.translation} - ${surah.totalVerses} ${appLanguage.pick("ayat", "verses")}",
+                            text = "${if (appLanguage.isEnglish()) surah.englishTranslation.ifBlank { surah.translation } else surah.translation} - ${surah.totalVerses} ${appLanguage.pick("ayat", "verses")}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

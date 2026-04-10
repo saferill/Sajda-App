@@ -39,7 +39,7 @@ class SpiritualContentRepository @Inject constructor(
     private val myQuranDoaUrl = "https://api.myquran.com/v2/doa/all"
 
     suspend fun load(language: AppLanguage): SpiritualContentBundle = withContext(Dispatchers.IO) {
-        if (language != AppLanguage.ENGLISH) {
+        if (language == AppLanguage.INDONESIAN) {
             val remoteDuas = fetchRemoteDuas()
             val remoteHadiths = fetchRemoteHadithCategories()
             if (remoteDuas.isNotEmpty() || remoteHadiths.isNotEmpty()) {

@@ -37,6 +37,7 @@ import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.ui.component.HeroCard
 import com.sajda.app.ui.component.MetadataChip
 import com.sajda.app.ui.component.SanctuaryCard
+import com.sajda.app.ui.theme.surfaceContainerHigh
 import com.sajda.app.ui.theme.surfaceContainerLow
 import com.sajda.app.ui.viewmodel.PrayerTimeViewModel
 import com.sajda.app.util.DateTimeUtils
@@ -174,7 +175,7 @@ fun PrayerTimeScreen(
                         modifier = Modifier
                             .width(64.dp)
                             .clip(RoundedCornerShape(18.dp))
-                            .background(if (active) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)
+                            .background(if (active) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainerLow)
                             .padding(vertical = 10.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -225,8 +226,7 @@ fun PrayerTimeScreen(
                 PrayerRow(
                     localizedPrayerName(PrayerName.ASR.label, settings.appLanguage),
                     prayerTime?.asr ?: "--:--",
-                    settings.asrAdzanEnabled,
-                    highlighted = true
+                    settings.asrAdzanEnabled
                 ) { viewModel.togglePrayer(PrayerName.ASR, it) }
                 PrayerRow(
                     localizedPrayerName(PrayerName.MAGHRIB.label, settings.appLanguage),
@@ -284,7 +284,7 @@ private fun PrayerRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(if (highlighted) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.24f) else Color.Transparent)
+            .background(if (highlighted) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -294,13 +294,13 @@ private fun PrayerRow(
                 modifier = Modifier
                     .size(38.dp)
                     .clip(CircleShape)
-                    .background(if (highlighted) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow),
+                    .background(if (highlighted) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainerLow),
                 contentAlignment = Alignment.Center
             ) {
                 androidx.compose.material3.Icon(
                     imageVector = if (onToggle != null) Icons.Rounded.NotificationsActive else Icons.Rounded.Mosque,
                     contentDescription = null,
-                    tint = if (highlighted) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
+                    tint = if (highlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(18.dp)
                 )
             }
