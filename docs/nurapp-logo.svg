@@ -1,8 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
   <title id="title">NurApp Logo</title>
-  <desc id="desc">Teal and gold droplet-inspired NurApp mark.</desc>
-  <path fill="#E8B86B" d="M256 44c-44 52-102 100-120 184v136c0 78 50 130 120 148 70-18 120-70 120-148V228c-18-84-76-132-120-184Z"/>
-  <path fill="#FFF5DD" d="m256 96 38 36-38 36-38-36Z"/>
-  <path fill="#0A3A3D" d="M256 156c-30 34-60 78-60 142 0 58 22 110 60 150 38-40 60-92 60-150 0-64-30-108-60-142Z"/>
-  <path fill="#2F7B80" fill-opacity=".35" d="M256 198c-20 28-36 60-36 106 0 40 12 74 36 102 24-28 36-62 36-102 0-46-16-78-36-106Z"/>
+  <desc id="desc">NurApp badge logo with rounded square background and mosque mark.</desc>
+  <rect x="32" y="32" width="448" height="448" rx="148" fill="#FFFDF8"/>
+  <g transform="translate(0 0)">
+    <path fill="#1F5D63" fill-rule="evenodd" d="M208 74a182 182 0 1 1 0 364a182 182 0 1 1 0-364Zm78 44a140 140 0 1 0 0 280a140 140 0 1 0 0-280Z"/>
+    <path fill="#E7A84B" fill-rule="evenodd" d="M214 96a158 158 0 1 1 0 316a158 158 0 1 1 0-316Zm70 36a124 124 0 1 0 0 248a124 124 0 1 0 0-248Z"/>
+    <path fill="#1F5D63" d="M142 340v-20h22v-94c0-10 7-18 17-18s17 8 17 18v94h16v-56c0-50 35-88 80-88s80 38 80 88v56h16v-94c0-10 7-18 17-18s17 8 17 18v94h22v20H142Z"/>
+    <path fill="#1F5D63" d="M212 320v-62c0-46 36-76 82-76s82 30 82 76v62H212Z"/>
+    <path fill="#1F5D63" d="M158 208v-18c0-12 10-22 22-22s22 10 22 22v18h-44Z"/>
+    <path fill="#1F5D63" d="M386 208v-18c0-12 10-22 22-22s22 10 22 22v18h-44Z"/>
+    <path fill="#1F5D63" d="m174 168 6-30 6 30Z"/>
+    <path fill="#1F5D63" d="m402 168 6-30 6 30Z"/>
+    <path fill="#E7A84B" d="M272 252c0-12 10-22 22-22s22 10 22 22v88h-44v-88Z"/>
+    <path fill="#E7A84B" fill-rule="evenodd" d="M338 104a18 18 0 1 1 0 36a18 18 0 1 1 0-36Zm7 4a12 12 0 1 0 0 24a12 12 0 1 0 0-24Z"/>
+  </g>
 </svg>

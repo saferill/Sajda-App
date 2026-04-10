@@ -5,12 +5,12 @@
 <h1 align="center">NurApp</h1>
 
 <p align="center">
-  A modern Islamic Android app for Qur'an reading, adhan reminders, hadith search, Ramadan tools, qibla access, and safe in-app updates.
+  Aplikasi Android Muslim harian untuk Quran, adzan, hadist, Ramadhan, kiblat, kalender Islam, audio murattal, dan update APK dari GitHub Releases.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Android-0F5238?style=for-the-badge&logo=android&logoColor=white" alt="Android" />
-  <img src="https://img.shields.io/badge/Kotlin-Jetpack%20Compose-16423C?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin Compose" />
+  <img src="https://img.shields.io/badge/Kotlin-Jetpack%20Compose-16423C?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin Jetpack Compose" />
   <img src="https://img.shields.io/badge/Architecture-MVVM%20%7C%20Repository-D6B66A?style=for-the-badge&logo=android&logoColor=1A1A1A" alt="Architecture" />
   <img src="https://img.shields.io/badge/Release-v1.4.1-0F5238?style=for-the-badge&logo=github&logoColor=white" alt="Release v1.4.1" />
 </p>
@@ -21,77 +21,120 @@
   <a href="https://github.com/saferill/Nur-App/releases/download/v1.4.1/NurApp-v1.4.1.apk">Download APK</a>
   |
   <a href="ROADMAP.md">Roadmap</a>
+  |
+  <a href="LICENSE">License</a>
 </p>
 
-## Overview
+## Ringkasan
 
-NurApp adalah aplikasi Android Kotlin yang berfokus pada pengalaman ibadah harian yang rapi, cepat, dan tetap berguna saat offline. Fitur utamanya mencakup Qur'an, adhan, hadith, Ramadhan, kalender Islam, qibla, pengelolaan audio murattal, serta update APK langsung dari GitHub Releases.
+NurApp adalah aplikasi Android Kotlin yang dirancang untuk kebutuhan ibadah harian dengan tampilan yang lebih rapi, alur yang sederhana, dan fitur inti yang tetap berguna saat offline.
 
-Brand user-facing aplikasi adalah `NurApp`, sementara package Android tetap `com.sajda.app` untuk menjaga kompatibilitas instalasi lama, signature, dan jalur update.
+Brand aplikasi untuk pengguna adalah `NurApp`, sedangkan package Android tetap `com.sajda.app` agar kompatibilitas instalasi lama, signature, dan jalur update tidak putus.
 
-## Current Status
+## Fokus Produk
 
-Project ini aktif dikembangkan. Prioritas saat ini bukan menambah tab baru, tetapi memperkuat kualitas inti:
+NurApp dibangun dengan arah yang jelas:
 
-- adhan yang lebih andal di device nyata
-- cleanup bahasa aplikasi dan resource locale
-- UI yang lebih tenang dan tidak berantakan
-- backup, restore, dan update flow yang lebih aman
-- test coverage untuk flow kritis
+- cepat dibuka dan tidak terasa berat
+- jadwal adzan dan alarm sholat lebih bisa diandalkan
+- pengalaman membaca Quran lebih nyaman
+- fitur tidak berantakan dan tidak penuh tombol ganda
+- update aplikasi bisa dilakukan langsung dari dalam app
 
-## Core Features
+## Sorotan Fitur
 
-### Qur'an
+### 1. Navigasi utama
 
-- Offline-first Qur'an data dari asset lokal
+- Beranda
+- Quran
+- Adzan
+- Hadist
+- Ramadhan
+- Pengaturan
+
+### 2. Quran
+
+- Data Quran offline dari asset lokal
 - Tampilan surah dan ayat dengan teks Arab, terjemahan, transliterasi, bookmark, dan last read
-- Tafsir full screen
-- Banyak pilihan qari
-- Download audio per surah untuk kebutuhan offline
-- Mini player dan background audio playback
+- Tafsir layar penuh
+- Pilihan qari yang lebih banyak
+- Download audio per surah
+- Pilihan unduh qari aktif atau semua qari
+- Opsi unduh dengan pembatasan Wi-Fi
+- Mini player dan playback background
 
-### Adhan & Prayer Times
+### 3. Adzan dan jadwal sholat
 
-- Jadwal sholat harian dengan exact alarm
-- Adhan terpisah untuk regular dan Subuh
-- Reschedule alarm setelah reboot dan repair flow
-- Auto-update lokasi adhan dari GPS
-- Diagnosa adhan untuk cek kesiapan sistem
+- Jadwal sholat harian
+- Exact alarm scheduling
+- Adzan reguler dan adzan Subuh terpisah
+- Reschedule alarm setelah reboot
+- Auto update lokasi adzan dari GPS
+- Permission lokasi saat pertama kali aplikasi dibuka
+- Halaman diagnosa adzan
 - Countdown ke waktu sholat berikutnya
 
-### Hadith & Spiritual Content
+### 4. Hadist dan doa
 
-- Pencarian hadith berdasarkan kitab, kata kunci, dan nomor
-- Tipografi Arab yang lebih nyaman dibaca
-- Doa harian dan konten spiritual tambahan
-- Highlight hasil pencarian untuk membantu scanning cepat
+- Pencarian hadist berdasarkan kitab, kata kunci, dan nomor
+- Tipografi Arab yang lebih besar dan lebih nyaman
+- Konten doa dan spiritual tambahan
+- Highlight hasil pencarian
 
-### Ramadan, Calendar, and Qibla
+### 5. Ramadhan, kalender, dan kiblat
 
-- Mode Ramadhan dengan jadwal imsak dan iftar
+- Mode Ramadhan
+- Jadwal imsak dan iftar
 - Doa berbuka dan sahur
-- Kalender Islam dan kalender Masehi
-- Akses qibla langsung dari home flow
+- Kalender Hijriah dan Masehi
+- Akses kiblat dari alur utama aplikasi
 
-### App Update & Local Data
+### 6. Pengaturan dan update
 
-- Cek versi terbaru dari GitHub Releases
-- Download APK update via WorkManager
-- Banner progres download di dalam aplikasi
-- Install APK via FileProvider
+- Bahasa aplikasi yang lebih luas
+- Kontrol qari, mode baca, dan audio offline
+- Update aplikasi manual lewat halaman `Update Aplikasi`
+- Download APK update dari GitHub Releases
+- Install APK update langsung dari aplikasi
 - Backup dan restore data lokal inti
 
-## Product Direction
+## Bahasa yang Didukung
 
-Tujuan NurApp adalah menjadi aplikasi Muslim harian yang:
+Saat ini NurApp menyediakan pilihan bahasa berikut:
 
-- cepat dibuka
-- jelas dipakai
-- tidak penuh elemen yang tidak penting
-- tetap berguna walau koneksi tidak stabil
-- bisa dipercaya untuk flow adhan
+- Indonesia
+- English
+- Arabic
+- Spanish
+- German
+- Portuguese
+- Chinese
+- Japanese
+- Korean
+- Italian
+- Polish
+- Ukrainian
+- Swahili
+- Tagalog
+- Turkish
+- Urdu
+- French
+- Malay
+- Hindi
 
-Roadmap pengembangan detail ada di [ROADMAP.md](ROADMAP.md).
+Catatan: untuk bahasa selain Indonesia dan English, aplikasi memakai jalur terjemahan cache agar transisi bahasa lebih luas bisa berjalan tanpa menggandakan semua string secara manual lebih dulu.
+
+## Rilis Saat Ini
+
+Versi terbaru yang sudah dipublikasikan adalah `v1.4.1`.
+
+Perubahan penting di rilis ini:
+
+- branding README dan release diselaraskan dengan logo aplikasi terbaru
+- bahasa aplikasi diperluas dan tidak lagi berhenti di fallback English saja
+- prompt lokasi awal untuk setup adzan ditambahkan
+- opsi unduhan audio qari dibuat lebih jelas
+- update center tetap manual, bukan auto-check saat app dibuka
 
 ## Tech Stack
 
@@ -106,11 +149,11 @@ Roadmap pengembangan detail ada di [ROADMAP.md](ROADMAP.md).
 | Background Work | WorkManager + AlarmManager + Foreground Service |
 | Audio | Media3 / ExoPlayer |
 | Location | FusedLocationProviderClient + Geocoder |
-| Update Delivery | GitHub Releases API + FileProvider |
+| Update Delivery | GitHub Releases API + DownloadManager + Package Installer |
 
-## Data Sources
+## Sumber Data
 
-NurApp memakai kombinasi local assets dan public API:
+NurApp memakai kombinasi asset lokal dan public API:
 
 - AlQuran Cloud
 - EQuran.id
@@ -121,17 +164,12 @@ NurApp memakai kombinasi local assets dan public API:
 
 Referensi source tambahan ada di [docs/CONTENT_SOURCES.md](docs/CONTENT_SOURCES.md).
 
-## Project Structure
+## Struktur Project
 
 ```text
 app/src/main/
 |- java/com/sajda/app/
 |  |- data/
-|  |  |- api/
-|  |  |- local/
-|  |  |- model/
-|  |  |- remote/
-|  |  `- repository/
 |  |- di/
 |  |- domain/model/
 |  |- service/
@@ -151,15 +189,15 @@ app/src/main/
 `- AndroidManifest.xml
 ```
 
-## Requirements
+## Kebutuhan Build
 
-- Android Studio terbaru yang mendukung AGP project ini
+- Android Studio yang mendukung AGP project ini
 - Android SDK dengan `compileSdk = 36`
 - JDK 17 atau JDK 21
 - `keystore.properties` lama untuk signed release
-- `local.properties` jika ingin override endpoint atau API-related values
+- `local.properties` bila ingin override endpoint tertentu
 
-## Local Configuration
+## Konfigurasi Lokal
 
 Project membaca nilai opsional berikut dari `local.properties`:
 
@@ -169,7 +207,7 @@ hadith.api.baseUrl=https://hadithapi.com/public/api
 dua.content.url=https://raw.githubusercontent.com/wafaaelmaandy/Hisn-Muslim-Json/master/hisnmuslim.json
 ```
 
-Kalau tidak diisi, project memakai fallback default dari `app/build.gradle.kts`.
+Kalau tidak diisi, project memakai fallback dari `app/build.gradle.kts`.
 
 ## Build
 
@@ -199,12 +237,32 @@ Output:
 app/build/outputs/apk/release/NurApp-v1.4.1.apk
 ```
 
-## Latest Release
+## Install ke Device
 
-- Release page: [v1.4.1](https://github.com/saferill/Nur-App/releases/tag/v1.4.1)
-- Direct APK: [NurApp-v1.4.1.apk](https://github.com/saferill/Nur-App/releases/download/v1.4.1/NurApp-v1.4.1.apk)
+Install lewat ADB:
 
-## Documentation
+```bash
+adb install app/build/outputs/apk/release/NurApp-v1.4.1.apk
+```
+
+Kalau muncul error `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, berarti di device masih ada `com.sajda.app` dengan signature berbeda. Solusinya:
+
+1. uninstall aplikasi lama dari device
+2. install ulang APK release yang baru
+
+## Update Aplikasi
+
+Flow update saat ini bersifat manual:
+
+1. buka `Pengaturan`
+2. masuk ke `Update Aplikasi`
+3. tekan `Cek sekarang`
+4. unduh APK terbaru
+5. tekan `Pasang sekarang`
+
+NurApp tidak lagi memaksa cek update otomatis saat aplikasi dibuka.
+
+## Dokumentasi
 
 - Build notes: [BUILD_INSTRUCTIONS.md](BUILD_INSTRUCTIONS.md)
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
@@ -212,35 +270,29 @@ app/build/outputs/apk/release/NurApp-v1.4.1.apk
 - Contributing guide: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Content sources: [docs/CONTENT_SOURCES.md](docs/CONTENT_SOURCES.md)
 
-## Permissions
+## Permission Utama
 
-| Permission | Purpose |
+| Permission | Kegunaan |
 |---|---|
-| `INTERNET` | Fetch API content and check updates |
-| `ACCESS_FINE_LOCATION` | GPS-based prayer location |
-| `ACCESS_COARSE_LOCATION` | Fallback location access |
-| `POST_NOTIFICATIONS` | Adhan and update notifications |
-| `FOREGROUND_SERVICE` | Audio and adhan foreground service |
-| `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | Background playback |
-| `SCHEDULE_EXACT_ALARM` | Exact prayer alarm scheduling |
-| `USE_EXACT_ALARM` | Exact alarm support on compatible devices |
-| `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Better reminder reliability on aggressive OEM devices |
-| `REQUEST_INSTALL_PACKAGES` | Install downloaded APK updates |
-| `WRITE_EXTERNAL_STORAGE` | Legacy compatibility on older Android versions |
-| `RECEIVE_BOOT_COMPLETED` | Repair schedules after reboot |
-| `WAKE_LOCK` | Keep alarm flow stable during trigger |
-| `USE_FULL_SCREEN_INTENT` | More visible urgent adhan flow when needed |
+| `INTERNET` | Ambil data API dan cek update |
+| `ACCESS_FINE_LOCATION` | Lokasi GPS untuk adzan |
+| `ACCESS_COARSE_LOCATION` | Fallback lokasi |
+| `POST_NOTIFICATIONS` | Notifikasi adzan dan update |
+| `FOREGROUND_SERVICE` | Audio dan service adzan |
+| `SCHEDULE_EXACT_ALARM` | Alarm sholat presisi |
+| `REQUEST_INSTALL_PACKAGES` | Install APK update |
+| `RECEIVE_BOOT_COMPLETED` | Jadwal dipulihkan setelah reboot |
+| `WAKE_LOCK` | Menjaga flow alarm saat trigger |
 
-## Notes
+## Catatan Penting
 
 - Signed release dijaga dengan keystore lama agar jalur update tidak putus.
-- Beberapa identifier internal masih memakai nama lama untuk kompatibilitas.
-- Localization sudah mulai dipisah ke resource locale, tapi masih terus dirapikan agar semakin lengkap.
-- Fokus berikutnya ada di reliability, bukan sekadar menambah fitur baru.
+- Beberapa identifier internal masih memakai nama lama demi kompatibilitas.
+- Aplikasi masih terus dirapikan, terutama untuk reliability adzan, bahasa, dan penyederhanaan UI.
 
-## Contributing
+## Kontribusi
 
-Pull request dan perbaikan terarah dipersilakan. Sebelum kontribusi besar, baca dulu [CONTRIBUTING.md](CONTRIBUTING.md) dan cek [ROADMAP.md](ROADMAP.md) agar arah perubahan tetap sejalan dengan prioritas produk.
+Pull request dan perbaikan terarah dipersilakan. Sebelum perubahan besar, baca [CONTRIBUTING.md](CONTRIBUTING.md) dan cek [ROADMAP.md](ROADMAP.md) agar arah kontribusi tetap sejalan.
 
 ## License
 
@@ -248,4 +300,4 @@ Project ini dirilis di bawah [MIT License](LICENSE).
 
 ## Disclaimer
 
-NurApp menggunakan beberapa public API dan sumber data pihak ketiga. Ketersediaan, format response, dan kebijakan source tersebut dapat berubah sewaktu-waktu sesuai provider masing-masing.
+NurApp memakai beberapa public API dan sumber data pihak ketiga. Ketersediaan endpoint, format response, dan kebijakan provider dapat berubah sewaktu-waktu.
