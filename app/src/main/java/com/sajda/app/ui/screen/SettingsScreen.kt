@@ -1,24 +1,21 @@
 package com.sajda.app.ui.screen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -26,15 +23,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sajda.app.BuildConfig
 import com.sajda.app.domain.model.AudioDownloadMode
 import com.sajda.app.domain.model.CalendarDisplayMode
-import com.sajda.app.ui.component.SajdaTopAction
-import com.sajda.app.ui.component.SajdaTopBar
-import com.sajda.app.ui.component.SanctuaryCard
 import com.sajda.app.ui.viewmodel.AppUpdateUiState
 import com.sajda.app.ui.viewmodel.BackupUiState
 import com.sajda.app.ui.viewmodel.SettingsViewModel
 import com.sajda.app.util.displayLabel
 import com.sajda.app.util.displayName
-import com.sajda.app.util.isEnglish
 import com.sajda.app.util.pick
 
 @Composable
@@ -51,235 +44,459 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val backupState by viewModel.backupState.collectAsStateWithLifecycle()
-    val isEnglish = settings.appLanguage.isEnglish()
 
-    androidx.compose.foundation.lazy.LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, top = 14.dp, end = 20.dp, bottom = 150.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding(),
+        contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 132.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         item {
-            SajdaTopBar(
+            SettingsHeader(
                 title = settings.pick("Pengaturan", "Settings"),
-                leading = onBack?.let { backAction ->
-                    {
-                        SajdaTopAction(
-                            icon = Icons.Rounded.ArrowBack,
-                            label = settings.pick("Kembali", "Back"),
-                            onClick = backAction
-                        )
-                    }
-                }
+                onBack = onBack
             )
         }
 
         item {
-            SanctuaryCard {
-                SettingsCardTitle(settings.pick("Adzan", "Adhan"))
-                ToggleRow(
-                    title = settings.pick("Adzan otomatis", "Automatic adhan"),
-                    subtitle = if (settings.adzanEnabled) settings.pick("Aktif", "On") else settings.pick("Nonaktif", "Off"),
+            SettingsSection(title = settings.pick("Adzan & Notifikasi", "Adhan & Notifications")) {
+                SettingsActionRow(
+                    icon = Icons.Rounded.Mosque,
+                    title = settings.pick("Suara Adzan", "Adhan Sound"),
+                    value = settings.adzanSound.title,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    iconBackground = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                    onClick = onOpenAdhanSettings
+                )
+                SettingsActionRow(
+                    icon = Icons.Rounded.WbTwilight,
+                    title = settings.pick("Suara Adzan Subuh", "Fajr Adhan Sound"),
+                    value = settings.fajrAdzanSound.title,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    iconBackground = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                    onClick = onOpenAdhanSettings
+                )
+                SettingsToggleRow(
+                    icon = Icons.Rounded.NotificationsActive,
+                    title = settings.pick("Adzan Otomatis", "Automatic Adhan"),
+                    subtitle = if (settings.adzanEnabled) {
+                        settings.pick("Aktif untuk jadwal yang dipilih", "Active for selected prayer times")
+                    } else {
+                        settings.pick("Semua alarm adzan dimatikan", "All adhan alarms are disabled")
+                    },
                     checked = settings.adzanEnabled,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    iconBackground = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                     onCheckedChange = viewModel::setAdzanEnabled
                 )
-                ActionRow(
-                    title = settings.pick("Diagnosa adzan", "Adhan diagnostics"),
-                    value = settings.pick("Tes, izin, battery, exact alarm", "Tests, permissions, battery, exact alarm"),
-                    onClick = onOpenAdhanSettings
-                )
-                ActionRow(
-                    title = settings.pick("Suara reguler", "Regular sound"),
-                    value = settings.adzanSound.title,
-                    onClick = onOpenAdhanSettings
-                )
-                ActionRow(
-                    title = settings.pick("Suara Subuh", "Fajr sound"),
-                    value = settings.fajrAdzanSound.title,
+                SettingsActionRow(
+                    icon = Icons.Rounded.Tune,
+                    title = settings.pick("Diagnosa Adzan", "Adhan Diagnostics"),
+                    value = settings.pick("Tes, exact alarm, baterai, izin", "Test, exact alarm, battery, permissions"),
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    iconBackground = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                     onClick = onOpenAdhanSettings
                 )
             }
         }
 
         item {
-            SanctuaryCard {
-                SettingsCardTitle("Al-Qur'an")
-                ActionRow(
-                    title = settings.pick("Qari aktif", "Active reciter"),
+            SettingsSection(title = settings.pick("Tampilan", "Appearance")) {
+                SettingsToggleRow(
+                    icon = Icons.Rounded.DarkMode,
+                    title = settings.pick("Mode Gelap", "Dark Mode"),
+                    subtitle = settings.pick("Gunakan tampilan malam untuk aplikasi", "Use the night look across the app"),
+                    checked = settings.darkMode || settings.nightMode,
+                    iconTint = MaterialTheme.colorScheme.secondary,
+                    iconBackground = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.24f),
+                    onCheckedChange = {
+                        viewModel.setDarkMode(it)
+                        viewModel.setNightMode(it)
+                    }
+                )
+                SettingsSliderBlock(
+                    icon = Icons.Rounded.FormatSize,
+                    title = settings.pick("Ukuran Font Al-Qur'an", "Qur'an Font Size"),
+                    value = settings.arabicFontSize.toFloat(),
+                    valueLabel = settings.arabicFontSize.toString(),
+                    iconTint = MaterialTheme.colorScheme.secondary,
+                    iconBackground = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.24f),
+                    onValueChange = { viewModel.setArabicFontSize(it.toInt()) }
+                )
+                SettingsActionRow(
+                    icon = Icons.Rounded.Translate,
+                    title = settings.pick("Bahasa", "Language"),
+                    value = settings.appLanguage.displayName(),
+                    iconTint = MaterialTheme.colorScheme.secondary,
+                    iconBackground = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.24f),
+                    onClick = onOpenLanguageSettings
+                )
+                SettingsToggleRow(
+                    icon = Icons.Rounded.CalendarMonth,
+                    title = settings.pick("Kalender Hijriah", "Hijri Calendar"),
+                    subtitle = settings.pick("Matikan jika ingin tampilan Masehi", "Turn off for Gregorian mode"),
+                    checked = settings.calendarDisplayMode == CalendarDisplayMode.HIJRI,
+                    iconTint = MaterialTheme.colorScheme.secondary,
+                    iconBackground = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.24f),
+                    onCheckedChange = {
+                        viewModel.setCalendarDisplayMode(
+                            if (it) CalendarDisplayMode.HIJRI else CalendarDisplayMode.GREGORIAN
+                        )
+                    }
+                )
+            }
+        }
+
+        item {
+            SettingsSection(title = "Al-Qur'an") {
+                SettingsActionRow(
+                    icon = Icons.Rounded.MenuBook,
+                    title = settings.pick("Jenis Terjemahan", "Translation Mode"),
+                    value = settings.quranReadingMode.displayLabel(settings.appLanguage),
+                    iconTint = MaterialTheme.colorScheme.tertiary,
+                    iconBackground = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
+                    onClick = onOpenLanguageSettings
+                )
+                SettingsActionRow(
+                    icon = Icons.Rounded.RecordVoiceOver,
+                    title = settings.pick("Qari (Murottal)", "Reciter"),
                     value = settings.selectedQuranReciter.title,
+                    iconTint = MaterialTheme.colorScheme.tertiary,
+                    iconBackground = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
                     onClick = onOpenAudioManagement
                 )
-                ActionRow(
-                    title = settings.pick("Audio offline", "Offline audio"),
-                    value = settings.pick("Kelola unduhan", "Manage downloads"),
-                    onClick = onOpenAudioManagement
-                )
-                ActionRow(
-                    title = settings.pick("Mode unduhan audio", "Audio download mode"),
+                SettingsActionRow(
+                    icon = Icons.Rounded.DownloadForOffline,
+                    title = settings.pick("Audio Offline", "Offline Audio"),
                     value = when (settings.audioDownloadMode) {
                         AudioDownloadMode.SELECTED_RECITER_ONLY -> settings.pick("Qari aktif saja", "Selected reciter only")
                         AudioDownloadMode.ALL_RECITERS -> settings.pick("Semua qari", "All reciters")
                     },
+                    iconTint = MaterialTheme.colorScheme.tertiary,
+                    iconBackground = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
                     onClick = onOpenAudioManagement
                 )
-                ToggleRow(
-                    title = settings.pick("Unduh hanya lewat Wi-Fi", "Download on Wi-Fi only"),
-                    subtitle = settings.pick("Berlaku untuk audio Qur'an offline", "Applies to offline Qur'an audio"),
+                SettingsToggleRow(
+                    icon = Icons.Rounded.Wifi,
+                    title = settings.pick("Unduh Hanya via Wi-Fi", "Wi-Fi Only Downloads"),
+                    subtitle = settings.pick("Berlaku untuk semua unduhan audio Al-Qur'an", "Applies to all Qur'an audio downloads"),
                     checked = settings.wifiOnlyAudioDownloads,
+                    iconTint = MaterialTheme.colorScheme.tertiary,
+                    iconBackground = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
                     onCheckedChange = viewModel::setWifiOnlyAudioDownloads
                 )
             }
         }
 
         item {
-            SanctuaryCard {
-                SettingsCardTitle(settings.pick("Bahasa & Tampilan", "Language & Appearance"))
-                ActionRow(
-                    title = settings.pick("Bahasa aplikasi", "App language"),
-                    value = settings.appLanguage.displayName(),
-                    onClick = onOpenLanguageSettings
-                )
-                ToggleRow(
-                    title = settings.pick("Mode gelap", "Dark mode"),
-                    checked = settings.darkMode || settings.nightMode,
-                    onCheckedChange = {
-                        viewModel.setDarkMode(it)
-                        viewModel.setNightMode(it)
-                    }
-                )
-                SliderRow(
-                    title = settings.pick("Ukuran font Arab", "Arabic font size"),
-                    value = settings.arabicFontSize.toFloat(),
-                    valueRange = 24f..40f,
-                    valueLabel = settings.arabicFontSize.toString(),
-                    onValueChange = { viewModel.setArabicFontSize(it.toInt()) }
-                )
-                ToggleRow(
-                    title = settings.pick("Kalender Hijriah", "Hijri calendar"),
-                    subtitle = settings.pick("Matikan untuk kalender Masehi", "Turn off for Gregorian"),
-                    checked = settings.calendarDisplayMode == CalendarDisplayMode.HIJRI,
-                    onCheckedChange = { enabled ->
-                        viewModel.setCalendarDisplayMode(
-                            if (enabled) CalendarDisplayMode.HIJRI else CalendarDisplayMode.GREGORIAN
-                        )
-                    }
-                )
-            }
-        }
-
-        item {
-            SanctuaryCard {
-                SettingsCardTitle(settings.pick("Lokasi & Jadwal", "Location & Schedule"))
-                ToggleRow(
-                    title = settings.pick("Lokasi otomatis", "Auto location"),
-                    subtitle = settings.locationName.ifBlank {
+            SettingsSection(title = settings.pick("Lainnya", "More")) {
+                SettingsActionRow(
+                    icon = Icons.Rounded.LocationOn,
+                    title = settings.pick("Lokasi Aktif", "Active Location"),
+                    value = settings.locationName.ifBlank {
                         settings.pick("Belum ada lokasi aktif", "No active location yet")
                     },
-                    checked = settings.autoLocation,
-                    onCheckedChange = viewModel::setAutoLocation
-                )
-                ActionRow(
-                    title = settings.pick("Lokasi aktif", "Active location"),
-                    value = settings.locationName.ifBlank {
-                        settings.pick("Pilih lokasi", "Choose location")
-                    },
+                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    iconBackground = MaterialTheme.colorScheme.surfaceVariant,
                     onClick = onOpenLocationSettings
                 )
-                ActionRow(
-                    title = settings.pick("Metode hisab", "Calculation method"),
-                    value = "${settings.prayerCalculationMethod.label} | ${settings.asrMadhhab.label}",
-                    onClick = onOpenLocationSettings
-                )
-                ActionRow(
-                    title = settings.pick("Reminder ibadah", "Worship reminders"),
+                SettingsActionRow(
+                    icon = Icons.Rounded.Alarm,
+                    title = settings.pick("Reminder Ibadah", "Worship Reminders"),
                     value = settings.pick("Atur jadwal harian", "Manage daily reminders"),
+                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    iconBackground = MaterialTheme.colorScheme.surfaceVariant,
                     onClick = onOpenSmartReminders
                 )
-            }
-        }
-
-        item {
-            SanctuaryCard {
-                SettingsCardTitle(settings.pick("Data & Update", "Data & Updates"))
-                ActionRow(
-                    title = settings.pick("Pembaruan aplikasi", "App updates"),
-                    value = when {
-                        updateState.hasUpdate -> settings.pick(
-                            "Versi ${updateState.latestVersionName}",
-                            "Version ${updateState.latestVersionName}"
-                        )
-                        updateState.lastCheckedAt.isBlank() -> settings.pick(
-                            "Cek manual",
-                            "Manual check"
-                        )
-                        else -> settings.pick("Sudah terbaru", "Up to date")
-                    },
+                SettingsActionRow(
+                    icon = Icons.Rounded.SystemUpdateAlt,
+                    title = settings.pick("Pembaruan Aplikasi", "App Updates"),
+                    value = updateLabel(settings = settings, updateState = updateState),
+                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    iconBackground = MaterialTheme.colorScheme.surfaceVariant,
                     onClick = onOpenUpdateCenter
                 )
-                ActionRow(
-                    title = settings.pick("Backup data lokal", "Backup local data"),
+                SettingsActionRow(
+                    icon = Icons.Rounded.Backup,
+                    title = settings.pick("Backup Data Lokal", "Backup Local Data"),
                     value = settings.lastBackupAt.ifBlank {
                         settings.pick("Belum pernah backup", "No backup yet")
                     },
+                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    iconBackground = MaterialTheme.colorScheme.surfaceVariant,
                     onClick = viewModel::exportBackup
                 )
-                ActionRow(
-                    title = settings.pick("Restore data lokal", "Restore local data"),
+                SettingsActionRow(
+                    icon = Icons.Rounded.Restore,
+                    title = settings.pick("Restore Data Lokal", "Restore Local Data"),
                     value = settings.lastRestoreAt.ifBlank {
                         settings.pick("Belum pernah restore", "No restore yet")
                     },
+                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    iconBackground = MaterialTheme.colorScheme.surfaceVariant,
                     onClick = viewModel::restoreBackup
                 )
-                BackupStatusCard(
-                    backupState = backupState,
-                    emptyMessage = settings.pick(
-                        "Bookmark, terakhir dibaca, qari, bahasa, dan setting adzan ikut dibackup.",
-                        "Bookmarks, last read, reciter, language, and adhan settings are included in the backup."
-                    )
+                SettingsStaticRow(
+                    icon = Icons.Rounded.Info,
+                    title = settings.pick("Tentang NurApp", "About NurApp"),
+                    value = "v${BuildConfig.VERSION_NAME}",
+                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    iconBackground = MaterialTheme.colorScheme.surfaceVariant
                 )
             }
         }
 
         item {
-            Text(
-                text = if (isEnglish) "NurApp ${BuildConfig.VERSION_NAME}" else "NurApp ${BuildConfig.VERSION_NAME}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
+            BackupStatusCard(
+                backupState = backupState,
+                emptyMessage = settings.pick(
+                    "Bookmark, terakhir dibaca, qari, bahasa, dan setting adzan ikut dibackup.",
+                    "Bookmarks, last read, reciter, language, and adhan settings are included in backups."
+                )
             )
         }
     }
 }
 
 @Composable
-private fun SettingsCardTitle(text: String) {
-    Text(
-        text = text.uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
-}
-
-@Composable
-private fun ToggleRow(
+private fun SettingsHeader(
     title: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    subtitle: String? = null
+    onBack: (() -> Unit)?
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (onBack != null) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
+            contentAlignment = Alignment.Center
         ) {
+            Icon(
+                imageVector = Icons.Rounded.Settings,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsSection(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            text = title.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.70f)
+        )
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 6.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                content = content
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsActionRow(
+    icon: ImageVector,
+    title: String,
+    value: String,
+    iconTint: Color,
+    iconBackground: Color,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        SettingsRowLead(
+            icon = icon,
+            iconTint = iconTint,
+            iconBackground = iconBackground,
+            title = title,
+            modifier = Modifier.weight(1f)
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.End
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsStaticRow(
+    icon: ImageVector,
+    title: String,
+    value: String,
+    iconTint: Color,
+    iconBackground: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        SettingsRowLead(
+            icon = icon,
+            iconTint = iconTint,
+            iconBackground = iconBackground,
+            title = title,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun SettingsToggleRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    iconTint: Color,
+    iconBackground: Color,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        SettingsRowLead(
+            icon = icon,
+            iconTint = iconTint,
+            iconBackground = iconBackground,
+            title = title,
+            subtitle = subtitle,
+            modifier = Modifier.weight(1f)
+        )
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+private fun SettingsSliderBlock(
+    icon: ImageVector,
+    title: String,
+    value: Float,
+    valueLabel: String,
+    iconTint: Color,
+    iconBackground: Color,
+    onValueChange: (Float) -> Unit
+) {
+    Column(
+        modifier = Modifier.padding(horizontal = 10.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        SettingsRowLead(
+            icon = icon,
+            iconTint = iconTint,
+            iconBackground = iconBackground,
+            title = title,
+            trailingText = valueLabel
+        )
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = 24f..40f
+        )
+    }
+}
+
+@Composable
+private fun SettingsRowLead(
+    icon: ImageVector,
+    iconTint: Color,
+    iconBackground: Color,
+    title: String,
+    subtitle: String? = null,
+    trailingText: String? = null,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clip(CircleShape)
+                .background(iconBackground),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint
+            )
+        }
+        Spacer(modifier = Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.SemiBold
             )
             if (!subtitle.isNullOrBlank()) {
                 Text(
@@ -289,72 +506,13 @@ private fun ToggleRow(
                 )
             }
         }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
-    }
-}
-
-@Composable
-private fun SliderRow(
-    title: String,
-    value: Float,
-    valueRange: ClosedFloatingPointRange<Float>,
-    valueLabel: String,
-    onValueChange: (Float) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        if (!trailingText.isNullOrBlank()) {
             Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = valueLabel,
+                text = trailingText,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary
             )
         }
-        Slider(value = value, onValueChange = onValueChange, valueRange = valueRange)
-    }
-}
-
-@Composable
-private fun ActionRow(
-    title: String,
-    value: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Icon(
-            imageVector = Icons.Rounded.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.outline
-        )
     }
 }
 
@@ -363,13 +521,36 @@ private fun BackupStatusCard(
     backupState: BackupUiState,
     emptyMessage: String
 ) {
-    Text(
-        text = backupState.message ?: emptyMessage,
-        style = MaterialTheme.typography.bodySmall,
-        color = if (backupState.message == null) {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        } else {
-            MaterialTheme.colorScheme.primary
-        }
-    )
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f)
+    ) {
+        Text(
+            text = backupState.message ?: emptyMessage,
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (backupState.message == null) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.primary
+            }
+        )
+    }
+}
+
+private fun updateLabel(
+    settings: com.sajda.app.domain.model.UserSettings,
+    updateState: AppUpdateUiState
+): String {
+    return when {
+        updateState.hasUpdate -> settings.pick(
+            "Versi ${updateState.latestVersionName}",
+            "Version ${updateState.latestVersionName}"
+        )
+        updateState.lastCheckedAt.isBlank() -> settings.pick(
+            "Cek manual",
+            "Manual check"
+        )
+        else -> settings.pick("Sudah terbaru", "Up to date")
+    }
 }

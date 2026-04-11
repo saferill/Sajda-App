@@ -1,13 +1,10 @@
 package com.sajda.app
 
-import android.Manifest
 import android.os.Build
 import android.os.Bundle
 import android.app.Activity
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,7 +25,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -69,6 +65,7 @@ import com.sajda.app.ui.component.DockItem
 import com.sajda.app.ui.component.FloatingDock
 import com.sajda.app.ui.component.FloatingMiniPlayer
 import com.sajda.app.ui.component.SajdaScreenBackground
+import com.sajda.app.ui.component.AnimatedSajdaSplashOverlay
 import com.sajda.app.ui.screen.AdhanSettingsScreen
 import com.sajda.app.ui.screen.AudioManagementScreen
 import com.sajda.app.ui.screen.BookmarksScreen
@@ -81,6 +78,7 @@ import com.sajda.app.ui.screen.LanguageSettingsScreen
 import com.sajda.app.ui.screen.LocationSettingsScreen
 import com.sajda.app.ui.screen.ModernQuranScreen
 import com.sajda.app.ui.screen.NurAppOnboardingScreen
+import com.sajda.app.ui.screen.PermissionSetupScreen
 import com.sajda.app.ui.screen.PrayerTimeScreen
 import com.sajda.app.ui.screen.QiblaScreen
 import com.sajda.app.ui.screen.RamadanDuaScreen
@@ -93,10 +91,7 @@ import com.sajda.app.ui.screen.TafsirScreen
 import com.sajda.app.ui.screen.UpdateCenterScreen
 import com.sajda.app.ui.screen.WeeklyPrayerScheduleScreen
 import com.sajda.app.ui.theme.SajdaAppTheme
-import com.sajda.app.util.AdhanSystemHelper
 import com.sajda.app.util.AppLocaleManager
-import com.sajda.app.util.DeviceLocationHelper
-import com.sajda.app.util.DeviceLocationResult
 import com.sajda.app.ui.viewmodel.HomeViewModel
 import com.sajda.app.ui.viewmodel.QuranViewModel
 import com.sajda.app.ui.viewmodel.PrayerTimeViewModel
@@ -105,6 +100,7 @@ import com.sajda.app.ui.viewmodel.SpiritualContentViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 private enum class RootTab {
@@ -193,7 +189,6 @@ class MainActivity : ComponentActivity() {
             )
             val context = LocalContext.current
             val view = LocalView.current
-            val scope = rememberCoroutineScope()
             val quranState by quranViewModel.uiState.collectAsStateWithLifecycle()
             val prayerState by prayerTimeViewModel.uiState.collectAsStateWithLifecycle()
             val settingsState by settingsViewModel.settings.collectAsStateWithLifecycle()
@@ -207,45 +202,22 @@ class MainActivity : ComponentActivity() {
 
             var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
             var overlay by remember { mutableStateOf<OverlayDestination?>(null) }
-            var notificationPermissionPrompted by rememberSaveable { mutableStateOf(false) }
+            var showSplashOverlay by rememberSaveable { mutableStateOf(true) }
             val requestedTabOrdinal = requestedTabOrdinalState.intValue
             val playSelectedSurah: (Surah) -> Unit = { surah ->
                 playSurahAudio(surah, settings.selectedQuranReciter)
             }
             val appLanguage = settingsState.appLanguage
 
-            val notificationPermissionLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.RequestPermission()
-            ) { notificationPermissionPrompted = true }
-
-            val locationPermissionLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.RequestMultiplePermissions()
-            ) { permissions ->
-                settingsViewModel.setLocationPermissionPrompted(true)
-                if (permissions.any { it.value }) {
-                    settingsViewModel.setAutoLocation(true)
-                    scope.launch {
-                        when (val result = DeviceLocationHelper.getCurrentLocation(context)) {
-                            is DeviceLocationResult.Success -> {
-                                settingsViewModel.setCurrentLocation(
-                                    locationName = result.location.label,
-                                    latitude = result.location.latitude,
-                                    longitude = result.location.longitude,
-                                    automatic = true
-                                )
-                            }
-                            is DeviceLocationResult.Error -> {
-                                android.util.Log.w("MainActivity", result.message)
-                            }
-                        }
-                    }
-                }
-            }
-
             androidx.compose.runtime.LaunchedEffect(requestedTabOrdinal) {
                 if (selectedTabIndex != requestedTabOrdinal) {
                     selectedTabIndex = requestedTabOrdinal
                 }
+            }
+
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                delay(900)
+                showSplashOverlay = false
             }
 
             val currentTab = RootTab.entries[selectedTabIndex]
@@ -257,31 +229,6 @@ class MainActivity : ComponentActivity() {
 
             BackHandler(enabled = overlay != null) {
                 overlay = null
-            }
-
-            androidx.compose.runtime.LaunchedEffect(settings.adzanEnabled) {
-                if (
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                    settings.adzanEnabled &&
-                    !notificationPermissionPrompted &&
-                    !AdhanSystemHelper.hasNotificationPermission(this@MainActivity)
-                ) {
-                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                }
-            }
-
-            androidx.compose.runtime.LaunchedEffect(settings.locationPermissionPrompted) {
-                if (!settings.locationPermissionPrompted &&
-                    !DeviceLocationHelper.hasLocationPermission(context)
-                ) {
-                    settingsViewModel.setLocationPermissionPrompted(true)
-                    locationPermissionLauncher.launch(
-                        arrayOf(
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION
-                        )
-                    )
-                }
             }
 
             androidx.compose.runtime.LaunchedEffect(settings.appLanguage) {
@@ -313,11 +260,25 @@ class MainActivity : ComponentActivity() {
                 ) {
                     SajdaScreenBackground {
                         Box(modifier = Modifier.fillMaxSize()) {
+                            val appSetupCompleted = settingsState.onboardingCompleted &&
+                                settingsState.permissionSetupCompleted
+
                             if (!settingsState.onboardingCompleted) {
                                 NurAppOnboardingScreen(
                                     settings = settingsState,
                                     viewModel = settingsViewModel,
                                     onFinish = { }
+                                )
+                            } else if (!settingsState.permissionSetupCompleted) {
+                                PermissionSetupScreen(
+                                    settings = settingsState,
+                                    viewModel = settingsViewModel,
+                                    onBack = {
+                                        settingsViewModel.setOnboardingCompleted(false)
+                                    },
+                                    onContinue = {
+                                        settingsViewModel.completePermissionSetup()
+                                    }
                                 )
                             } else if (overlay == null) {
                                 when (currentTab) {
@@ -518,7 +479,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
-                            if (settingsState.onboardingCompleted && overlay == null && audioState.isActive) {
+                            if (appSetupCompleted && overlay == null && audioState.isActive) {
                                 FloatingMiniPlayer(
                                     playbackState = audioState,
                                     modifier = Modifier
@@ -530,7 +491,7 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
-                            if (settingsState.onboardingCompleted && overlay == null) {
+                            if (appSetupCompleted && overlay == null) {
                                 FloatingDock(
                                     items = listOf(
                                         DockItem(appLanguage.pick("Beranda", "Home"), Icons.Rounded.Home),
@@ -550,6 +511,11 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                             }
+
+                            AnimatedSajdaSplashOverlay(
+                                visible = showSplashOverlay,
+                                modifier = Modifier.align(Alignment.Center)
+                            )
 
                         }
                     }

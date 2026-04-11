@@ -70,6 +70,7 @@ class PreferencesDataStore(private val context: Context) {
         private val STREAK_COUNT = intPreferencesKey("streak_count")
         private val ACTIVITY_DATE = stringPreferencesKey("activity_date")
         private val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+        private val PERMISSION_SETUP_COMPLETED = booleanPreferencesKey("permission_setup_completed")
         private val FAVORITE_LOCATIONS = stringSetPreferencesKey("favorite_locations")
         private val QURAN_REMINDER_ENABLED = booleanPreferencesKey("quran_reminder_enabled")
         private val QURAN_REMINDER_TIME = stringPreferencesKey("quran_reminder_time")
@@ -145,6 +146,7 @@ class PreferencesDataStore(private val context: Context) {
             streakCount = preferences[STREAK_COUNT] ?: 0,
             activityDate = preferences[ACTIVITY_DATE] ?: "",
             onboardingCompleted = preferences[ONBOARDING_COMPLETED] ?: false,
+            permissionSetupCompleted = preferences[PERMISSION_SETUP_COMPLETED] ?: false,
             favoriteLocationNames = preferences[FAVORITE_LOCATIONS].orEmpty(),
             quranReminderEnabled = preferences[QURAN_REMINDER_ENABLED] ?: false,
             quranReminderTime = preferences[QURAN_REMINDER_TIME] ?: "20:00",
@@ -286,6 +288,10 @@ class PreferencesDataStore(private val context: Context) {
 
     suspend fun setOnboardingCompleted(completed: Boolean) = context.dataStore.edit {
         it[ONBOARDING_COMPLETED] = completed
+    }
+
+    suspend fun setPermissionSetupCompleted(completed: Boolean) = context.dataStore.edit {
+        it[PERMISSION_SETUP_COMPLETED] = completed
     }
 
     suspend fun toggleFavoriteLocation(locationName: String) = context.dataStore.edit { preferences ->
@@ -452,6 +458,8 @@ class PreferencesDataStore(private val context: Context) {
         preferences[MORNING_DZIKIR_TIME] = snapshot.morningDzikirReminderTime
         preferences[EVENING_DZIKIR_ENABLED] = snapshot.eveningDzikirReminderEnabled
         preferences[EVENING_DZIKIR_TIME] = snapshot.eveningDzikirReminderTime
+        preferences[ONBOARDING_COMPLETED] = snapshot.onboardingCompleted
+        preferences[PERMISSION_SETUP_COMPLETED] = snapshot.permissionSetupCompleted
         preferences[ADHAN_SNOOZE_MINUTES] = snapshot.adhanSnoozeMinutes
         preferences[FAJR_ENABLED] = snapshot.fajrAdzanEnabled
         preferences[DHUHR_ENABLED] = snapshot.dhuhrAdzanEnabled

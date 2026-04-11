@@ -12,13 +12,13 @@
   <img src="https://img.shields.io/badge/Platform-Android-0F5238?style=for-the-badge&logo=android&logoColor=white" alt="Android" />
   <img src="https://img.shields.io/badge/Kotlin-Jetpack%20Compose-16423C?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin Jetpack Compose" />
   <img src="https://img.shields.io/badge/Architecture-MVVM%20%7C%20Repository-D6B66A?style=for-the-badge&logo=android&logoColor=1A1A1A" alt="Architecture" />
-  <img src="https://img.shields.io/badge/Release-v1.4.1-0F5238?style=for-the-badge&logo=github&logoColor=white" alt="Release v1.4.1" />
+  <img src="https://img.shields.io/badge/Release-v1.4.2-0F5238?style=for-the-badge&logo=github&logoColor=white" alt="Release v1.4.2" />
 </p>
 
 <p align="center">
-  <a href="https://github.com/saferill/Nur-App/releases/tag/v1.4.1">Release Notes</a>
+  <a href="https://github.com/saferill/Nur-App/releases/tag/v1.4.2">Release Notes</a>
   |
-  <a href="https://github.com/saferill/Nur-App/releases/download/v1.4.1/NurApp-v1.4.1.apk">Download APK</a>
+  <a href="https://github.com/saferill/Nur-App/releases/download/v1.4.2/NurApp-v1.4.2.apk">Download APK</a>
   |
   <a href="ROADMAP.md">Roadmap</a>
   |
@@ -126,7 +126,7 @@ Catatan: untuk bahasa selain Indonesia dan English, aplikasi memakai jalur terje
 
 ## Rilis Saat Ini
 
-Versi terbaru yang sudah dipublikasikan adalah `v1.4.1`.
+Versi terbaru yang sudah dipublikasikan adalah `v1.4.2`.
 
 Perubahan penting di rilis ini:
 
@@ -234,7 +234,7 @@ Release build wajib memakai keystore lama dari `keystore.properties`.
 Output:
 
 ```text
-app/build/outputs/apk/release/NurApp-v1.4.1.apk
+app/build/outputs/apk/release/NurApp-v1.4.2.apk
 ```
 
 ## Install ke Device
@@ -242,7 +242,7 @@ app/build/outputs/apk/release/NurApp-v1.4.1.apk
 Install lewat ADB:
 
 ```bash
-adb install app/build/outputs/apk/release/NurApp-v1.4.1.apk
+adb install app/build/outputs/apk/release/NurApp-v1.4.2.apk
 ```
 
 Kalau muncul error `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, berarti di device masih ada `com.sajda.app` dengan signature berbeda. Solusinya:

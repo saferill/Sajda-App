@@ -192,10 +192,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setAutoLocation(enabled: Boolean) {
+    fun setAutoLocation(enabled: Boolean, refreshSchedule: Boolean = true) {
         viewModelScope.launch {
             preferencesDataStore.setAutoLocation(enabled)
-            reschedulePrayerAlarms()
+            if (refreshSchedule) {
+                reschedulePrayerAlarms()
+            }
         }
     }
 
@@ -237,6 +239,18 @@ class SettingsViewModel @Inject constructor(
 
     fun completeOnboarding() {
         viewModelScope.launch { preferencesDataStore.setOnboardingCompleted(true) }
+    }
+
+    fun setOnboardingCompleted(completed: Boolean) {
+        viewModelScope.launch { preferencesDataStore.setOnboardingCompleted(completed) }
+    }
+
+    fun completePermissionSetup() {
+        viewModelScope.launch { preferencesDataStore.setPermissionSetupCompleted(true) }
+    }
+
+    fun setPermissionSetupCompleted(completed: Boolean) {
+        viewModelScope.launch { preferencesDataStore.setPermissionSetupCompleted(completed) }
     }
 
     fun setAdhanSnoozeMinutes(minutes: Int) {

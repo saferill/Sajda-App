@@ -192,6 +192,7 @@ data class UserSettings(
     val streakCount: Int = 0,
     val activityDate: String = "",
     val onboardingCompleted: Boolean = false,
+    val permissionSetupCompleted: Boolean = false,
     val favoriteLocationNames: Set<String> = emptySet(),
     val quranReminderEnabled: Boolean = false,
     val quranReminderTime: String = "20:00",

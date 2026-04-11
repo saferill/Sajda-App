@@ -186,9 +186,9 @@ fun AnimatedSajdaSplashOverlay(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF123B43),
-                        Color(0xFF0F323A),
-                        Color(0xFF102830)
+                        Color(0xFF0D7377),
+                        Color(0xFF0B4F5A),
+                        Color(0xFF0D1B36)
                     )
                 )
             )
@@ -196,28 +196,59 @@ fun AnimatedSajdaSplashOverlay(
     ) {
         Box(
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 56.dp)
-                .size(220.dp)
+                .align(Alignment.Center)
+                .size(360.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = haloAlpha * 0.18f))
+                .background(Color.White.copy(alpha = haloAlpha * 0.05f))
         )
         Box(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 144.dp)
-                .size(190.dp)
-                .clip(CircleShape)
-                .background(Color(0xFFFFDCC4).copy(alpha = haloAlpha * 0.24f))
-        )
-        Column(
-            modifier = Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .align(Alignment.TopStart)
+                .padding(start = 28.dp, top = 28.dp)
+                .size(width = 92.dp, height = 92.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(164.dp)
+                    .fillMaxWidth()
+                    .height(2.dp)
+                    .background(Color(0xFFFFDCC4).copy(alpha = 0.24f))
+            )
+            Box(
+                modifier = Modifier
+                    .width(2.dp)
+                    .fillMaxSize()
+                    .background(Color(0xFFFFDCC4).copy(alpha = 0.24f))
+            )
+        }
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 28.dp, bottom = 28.dp)
+                .size(width = 92.dp, height = 92.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .height(2.dp)
+                    .background(Color(0xFFFFDCC4).copy(alpha = 0.24f))
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .width(2.dp)
+                    .fillMaxSize()
+                    .background(Color(0xFFFFDCC4).copy(alpha = 0.24f))
+            )
+        }
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(172.dp)
                     .graphicsLayer(
                         scaleX = logoScale * logoPulse,
                         scaleY = logoScale * logoPulse,
@@ -228,21 +259,21 @@ fun AnimatedSajdaSplashOverlay(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(138.dp)
+                        .size(148.dp)
                         .shadow(
-                            elevation = 24.dp,
-                            shape = RoundedCornerShape(48.dp),
-                            ambientColor = Color.Black.copy(alpha = 0.12f),
-                            spotColor = Color.Black.copy(alpha = 0.18f)
+                            elevation = 26.dp,
+                            shape = RoundedCornerShape(44.dp),
+                            ambientColor = Color.Black.copy(alpha = 0.14f),
+                            spotColor = Color.Black.copy(alpha = 0.20f)
                         )
-                        .clip(RoundedCornerShape(48.dp))
+                        .clip(RoundedCornerShape(44.dp))
                         .background(Color(0xFFFFFDF8)),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
                         painter = painterResource(R.drawable.nurapp_logo_mark),
                         contentDescription = "NurApp",
-                        modifier = Modifier.size(100.dp)
+                        modifier = Modifier.size(106.dp)
                     )
                 }
             }
@@ -255,7 +286,33 @@ fun AnimatedSajdaSplashOverlay(
             Text(
                 text = "Teman Ibadahmu Setiap Hari",
                 style = MaterialTheme.typography.titleMedium,
-                color = Color(0xFF8AD3D6)
+                color = Color(0xFF9DF0F4)
+            )
+        }
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 54.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                repeat(3) { index ->
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (index == 1) Color(0xFFFFAB69)
+                                else Color(0xFFFFAB69).copy(alpha = 0.36f)
+                            )
+                    )
+                }
+            }
+            Text(
+                text = "LUMINOUS DIGITAL SANCTUARY",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFF9DF0F4).copy(alpha = 0.58f)
             )
         }
     }

@@ -8,8 +8,10 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Build
 import android.os.Looper
+import android.util.Log
 import androidx.core.content.ContextCompat
 import com.sajda.app.domain.model.CityPreset
+import com.sajda.app.service.LocationService
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
@@ -31,6 +33,7 @@ sealed interface DeviceLocationResult {
 }
 
 object DeviceLocationHelper {
+    private const val TAG = "DeviceLocationHelper"
 
     fun hasLocationPermission(context: Context): Boolean {
         val fineGranted = ContextCompat.checkSelfPermission(
@@ -47,6 +50,17 @@ object DeviceLocationHelper {
     suspend fun getCurrentLocation(context: Context): DeviceLocationResult {
         if (!hasLocationPermission(context)) {
             return DeviceLocationResult.Error("Izin lokasi belum diberikan.")
+        }
+
+        LocationService(context).getCurrentLocationSnapshot()?.let { snapshot ->
+            Log.d(TAG, "Menggunakan FusedLocationProviderClient untuk lokasi aktif")
+            return DeviceLocationResult.Success(
+                DeviceLocation(
+                    label = snapshot.cityName,
+                    latitude = snapshot.latitude,
+                    longitude = snapshot.longitude
+                )
+            )
         }
 
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
