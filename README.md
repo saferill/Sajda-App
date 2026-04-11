@@ -31,6 +31,46 @@ NurApp adalah aplikasi Android Kotlin yang dirancang untuk kebutuhan ibadah hari
 
 Brand aplikasi untuk pengguna adalah `NurApp`, sedangkan package Android tetap `com.sajda.app` agar kompatibilitas instalasi lama, signature, dan jalur update tidak putus.
 
+## Galeri Aplikasi
+
+### Alur awal dan dashboard
+
+<table>
+  <tr>
+    <td align="center"><strong>Splash</strong><br /><img src="docs/screenshots/device/00-launch.png" alt="NurApp splash screen" width="230" /></td>
+    <td align="center"><strong>Onboarding Sholat</strong><br /><img src="docs/screenshots/device/01-onboarding-prayer.png" alt="NurApp onboarding sholat" width="230" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Onboarding Qur'an</strong><br /><img src="docs/screenshots/device/02-onboarding-quran.png" alt="NurApp onboarding quran" width="230" /></td>
+    <td align="center"><strong>Onboarding Kiblat</strong><br /><img src="docs/screenshots/device/03-onboarding-qibla.png" alt="NurApp onboarding kiblat" width="230" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Permission Setup</strong><br /><img src="docs/screenshots/device/04-permissions.png" alt="NurApp permission setup screen" width="230" /></td>
+    <td align="center"><strong>Beranda</strong><br /><img src="docs/screenshots/device/05-home.png" alt="NurApp home screen" width="230" /></td>
+  </tr>
+</table>
+
+### Fitur utama
+
+<table>
+  <tr>
+    <td align="center"><strong>Qur'an</strong><br /><img src="docs/screenshots/device/06-quran-list.png" alt="NurApp quran list" width="230" /></td>
+    <td align="center"><strong>Detail Surah</strong><br /><img src="docs/screenshots/device/07-quran-detail.png" alt="NurApp quran detail" width="230" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Adzan</strong><br /><img src="docs/screenshots/device/08-adhan.png" alt="NurApp adhan screen" width="230" /></td>
+    <td align="center"><strong>Hadist</strong><br /><img src="docs/screenshots/device/09-hadith.png" alt="NurApp hadith screen" width="230" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Ramadhan</strong><br /><img src="docs/screenshots/device/10-ramadan.png" alt="NurApp ramadan screen" width="230" /></td>
+    <td align="center"><strong>Pengaturan</strong><br /><img src="docs/screenshots/device/11-settings.png" alt="NurApp settings screen" width="230" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Kalender Hijriah</strong><br /><img src="docs/screenshots/device/12-calendar.png" alt="NurApp hijri calendar" width="230" /></td>
+    <td align="center"><strong>Kompas Kiblat</strong><br /><img src="docs/screenshots/device/13-qibla.png" alt="NurApp qibla compass" width="230" /></td>
+  </tr>
+</table>
+
 ## Fokus Produk
 
 NurApp dibangun dengan arah yang jelas:
@@ -70,7 +110,7 @@ NurApp dibangun dengan arah yang jelas:
 - Adzan reguler dan adzan Subuh terpisah
 - Reschedule alarm setelah reboot
 - Auto update lokasi adzan dari GPS
-- Permission lokasi saat pertama kali aplikasi dibuka
+- Flow permission setelah onboarding sebelum masuk dashboard
 - Halaman diagnosa adzan
 - Countdown ke waktu sholat berikutnya
 
@@ -131,8 +171,9 @@ Versi terbaru yang sudah dipublikasikan adalah `v1.4.2`.
 Perubahan penting di rilis ini:
 
 - branding README dan release diselaraskan dengan logo aplikasi terbaru
+- splash, onboarding, permission setup, dan pengaturan dirapikan dengan desain baru
 - bahasa aplikasi diperluas dan tidak lagi berhenti di fallback English saja
-- prompt lokasi awal untuk setup adzan ditambahkan
+- flow permission dipindah ke tahap setelah onboarding sebelum dashboard
 - opsi unduhan audio qari dibuat lebih jelas
 - update center tetap manual, bukan auto-check saat app dibuka
 
