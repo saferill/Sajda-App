@@ -20,7 +20,7 @@ import com.sajda.app.util.Constants
 import com.sajda.app.util.DateTimeUtils
 import com.sajda.app.util.ScheduledPrayerEntry
 import com.sajda.app.util.displayName
-import com.sajda.app.util.pick
+import com.sajda.app.util.displayNameRes
 import com.sajda.app.widget.PrayerTimesWidgetUpdater
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -72,25 +72,25 @@ class AdzanScheduler @Inject constructor(@ApplicationContext private val context
         )
         preferencesDataStore.appendAdhanLog(
             prayerName = nextUpcoming?.prayerName?.label ?: "Adzan",
-            status = settings.pick("Jadwal diperbarui", "Schedules refreshed"),
+            status = appContext.getString(com.sajda.app.R.string.schedules_refreshed),
             details = buildString {
-                append(settings.pick("Lokasi ", "Location "))
+                append(appContext.getString(com.sajda.app.R.string.location))
                 append(settings.locationName)
                 append(". ")
-                append(settings.pick("Metode ", "Method "))
+                append(appContext.getString(com.sajda.app.R.string.method))
                 append(settings.prayerCalculationMethod.label)
                 append(". ")
-                append(settings.pick("Asar ", "Asr "))
+                append(appContext.getString(com.sajda.app.R.string.asr))
                 append(settings.asrMadhhab.label)
                 append(". ")
                 if (nextUpcoming != null) {
-                    append(settings.pick("Alarm utama ", "Primary alarm "))
-                    append(nextUpcoming.prayerName.displayName(settings.appLanguage))
-                    append(settings.pick(" pada ", " at "))
+                    append(appContext.getString(com.sajda.app.R.string.primary_alarm))
+                    append(appContext.getString(nextUpcoming.prayerName.displayNameRes()))
+                    append(appContext.getString(com.sajda.app.R.string.at))
                     append(DateTimeUtils.dateTimeString(nextUpcoming.scheduledAt))
                     append(".")
                 } else {
-                    append(settings.pick("Tidak ada alarm aktif.", "No active alarms."))
+                    append(appContext.getString(com.sajda.app.R.string.no_active_alarms))
                 }
             }
         )
@@ -149,7 +149,7 @@ class AdzanScheduler @Inject constructor(@ApplicationContext private val context
             )
             preferencesDataStore.appendAdhanLog(
                 prayerName = scheduledPrayer.prayerName.label,
-                status = appLanguage.pick("Alarm utama dijadwalkan", "Primary alarm scheduled"),
+                status = appContext.getString(com.sajda.app.R.string.primary_alarm_scheduled),
                 details = "AlarmClock | ${scheduledPrayer.prayerTime.locationName} | ${scheduledPrayer.timeValue}"
             )
             return
@@ -169,17 +169,18 @@ class AdzanScheduler @Inject constructor(@ApplicationContext private val context
             }
             preferencesDataStore.appendAdhanLog(
                 prayerName = scheduledPrayer.prayerName.label,
-                status = appLanguage.pick(
-                    if (canScheduleExact) "Alarm exact dijadwalkan" else "Alarm fallback dijadwalkan",
-                    if (canScheduleExact) "Exact alarm scheduled" else "Fallback alarm scheduled"
-                ),
+                status = if (canScheduleExact) {
+                    appContext.getString(com.sajda.app.R.string.exact_alarm_scheduled)
+                } else {
+                    appContext.getString(com.sajda.app.R.string.fallback_alarm_scheduled)
+                },
                 details = "${scheduledPrayer.prayerTime.locationName} | ${scheduledPrayer.timeValue}"
             )
         }.onFailure { error ->
             Log.e(TAG, "Failed to schedule ${scheduledPrayer.prayerName.label} at ${scheduledPrayer.scheduledAt}", error)
             preferencesDataStore.appendAdhanLog(
                 prayerName = scheduledPrayer.prayerName.label,
-                status = appLanguage.pick("Gagal menjadwalkan alarm", "Failed to schedule alarm"),
+                status = appContext.getString(com.sajda.app.R.string.failed_to_schedule_alarm),
                 details = error.message.orEmpty()
             )
         }
@@ -215,26 +216,18 @@ class AdzanScheduler @Inject constructor(@ApplicationContext private val context
                 alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
             }
             ioScope.launch {
-                val language = preferencesDataStore.settingsFlow.first().appLanguage
                 preferencesDataStore.appendAdhanLog(
                     prayerName = prayerName.label,
-                    status = language.pick(
-                        "Jadwal darurat esok hari dipasang",
-                        "Emergency next-day fallback armed"
-                    ),
+                    status = appContext.getString(com.sajda.app.R.string.emergency_next_day_fallback_armed_2),
                     details = "$prayerDate | $prayerTimeValue | $locationName"
                 )
             }
         }.onFailure { error ->
             Log.e(TAG, "Failed to arm emergency fallback for ${prayerName.label} at $scheduledAt", error)
             ioScope.launch {
-                val language = preferencesDataStore.settingsFlow.first().appLanguage
                 preferencesDataStore.appendAdhanLog(
                     prayerName = prayerName.label,
-                    status = language.pick(
-                        "Jadwal darurat gagal dipasang",
-                        "Emergency fallback could not be armed"
-                    ),
+                    status = appContext.getString(com.sajda.app.R.string.emergency_fallback_could_not_be_armed),
                     details = error.message.orEmpty()
                 )
             }

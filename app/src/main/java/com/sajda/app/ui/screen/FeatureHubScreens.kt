@@ -47,6 +47,7 @@ import com.sajda.app.ui.component.SanctuaryCard
 import com.sajda.app.ui.theme.surfaceContainerLow
 import com.sajda.app.ui.viewmodel.AppUpdateUiState
 import com.sajda.app.ui.viewmodel.SpiritualContentUiState
+import com.sajda.app.util.AppTranslations
 import com.sajda.app.util.HijriCalendarPage
 import com.sajda.app.util.buildHijriCalendarCells
 import com.sajda.app.util.buildGregorianCalendarCells
@@ -58,7 +59,6 @@ import com.sajda.app.util.hijriRangeLabel
 import com.sajda.app.util.hijriWeekdayHeaders
 import com.sajda.app.util.isEnglish
 import com.sajda.app.util.nextRamadanStart
-import com.sajda.app.util.pick
 import com.sajda.app.util.ramadanProgress
 import com.sajda.app.util.shiftHijriPage
 import com.sajda.app.util.upcomingIslamicEvents
@@ -579,8 +579,8 @@ fun RamadanPracticesScreen(
     onBack: () -> Unit
 ) {
     OverlayShell(
-        title = appLanguage.pick("Amalan Ramadhan", "Ramadan Practices"),
-        subtitle = appLanguage.pick("Panduan singkat ibadah harian", "A concise daily worship guide"),
+        title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.ramadan_practices),
+        subtitle = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.a_concise_daily_worship_guide),
         onBack = onBack
     ) {
         RAMADAN_PRACTICES.forEachIndexed { index, practice ->
@@ -591,12 +591,12 @@ fun RamadanPracticesScreen(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = appLanguage.pick(practice.titleId, practice.titleEn),
+                    text = resolveRamadanCopy(appLanguage, practice.titleId, practice.titleEn),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold
                 )
                 Text(
-                    text = appLanguage.pick(practice.descriptionId, practice.descriptionEn),
+                    text = resolveRamadanCopy(appLanguage, practice.descriptionId, practice.descriptionEn),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -611,14 +611,14 @@ fun RamadanDuaScreen(
     onBack: () -> Unit
 ) {
     OverlayShell(
-        title = appLanguage.pick("Doa Berbuka & Sahur", "Iftar and Suhur Duas"),
-        subtitle = appLanguage.pick("Doa yang sering dipakai saat Ramadhan", "Common duas used in Ramadan"),
+        title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.iftar_and_suhur_duas),
+        subtitle = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.common_duas_used_in_ramadan),
         onBack = onBack
     ) {
         RAMADAN_DUAS.forEach { dua ->
             SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
                 Text(
-                    text = appLanguage.pick(dua.titleId, dua.titleEn),
+                    text = resolveRamadanCopy(appLanguage, dua.titleId, dua.titleEn),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold
                 )
@@ -637,7 +637,7 @@ fun RamadanDuaScreen(
                     )
                 }
                 Text(
-                    text = appLanguage.pick(dua.translationId, dua.translationEn),
+                    text = resolveRamadanCopy(appLanguage, dua.translationId, dua.translationEn),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -661,6 +661,18 @@ private data class RamadanDuaContent(
     val translationId: String,
     val translationEn: String
 )
+
+private fun resolveRamadanCopy(
+    appLanguage: AppLanguage,
+    indonesian: String,
+    english: String
+): String {
+    return when (appLanguage) {
+        AppLanguage.INDONESIAN -> indonesian
+        AppLanguage.ENGLISH -> english
+        else -> AppTranslations.translate(english, appLanguage)
+    }
+}
 
 private val RAMADAN_PRACTICES = listOf(
     RamadanPracticeContent(

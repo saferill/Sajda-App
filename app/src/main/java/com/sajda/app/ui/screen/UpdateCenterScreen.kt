@@ -13,62 +13,46 @@ import androidx.compose.ui.unit.dp
 import com.sajda.app.ui.component.SanctuaryCard
 import com.sajda.app.ui.component.SectionHeader
 import com.sajda.app.ui.viewmodel.AppUpdateUiState
-import com.sajda.app.ui.viewmodel.SettingsViewModel
+import com.sajda.app.ui.viewmodel.AppUpdateViewModel
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.util.Constants
-import com.sajda.app.util.pick
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun UpdateCenterScreen(
     settings: UserSettings,
     updateState: AppUpdateUiState,
-    viewModel: SettingsViewModel,
+    viewModel: AppUpdateViewModel,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
 
     OverlayShell(
-        title = settings.pick("Update Aplikasi", "App Updates"),
-        subtitle = settings.pick(
-            "Terpasang v${updateState.currentVersionName}",
-            "Installed v${updateState.currentVersionName}"
-        ),
+        title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.app_updates),
+        subtitle = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.installed_v_updatestate_currentversionna),
         onBack = onBack
     ) {
         SanctuaryCard {
             SectionHeader(
-                eyebrow = settings.pick("Status", "Status"),
-                title = settings.pick("Update manual", "Manual update")
+                eyebrow = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.status),
+                title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.manual_update)
             )
             Text(
-                text = settings.pick(
-                    "Versi terpasang: ${updateState.currentVersionName}",
-                    "Installed version: ${updateState.currentVersionName}"
-                ),
+                text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.installed_version_updatestate_currentver),
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
                 text = if (updateState.hasUpdate) {
-                    settings.pick(
-                        "Versi terbaru tersedia: ${updateState.latestVersionName}",
-                        "New version available: ${updateState.latestVersionName}"
-                    )
+                    androidx.compose.ui.res.stringResource(com.sajda.app.R.string.new_version_available_updatestate_latest)
                 } else {
-                    settings.pick(
-                        "Tekan Cek sekarang untuk mencari rilis terbaru.",
-                        "Tap Check now to look for the latest release."
-                    )
+                    androidx.compose.ui.res.stringResource(com.sajda.app.R.string.tap_check_now_to_look_for_the_latest_rel)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (updateState.lastCheckedAt.isNotBlank()) {
                 Text(
-                    text = settings.pick(
-                        "Terakhir dicek: ${updateState.lastCheckedAt}",
-                        "Last checked: ${updateState.lastCheckedAt}"
-                    ),
+                    text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.last_checked_updatestate_lastcheckedat),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -86,9 +70,9 @@ fun UpdateCenterScreen(
             ) {
                 ChoiceChip(
                     label = if (updateState.isChecking) {
-                        settings.pick("Mengecek...", "Checking...")
+                        androidx.compose.ui.res.stringResource(com.sajda.app.R.string.checking)
                     } else {
-                        settings.pick("Cek sekarang", "Check now")
+                        androidx.compose.ui.res.stringResource(com.sajda.app.R.string.check_now)
                     },
                     selected = false,
                     onClick = { if (!updateState.isChecking) viewModel.checkForUpdates() }
@@ -98,22 +82,16 @@ fun UpdateCenterScreen(
 
         SanctuaryCard {
             SectionHeader(
-                eyebrow = settings.pick("Cara kerja", "How it works"),
-                title = settings.pick("Update dari GitHub Releases", "Update from GitHub Releases")
+                eyebrow = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.how_it_works),
+                title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.update_from_github_releases)
             )
             Text(
-                text = settings.pick(
-                    "NurApp tidak lagi mengecek update otomatis saat aplikasi dibuka. Update hanya berjalan saat Anda menekan Cek sekarang, lalu unduh dan pasang dari halaman ini.",
-                    "NurApp no longer checks for updates automatically when the app opens. Updates only run when you tap Check now, then download and install from this page."
-                ),
+                text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.nurapp_no_longer_checks_for_updates_auto),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = settings.pick(
-                    "Android tetap bisa meminta izin pemasangan dari sumber ini sebelum installer muncul.",
-                    "Android may still ask for install-from-this-source permission before the installer appears."
-                ),
+                text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.android_may_still_ask_for_install_from_t),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -144,22 +122,22 @@ fun UpdateCenterScreen(
                 ) {
                     ChoiceChip(
                         label = if (updateState.isDownloading) {
-                            settings.pick("Mengunduh...", "Downloading...")
+                            androidx.compose.ui.res.stringResource(com.sajda.app.R.string.downloading)
                         } else {
-                            settings.pick("Unduh update", "Download update")
+                            androidx.compose.ui.res.stringResource(com.sajda.app.R.string.download_update)
                         },
                         selected = true,
                         onClick = { if (!updateState.isDownloading) viewModel.downloadLatestUpdate() }
                     )
                     if (updateState.canInstallDownloadedUpdate) {
                         ChoiceChip(
-                            label = settings.pick("Pasang sekarang", "Install now"),
+                            label = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.install_now),
                             selected = true,
                             onClick = viewModel::installDownloadedUpdate
                         )
                     }
                     ChoiceChip(
-                        label = settings.pick("Buka releases", "Open releases"),
+                        label = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.open_releases),
                         selected = false,
                         onClick = {
                             val releaseUrl = updateState.releasePageUrl.ifBlank { Constants.UPDATE_RELEASES_PAGE_URL }
@@ -171,14 +149,11 @@ fun UpdateCenterScreen(
         } else {
             SanctuaryCard {
                 SectionHeader(
-                    eyebrow = settings.pick("Saat ini", "Current"),
-                    title = settings.pick("Belum ada update terdeteksi", "No update detected")
+                    eyebrow = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.current),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.no_update_detected)
                 )
                 Text(
-                    text = settings.pick(
-                        "Gunakan tombol Cek sekarang untuk mencari rilis terbaru secara manual.",
-                        "Use the Check now button to manually look for the latest release."
-                    ),
+                    text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.use_the_check_now_button_to_manually_loo),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

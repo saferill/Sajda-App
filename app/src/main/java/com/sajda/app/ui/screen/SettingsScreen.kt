@@ -26,9 +26,8 @@ import com.sajda.app.domain.model.CalendarDisplayMode
 import com.sajda.app.ui.viewmodel.AppUpdateUiState
 import com.sajda.app.ui.viewmodel.BackupUiState
 import com.sajda.app.ui.viewmodel.SettingsViewModel
-import com.sajda.app.util.displayLabel
-import com.sajda.app.util.displayName
-import com.sajda.app.util.pick
+import com.sajda.app.util.displayLabelRes
+import com.sajda.app.util.displayNameRes
 
 @Composable
 fun SettingsScreen(
@@ -55,16 +54,16 @@ fun SettingsScreen(
     ) {
         item {
             SettingsHeader(
-                title = settings.pick("Pengaturan", "Settings"),
+                title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.tab_settings),
                 onBack = onBack
             )
         }
 
         item {
-            SettingsSection(title = settings.pick("Adzan & Notifikasi", "Adhan & Notifications")) {
+            SettingsSection(title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.adhan_notifications)) {
                 SettingsActionRow(
                     icon = Icons.Rounded.Mosque,
-                    title = settings.pick("Suara Adzan", "Adhan Sound"),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.adhan_sound),
                     value = settings.adzanSound.title,
                     iconTint = MaterialTheme.colorScheme.primary,
                     iconBackground = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
@@ -72,7 +71,7 @@ fun SettingsScreen(
                 )
                 SettingsActionRow(
                     icon = Icons.Rounded.WbTwilight,
-                    title = settings.pick("Suara Adzan Subuh", "Fajr Adhan Sound"),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.fajr_adhan_sound),
                     value = settings.fajrAdzanSound.title,
                     iconTint = MaterialTheme.colorScheme.primary,
                     iconBackground = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
@@ -80,11 +79,11 @@ fun SettingsScreen(
                 )
                 SettingsToggleRow(
                     icon = Icons.Rounded.NotificationsActive,
-                    title = settings.pick("Adzan Otomatis", "Automatic Adhan"),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.automatic_adhan),
                     subtitle = if (settings.adzanEnabled) {
-                        settings.pick("Aktif untuk jadwal yang dipilih", "Active for selected prayer times")
+                        androidx.compose.ui.res.stringResource(com.sajda.app.R.string.active_for_selected_prayer_times)
                     } else {
-                        settings.pick("Semua alarm adzan dimatikan", "All adhan alarms are disabled")
+                        androidx.compose.ui.res.stringResource(com.sajda.app.R.string.all_adhan_alarms_are_disabled)
                     },
                     checked = settings.adzanEnabled,
                     iconTint = MaterialTheme.colorScheme.primary,
@@ -93,8 +92,8 @@ fun SettingsScreen(
                 )
                 SettingsActionRow(
                     icon = Icons.Rounded.Tune,
-                    title = settings.pick("Diagnosa Adzan", "Adhan Diagnostics"),
-                    value = settings.pick("Tes, exact alarm, baterai, izin", "Test, exact alarm, battery, permissions"),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.adhan_diagnostics),
+                    value = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.test_exact_alarm_battery_permissions),
                     iconTint = MaterialTheme.colorScheme.primary,
                     iconBackground = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                     onClick = onOpenAdhanSettings
@@ -103,11 +102,11 @@ fun SettingsScreen(
         }
 
         item {
-            SettingsSection(title = settings.pick("Tampilan", "Appearance")) {
+            SettingsSection(title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.appearance)) {
                 SettingsToggleRow(
                     icon = Icons.Rounded.DarkMode,
-                    title = settings.pick("Mode Gelap", "Dark Mode"),
-                    subtitle = settings.pick("Gunakan tampilan malam untuk aplikasi", "Use the night look across the app"),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.dark_mode),
+                    subtitle = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.use_the_night_look_across_the_app),
                     checked = settings.darkMode || settings.nightMode,
                     iconTint = MaterialTheme.colorScheme.secondary,
                     iconBackground = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.24f),
@@ -118,7 +117,7 @@ fun SettingsScreen(
                 )
                 SettingsSliderBlock(
                     icon = Icons.Rounded.FormatSize,
-                    title = settings.pick("Ukuran Font Al-Qur'an", "Qur'an Font Size"),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.qur_an_font_size),
                     value = settings.arabicFontSize.toFloat(),
                     valueLabel = settings.arabicFontSize.toString(),
                     iconTint = MaterialTheme.colorScheme.secondary,
@@ -127,16 +126,16 @@ fun SettingsScreen(
                 )
                 SettingsActionRow(
                     icon = Icons.Rounded.Translate,
-                    title = settings.pick("Bahasa", "Language"),
-                    value = settings.appLanguage.displayName(),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.language),
+                    value = androidx.compose.ui.res.stringResource(settings.appLanguage.displayNameRes()),
                     iconTint = MaterialTheme.colorScheme.secondary,
                     iconBackground = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.24f),
                     onClick = onOpenLanguageSettings
                 )
                 SettingsToggleRow(
                     icon = Icons.Rounded.CalendarMonth,
-                    title = settings.pick("Kalender Hijriah", "Hijri Calendar"),
-                    subtitle = settings.pick("Matikan jika ingin tampilan Masehi", "Turn off for Gregorian mode"),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.hijri_calendar),
+                    subtitle = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.turn_off_for_gregorian_mode),
                     checked = settings.calendarDisplayMode == CalendarDisplayMode.HIJRI,
                     iconTint = MaterialTheme.colorScheme.secondary,
                     iconBackground = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.24f),
@@ -153,15 +152,15 @@ fun SettingsScreen(
             SettingsSection(title = "Al-Qur'an") {
                 SettingsActionRow(
                     icon = Icons.Rounded.MenuBook,
-                    title = settings.pick("Jenis Terjemahan", "Translation Mode"),
-                    value = settings.quranReadingMode.displayLabel(settings.appLanguage),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.translation_mode),
+                    value = androidx.compose.ui.res.stringResource(settings.quranReadingMode.displayLabelRes()),
                     iconTint = MaterialTheme.colorScheme.tertiary,
                     iconBackground = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
                     onClick = onOpenLanguageSettings
                 )
                 SettingsActionRow(
                     icon = Icons.Rounded.RecordVoiceOver,
-                    title = settings.pick("Qari (Murottal)", "Reciter"),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.reciter),
                     value = settings.selectedQuranReciter.title,
                     iconTint = MaterialTheme.colorScheme.tertiary,
                     iconBackground = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
@@ -169,10 +168,10 @@ fun SettingsScreen(
                 )
                 SettingsActionRow(
                     icon = Icons.Rounded.DownloadForOffline,
-                    title = settings.pick("Audio Offline", "Offline Audio"),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.offline_audio),
                     value = when (settings.audioDownloadMode) {
-                        AudioDownloadMode.SELECTED_RECITER_ONLY -> settings.pick("Qari aktif saja", "Selected reciter only")
-                        AudioDownloadMode.ALL_RECITERS -> settings.pick("Semua qari", "All reciters")
+                        AudioDownloadMode.SELECTED_RECITER_ONLY -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.selected_reciter_only)
+                        AudioDownloadMode.ALL_RECITERS -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.all_reciters)
                     },
                     iconTint = MaterialTheme.colorScheme.tertiary,
                     iconBackground = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
@@ -180,8 +179,8 @@ fun SettingsScreen(
                 )
                 SettingsToggleRow(
                     icon = Icons.Rounded.Wifi,
-                    title = settings.pick("Unduh Hanya via Wi-Fi", "Wi-Fi Only Downloads"),
-                    subtitle = settings.pick("Berlaku untuk semua unduhan audio Al-Qur'an", "Applies to all Qur'an audio downloads"),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.wi_fi_only_downloads),
+                    subtitle = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.applies_to_all_qur_an_audio_downloads),
                     checked = settings.wifiOnlyAudioDownloads,
                     iconTint = MaterialTheme.colorScheme.tertiary,
                     iconBackground = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
@@ -191,12 +190,12 @@ fun SettingsScreen(
         }
 
         item {
-            SettingsSection(title = settings.pick("Lainnya", "More")) {
+            SettingsSection(title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.more)) {
                 SettingsActionRow(
                     icon = Icons.Rounded.LocationOn,
-                    title = settings.pick("Lokasi Aktif", "Active Location"),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.active_location),
                     value = settings.locationName.ifBlank {
-                        settings.pick("Belum ada lokasi aktif", "No active location yet")
+                        androidx.compose.ui.res.stringResource(com.sajda.app.R.string.no_active_location_yet)
                     },
                     iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                     iconBackground = MaterialTheme.colorScheme.surfaceVariant,
@@ -204,15 +203,15 @@ fun SettingsScreen(
                 )
                 SettingsActionRow(
                     icon = Icons.Rounded.Alarm,
-                    title = settings.pick("Reminder Ibadah", "Worship Reminders"),
-                    value = settings.pick("Atur jadwal harian", "Manage daily reminders"),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.worship_reminders),
+                    value = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.manage_daily_reminders),
                     iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                     iconBackground = MaterialTheme.colorScheme.surfaceVariant,
                     onClick = onOpenSmartReminders
                 )
                 SettingsActionRow(
                     icon = Icons.Rounded.SystemUpdateAlt,
-                    title = settings.pick("Pembaruan Aplikasi", "App Updates"),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.app_updates),
                     value = updateLabel(settings = settings, updateState = updateState),
                     iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                     iconBackground = MaterialTheme.colorScheme.surfaceVariant,
@@ -220,9 +219,9 @@ fun SettingsScreen(
                 )
                 SettingsActionRow(
                     icon = Icons.Rounded.Backup,
-                    title = settings.pick("Backup Data Lokal", "Backup Local Data"),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.backup_local_data),
                     value = settings.lastBackupAt.ifBlank {
-                        settings.pick("Belum pernah backup", "No backup yet")
+                        androidx.compose.ui.res.stringResource(com.sajda.app.R.string.no_backup_yet)
                     },
                     iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                     iconBackground = MaterialTheme.colorScheme.surfaceVariant,
@@ -230,9 +229,9 @@ fun SettingsScreen(
                 )
                 SettingsActionRow(
                     icon = Icons.Rounded.Restore,
-                    title = settings.pick("Restore Data Lokal", "Restore Local Data"),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.restore_local_data),
                     value = settings.lastRestoreAt.ifBlank {
-                        settings.pick("Belum pernah restore", "No restore yet")
+                        androidx.compose.ui.res.stringResource(com.sajda.app.R.string.no_restore_yet)
                     },
                     iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                     iconBackground = MaterialTheme.colorScheme.surfaceVariant,
@@ -240,7 +239,7 @@ fun SettingsScreen(
                 )
                 SettingsStaticRow(
                     icon = Icons.Rounded.Info,
-                    title = settings.pick("Tentang NurApp", "About NurApp"),
+                    title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.about_nurapp),
                     value = "v${BuildConfig.VERSION_NAME}",
                     iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                     iconBackground = MaterialTheme.colorScheme.surfaceVariant
@@ -251,10 +250,7 @@ fun SettingsScreen(
         item {
             BackupStatusCard(
                 backupState = backupState,
-                emptyMessage = settings.pick(
-                    "Bookmark, terakhir dibaca, qari, bahasa, dan setting adzan ikut dibackup.",
-                    "Bookmarks, last read, reciter, language, and adhan settings are included in backups."
-                )
+                emptyMessage = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.bookmarks_last_read_reciter_language_and)
             )
         }
     }
@@ -538,19 +534,14 @@ private fun BackupStatusCard(
     }
 }
 
+@Composable
 private fun updateLabel(
     settings: com.sajda.app.domain.model.UserSettings,
     updateState: AppUpdateUiState
 ): String {
     return when {
-        updateState.hasUpdate -> settings.pick(
-            "Versi ${updateState.latestVersionName}",
-            "Version ${updateState.latestVersionName}"
-        )
-        updateState.lastCheckedAt.isBlank() -> settings.pick(
-            "Cek manual",
-            "Manual check"
-        )
-        else -> settings.pick("Sudah terbaru", "Up to date")
+        updateState.hasUpdate -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.version_updatestate_latestversionname)
+        updateState.lastCheckedAt.isBlank() -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.manual_check)
+        else -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.up_to_date)
     }
 }

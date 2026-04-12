@@ -7,7 +7,6 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.sajda.app.data.local.PreferencesDataStore
 import com.sajda.app.util.Constants
-import com.sajda.app.util.pick
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -43,20 +42,19 @@ class AdzanReceiver : BroadcastReceiver() {
 
         CoroutineScope(Dispatchers.IO).launch {
             runCatching {
-                val language = PreferencesDataStore(appContext).settingsFlow.first().appLanguage
                 PreferencesDataStore(appContext).updateAdhanLastEvent(
                     prayerName = prayerName,
                     status = if (prayerTime.isBlank()) {
-                        language.pick("Alarm dipicu", "Alarm triggered")
+                        context.getString(com.sajda.app.R.string.alarm_triggered)
                     } else {
-                        language.pick("Alarm dipicu", "Alarm triggered") + " | $prayerTime"
+                        context.getString(com.sajda.app.R.string.alarm_triggered) + " | $prayerTime"
                     },
                     details = buildString {
-                        append(language.pick("Tanggal ", "Date "))
+                        append(context.getString(com.sajda.app.R.string.date))
                         append(prayerDate)
                         append(". ")
                         if (locationName.isNotBlank()) {
-                            append(language.pick("Lokasi ", "Location "))
+                            append(context.getString(com.sajda.app.R.string.location))
                             append(locationName)
                             append(".")
                         }
@@ -68,7 +66,6 @@ class AdzanReceiver : BroadcastReceiver() {
                 )
             }.onFailure { error ->
                 Log.e(TAG, "Failed to repair next adhan after $prayerName", error)
-                val language = PreferencesDataStore(appContext).settingsFlow.first().appLanguage
                 val fallbackNote = runCatching {
                     AdzanScheduler.scheduleEmergencyNextDayFallback(
                         context = appContext,
@@ -78,22 +75,13 @@ class AdzanReceiver : BroadcastReceiver() {
                         prayerDate = prayerDate,
                         locationName = locationName
                     )
-                    language.pick(
-                        "Jadwal darurat esok hari dipasang.",
-                        "Emergency next-day fallback armed."
-                    )
+                    context.getString(com.sajda.app.R.string.emergency_next_day_fallback_armed)
                 }.getOrElse { fallbackError ->
-                    language.pick(
-                        "Jadwal darurat juga gagal: ",
-                        "Emergency fallback also failed: "
-                    ) + fallbackError.message.orEmpty()
+                    context.getString(com.sajda.app.R.string.emergency_fallback_also_failed) + fallbackError.message.orEmpty()
                 }
                 PreferencesDataStore(appContext).updateAdhanLastEvent(
                     prayerName = prayerName,
-                    status = language.pick(
-                        "Alarm dipicu, tapi gagal memasang jadwal berikutnya",
-                        "Alarm triggered, but the next schedule could not be rebuilt"
-                    ),
+                    status = context.getString(com.sajda.app.R.string.alarm_triggered_but_the_next_schedule_co),
                     details = listOf(
                         error.message.orEmpty(),
                         fallbackNote
@@ -129,13 +117,9 @@ class AdzanReceiver : BroadcastReceiver() {
                 reason = error.message.orEmpty()
             )
             CoroutineScope(Dispatchers.IO).launch {
-                val language = PreferencesDataStore(appContext).settingsFlow.first().appLanguage
                 PreferencesDataStore(appContext).updateAdhanLastEvent(
                     prayerName = prayerName,
-                    status = language.pick(
-                        "Alarm dipicu, tapi service adzan gagal dibuka",
-                        "Alarm triggered, but the adhan service could not start"
-                    ),
+                    status = context.getString(com.sajda.app.R.string.alarm_triggered_but_the_adhan_service_co),
                     details = error.message.orEmpty()
                 )
             }

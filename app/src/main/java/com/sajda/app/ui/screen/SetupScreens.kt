@@ -38,7 +38,6 @@ import com.sajda.app.util.AdhanSystemHelper
 import com.sajda.app.util.DeviceLocationHelper
 import com.sajda.app.util.DeviceLocationResult
 import com.sajda.app.util.isEnglish
-import com.sajda.app.util.pick
 import kotlinx.coroutines.launch
 
 @Composable
@@ -57,6 +56,18 @@ fun PermissionSetupScreen(
     val readiness = remember(systemRefreshKey, settings.overrideSilentMode, settings.autoLocation) {
         AdhanSystemHelper.buildReadiness(context)
     }
+
+    val msgGpsUpdated = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.the_active_location_was_updated_from_gps)
+    val msgNotifActive = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.notification_permission_is_active_adhan)
+    val msgNotifDenied = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.notification_permission_was_denied_adhan)
+    val msgLocDenied = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.location_permission_has_not_been_granted)
+    val msgAutoLocOff = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.auto_location_is_off_you_can_still_choos)
+    val msgAdhanDisabled = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.adhan_reminders_were_disabled_in_the_app)
+    val msgVerifyNotif = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.also_verify_that_app_notifications_and_t)
+    val msgOverrideOn = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.nurapp_will_try_to_keep_playing_the_adha)
+    val msgOverrideOff = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.the_phone_s_silent_mode_will_be_respecte)
+    val msgBatteryOpen = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.open_battery_settings_and_mark_nurapp_as)
+
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -78,23 +89,17 @@ fun PermissionSetupScreen(
             }.getOrDefault(false)
 
             if (updatedByManager) {
-                statusMessage = settings.pick(
-                    "Lokasi aktif berhasil diperbarui dari GPS.",
-                    "The active location was updated from GPS."
-                )
+                statusMessage = msgGpsUpdated
             } else {
                 when (val result = DeviceLocationHelper.getCurrentLocation(context)) {
                     is DeviceLocationResult.Success -> {
-                        viewModel.setCurrentLocation(
+                        viewModel.updateLocation(
                             locationName = result.location.label,
                             latitude = result.location.latitude,
                             longitude = result.location.longitude,
                             automatic = true
                         )
-                        statusMessage = settings.pick(
-                            "Lokasi aktif berhasil diperbarui dari GPS.",
-                            "The active location was updated from GPS."
-                        )
+                        statusMessage = msgGpsUpdated
                     }
                     is DeviceLocationResult.Error -> statusMessage = result.message
                 }
@@ -109,16 +114,10 @@ fun PermissionSetupScreen(
     ) { granted ->
         if (granted) {
             viewModel.setAdzanEnabled(true)
-            statusMessage = settings.pick(
-                "Izin notifikasi aktif. Pengingat adzan siap dipakai.",
-                "Notification permission is active. Adhan reminders are ready."
-            )
+            statusMessage = msgNotifActive
         } else {
             viewModel.setAdzanEnabled(false)
-            statusMessage = settings.pick(
-                "Izin notifikasi ditolak. Notifikasi adzan bisa tidak muncul.",
-                "Notification permission was denied. Adhan reminders may not appear."
-            )
+            statusMessage = msgNotifDenied
         }
         systemRefreshKey += 1
     }
@@ -131,10 +130,7 @@ fun PermissionSetupScreen(
             refreshLocationFromDevice()
         } else {
             viewModel.setAutoLocation(false)
-            statusMessage = settings.pick(
-                "Izin lokasi belum diberikan.",
-                "Location permission has not been granted yet."
-            )
+            statusMessage = msgLocDenied
             systemRefreshKey += 1
         }
     }
@@ -166,13 +162,13 @@ fun PermissionSetupScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.ArrowBack,
-                        contentDescription = settings.pick("Kembali", "Back"),
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.back),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = settings.pick("Permissions", "Permissions"),
+                    text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.permissions),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -189,15 +185,12 @@ fun PermissionSetupScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = settings.pick("Izinkan Akses Aplikasi", "Allow App Access"),
+                            text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.allow_app_access),
                             style = MaterialTheme.typography.displaySmall,
                             fontWeight = FontWeight.ExtraBold
                         )
                         Text(
-                            text = settings.pick(
-                                "Agar pengalaman ibadahmu lebih sempurna",
-                                "So your worship experience feels complete"
-                            ),
+                            text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.so_your_worship_experience_feels_complet),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -208,11 +201,8 @@ fun PermissionSetupScreen(
                         icon = Icons.Rounded.LocationOn,
                         iconTint = MaterialTheme.colorScheme.primary,
                         iconBackground = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                        title = settings.pick("Izin Lokasi", "Location Access"),
-                        subtitle = settings.pick(
-                            "Untuk menentukan waktu sholat dan arah kiblat",
-                            "For prayer times and qibla direction"
-                        ),
+                        title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.location_access),
+                        subtitle = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.for_prayer_times_and_qibla_direction),
                         checked = readiness.locationPermissionGranted && settings.autoLocation,
                         onToggle = { enabled ->
                             if (enabled) {
@@ -228,16 +218,13 @@ fun PermissionSetupScreen(
                                 }
                             } else {
                                 viewModel.setAutoLocation(false)
-                                statusMessage = settings.pick(
-                                    "Lokasi otomatis dimatikan. Kamu masih bisa pilih lokasi manual di pengaturan.",
-                                    "Auto location is off. You can still choose a manual location in settings."
-                                )
+                                statusMessage = msgAutoLocOff
                             }
                         }
                     ) {
                         Text(
                             text = settings.locationName.ifBlank {
-                                settings.pick("Belum ada lokasi aktif", "No active location yet")
+                                androidx.compose.ui.res.stringResource(com.sajda.app.R.string.no_active_location_yet)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -258,21 +245,15 @@ fun PermissionSetupScreen(
                         icon = Icons.Rounded.NotificationsActive,
                         iconTint = MaterialTheme.colorScheme.secondary,
                         iconBackground = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.32f),
-                        title = settings.pick("Notifikasi Adzan", "Adhan Notifications"),
-                        subtitle = settings.pick(
-                            "Dapatkan pengingat tepat waktu",
-                            "Get timely prayer reminders"
-                        ),
+                        title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.adhan_notifications_2),
+                        subtitle = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.get_timely_prayer_reminders),
                         checked = settings.adzanEnabled &&
                             readiness.notificationPermissionGranted &&
                             readiness.appNotificationsEnabled,
                         onToggle = { enabled ->
                             if (!enabled) {
                                 viewModel.setAdzanEnabled(false)
-                                statusMessage = settings.pick(
-                                    "Pengingat adzan dimatikan dari aplikasi.",
-                                    "Adhan reminders were disabled in the app."
-                                )
+                                statusMessage = msgAdhanDisabled
                             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                                 !readiness.notificationPermissionGranted
                             ) {
@@ -280,10 +261,7 @@ fun PermissionSetupScreen(
                             } else {
                                 viewModel.setAdzanEnabled(true)
                                 AdhanSystemHelper.openNotificationSettings(context)
-                                statusMessage = settings.pick(
-                                    "Cek juga apakah notifikasi aplikasi dan channel adzan sudah aktif.",
-                                    "Also verify that app notifications and the adhan channel are enabled."
-                                )
+                                statusMessage = msgVerifyNotif
                             }
                         }
                     )
@@ -293,32 +271,20 @@ fun PermissionSetupScreen(
                         icon = Icons.Rounded.VolumeUp,
                         iconTint = MaterialTheme.colorScheme.tertiary,
                         iconBackground = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
-                        title = settings.pick("Abaikan Mode Senyap", "Override Silent Mode"),
-                        subtitle = settings.pick(
-                            "Tetap bunyikan adzan meski ponsel dalam mode senyap",
-                            "Keep the adhan audible even when the phone is muted"
-                        ),
+                        title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.override_silent_mode),
+                        subtitle = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.keep_the_adhan_audible_even_when_the_pho),
                         checked = settings.overrideSilentMode,
                         onToggle = {
                             viewModel.setOverrideSilentMode(it)
                             statusMessage = if (it) {
-                                settings.pick(
-                                    "NurApp akan mencoba tetap memutar adzan saat ponsel senyap.",
-                                    "NurApp will try to keep playing the adhan while the phone is muted."
-                                )
+                                msgOverrideOn
                             } else {
-                                settings.pick(
-                                    "Mode senyap perangkat akan dihormati kembali.",
-                                    "The phone's silent mode will be respected again."
-                                )
+                                msgOverrideOff
                             }
                         }
                     ) {
                         Text(
-                            text = settings.pick(
-                                "Volume adzan tetap mengikuti volume alarm HP kamu.",
-                                "The adhan volume still follows your phone's alarm volume."
-                            ),
+                            text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.the_adhan_volume_still_follows_your_phon),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -329,31 +295,19 @@ fun PermissionSetupScreen(
                         icon = Icons.Rounded.BatteryChargingFull,
                         iconTint = MaterialTheme.colorScheme.primary,
                         iconBackground = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                        title = settings.pick("Optimasi Baterai", "Battery Optimization"),
-                        subtitle = settings.pick(
-                            "Izinkan aplikasi berjalan di latar belakang untuk akurasi pengingat",
-                            "Allow background work so reminders stay accurate"
-                        ),
+                        title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.battery_optimization),
+                        subtitle = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.allow_background_work_so_reminders_stay),
                         checked = readiness.batteryOptimizationIgnored,
                         onToggle = {
                             AdhanSystemHelper.openBatteryOptimizationSettings(context)
-                            statusMessage = settings.pick(
-                                "Buka pengaturan baterai lalu pilih NurApp agar tidak dibatasi.",
-                                "Open battery settings and mark NurApp as unrestricted."
-                            )
+                            statusMessage = msgBatteryOpen
                         }
                     ) {
                         Text(
                             text = if (readiness.batteryOptimizationIgnored) {
-                                settings.pick(
-                                    "NurApp sudah dibebaskan dari optimasi baterai agresif.",
-                                    "NurApp is already exempt from aggressive battery optimization."
-                                )
+                                androidx.compose.ui.res.stringResource(com.sajda.app.R.string.nurapp_is_already_exempt_from_aggressive)
                             } else {
-                                settings.pick(
-                                    "Masih perlu dibebaskan supaya notifikasi adzan lebih stabil.",
-                                    "This still needs to be unrestricted for more stable adhan reminders."
-                                )
+                                androidx.compose.ui.res.stringResource(com.sajda.app.R.string.this_still_needs_to_be_unrestricted_for)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -378,14 +332,11 @@ fun PermissionSetupScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         PrimarySetupButton(
-                            text = settings.pick("Lanjutkan ke Dashboard", "Continue to Dashboard"),
+                            text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.continue_to_dashboard),
                             onClick = onContinue
                         )
                         Text(
-                            text = settings.pick(
-                                "Anda dapat mengubah pengaturan ini kapan saja di menu Pengaturan",
-                                "You can change these settings anytime from Settings"
-                            ),
+                            text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.you_can_change_these_settings_anytime_fr),
                             modifier = Modifier.fillMaxWidth(),
                             textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.bodySmall,
@@ -404,32 +355,19 @@ fun NurAppOnboardingScreen(
     viewModel: SettingsViewModel,
     onFinish: () -> Unit
 ) {
-    val isEnglish = settings.appLanguage.isEnglish()
     var page by rememberSaveable { mutableIntStateOf(0) }
     val pages = listOf(
         OnboardingPage(
-            title = if (isEnglish) "Accurate Prayer Times" else "Jadwal Sholat Akurat",
-            description = if (isEnglish) {
-                "Get precise adhan times based on your location in real time."
-            } else {
-                "Dapatkan waktu adzan yang tepat berdasarkan lokasi kamu secara real-time."
-            }
+            title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.onboarding_title_prayer),
+            description = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.onboarding_desc_prayer)
         ),
         OnboardingPage(
-            title = if (isEnglish) "Complete Qur'an & Tafsir" else "Al-Qur'an Lengkap & Tafsir",
-            description = if (isEnglish) {
-                "Read the full Qur'an with translation, tafsir per ayah, and audio murottal."
-            } else {
-                "Baca Al-Qur'an 30 juz lengkap dengan terjemahan, tafsir per ayat, dan audio murottal."
-            }
+            title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.onboarding_title_quran),
+            description = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.onboarding_desc_quran)
         ),
         OnboardingPage(
-            title = if (isEnglish) "Qibla Compass & Islamic Tools" else "Kompas Kiblat & Fitur Lengkap",
-            description = if (isEnglish) {
-                "Find the qibla, daily hadith, Ramadan schedule, and Hijri calendar in one app."
-            } else {
-                "Temukan arah kiblat, hadist harian, jadwal Ramadhan, dan kalender Hijriah dalam satu aplikasi."
-            }
+            title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.onboarding_title_qibla),
+            description = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.onboarding_desc_qibla)
         )
     )
 
@@ -452,7 +390,7 @@ fun NurAppOnboardingScreen(
                 horizontalArrangement = Arrangement.End
             ) {
                 Text(
-                    text = if (isEnglish) "Skip" else "Lewati",
+                    text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.onboarding_skip),
                     modifier = Modifier
                         .clip(CircleShape)
                         .clickable {
@@ -474,7 +412,8 @@ fun NurAppOnboardingScreen(
             ) { currentPage ->
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.SpaceBetween
+                    verticalArrangement = Arrangement.SpaceBetween,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     when (currentPage) {
                         0 -> PrayerOnboardingArt()
@@ -482,16 +421,22 @@ fun NurAppOnboardingScreen(
                         else -> QiblaOnboardingArt()
                     }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text(
                             text = pages[currentPage].title,
                             style = MaterialTheme.typography.displaySmall,
-                            fontWeight = FontWeight.ExtraBold
+                            fontWeight = FontWeight.ExtraBold,
+                            textAlign = TextAlign.Center
                         )
                         Text(
                             text = pages[currentPage].description,
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -520,10 +465,10 @@ fun NurAppOnboardingScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
                     modifier = Modifier
@@ -545,9 +490,9 @@ fun NurAppOnboardingScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = when (page) {
-                            0 -> settings.pick("Otomatis terdeteksi", "Auto detected")
-                            1 -> settings.pick("Tafsir dan audio", "Tafsir and audio")
-                            else -> settings.pick("Kalender dan kiblat", "Calendar and qibla")
+                            0 -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.auto_detected)
+                            1 -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.tafsir_and_audio)
+                            else -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.calendar_and_qibla)
                         },
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary
@@ -556,9 +501,9 @@ fun NurAppOnboardingScreen(
 
                 PrimarySetupButton(
                     text = if (page == pages.lastIndex) {
-                        if (isEnglish) "Start Now" else "Mulai Sekarang"
+                        androidx.compose.ui.res.stringResource(com.sajda.app.R.string.onboarding_start)
                     } else {
-                        if (isEnglish) "Next" else "Selanjutnya"
+                        androidx.compose.ui.res.stringResource(com.sajda.app.R.string.onboarding_next)
                     },
                     compact = true,
                     onClick = {
@@ -602,7 +547,11 @@ private fun PrayerOnboardingArt() {
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("GPS", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.onboarding_gps_label),
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
             }
 
@@ -625,7 +574,7 @@ private fun PrayerOnboardingArt() {
                     )
                 }
                 Text(
-                    text = "Subuh | Dzuhur | Ashar | Maghrib | Isya",
+                    text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.onboarding_prayer_list),
                     style = MaterialTheme.typography.labelLarge,
                     color = Color.White.copy(alpha = 0.90f)
                 )

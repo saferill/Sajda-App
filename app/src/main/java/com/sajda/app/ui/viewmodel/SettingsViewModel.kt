@@ -32,23 +32,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class AppUpdateUiState(
-    val currentVersionName: String = BuildConfig.VERSION_NAME,
-    val latestVersionName: String = "",
-    val releaseName: String = "",
-    val notes: String = "",
-    val publishedAt: String = "",
-    val releasePageUrl: String = "",
-    val isChecking: Boolean = false,
-    val isDownloading: Boolean = false,
-    val downloadId: Long = 0L,
-    val canInstallDownloadedUpdate: Boolean = false,
-    val errorMessage: String? = null,
-    val lastCheckedAt: String = ""
-) {
-    val hasUpdate: Boolean
-        get() = latestVersionName.isNotBlank()
-}
+
 
 data class BackupUiState(
     val isBusy: Boolean = false,
@@ -61,7 +45,6 @@ class SettingsViewModel @Inject constructor(
     private val preferencesDataStore: PreferencesDataStore,
     private val prayerTimeRepository: PrayerTimeRepository,
     private val adzanScheduler: AdzanScheduler,
-    private val appUpdateRepository: AppUpdateRepository,
     private val backupRepository: BackupRepository
 ) : ViewModel() {
 
@@ -71,29 +54,8 @@ class SettingsViewModel @Inject constructor(
         initialValue = UserSettings()
     )
 
-    private val _appUpdateState = MutableStateFlow(AppUpdateUiState())
-    val appUpdateState = _appUpdateState.asStateFlow()
-
     private val _backupState = MutableStateFlow(BackupUiState())
     val backupState = _backupState.asStateFlow()
-
-    private var cachedUpdateInfo: AppUpdateInfo? = null
-
-    init {
-        viewModelScope.launch {
-            runCatching {
-                settings.collect { latestSettings ->
-                    _appUpdateState.update { current ->
-                        current.copy(lastCheckedAt = latestSettings.lastUpdateCheckAt)
-                    }
-                }
-            }.onFailure {
-                _appUpdateState.update { current ->
-                    current.copy(errorMessage = it.message ?: "Gagal memuat pengaturan update")
-                }
-            }
-        }
-    }
 
     fun setDarkMode(enabled: Boolean) {
         viewModelScope.launch { preferencesDataStore.setDarkMode(enabled) }
@@ -176,66 +138,16 @@ class SettingsViewModel @Inject constructor(
 
     fun setCalendarDisplayMode(mode: CalendarDisplayMode) {
         viewModelScope.launch { preferencesDataStore.setCalendarDisplayMode(mode) }
-    }
-
-    fun setPrayerCalculationMethod(method: PrayerCalculationMethod) {
-        viewModelScope.launch {
-            preferencesDataStore.setPrayerCalculationMethod(method)
-            reschedulePrayerAlarms()
-        }
+    }    fun setPrayerCalculationMethod(method: PrayerCalculationMethod) {
+        viewModelScope.launch { preferencesDataStore.setPrayerCalculationMethod(method) }
     }
 
     fun setAsrMadhhab(madhhab: AsrMadhhab) {
-        viewModelScope.launch {
-            preferencesDataStore.setAsrMadhhab(madhhab)
-            reschedulePrayerAlarms()
-        }
+        viewModelScope.launch { preferencesDataStore.setAsrMadhhab(madhhab) }
     }
 
-    fun setAutoLocation(enabled: Boolean, refreshSchedule: Boolean = true) {
-        viewModelScope.launch {
-            preferencesDataStore.setAutoLocation(enabled)
-            if (refreshSchedule) {
-                reschedulePrayerAlarms()
-            }
-        }
-    }
 
-    fun setLocationPermissionPrompted(prompted: Boolean) {
-        viewModelScope.launch {
-            preferencesDataStore.setLocationPermissionPrompted(prompted)
-        }
-    }
 
-    fun setLocation(cityPreset: CityPreset) {
-        viewModelScope.launch {
-            preferencesDataStore.updateLocation(
-                locationName = cityPreset.displayName,
-                latitude = cityPreset.latitude,
-                longitude = cityPreset.longitude,
-                automatic = false
-            )
-            reschedulePrayerAlarms()
-        }
-    }
-
-    fun setCurrentLocation(locationName: String, latitude: Double, longitude: Double, automatic: Boolean) {
-        viewModelScope.launch {
-            preferencesDataStore.updateLocation(
-                locationName = locationName,
-                latitude = latitude,
-                longitude = longitude,
-                automatic = automatic
-            )
-            reschedulePrayerAlarms()
-        }
-    }
-
-    fun toggleFavoriteLocation(locationName: String) {
-        viewModelScope.launch {
-            preferencesDataStore.toggleFavoriteLocation(locationName)
-        }
-    }
 
     fun completeOnboarding() {
         viewModelScope.launch { preferencesDataStore.setOnboardingCompleted(true) }
@@ -265,144 +177,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun checkForUpdates(silent: Boolean = false) {
-        viewModelScope.launch {
-            _appUpdateState.update {
-                it.copy(
-                    isChecking = true,
-                    isDownloading = false,
-                    downloadId = 0L,
-                    canInstallDownloadedUpdate = false,
-                    errorMessage = null
-                )
-            }
-            val updateInfo = appUpdateRepository.fetchLatestRelease()
-            preferencesDataStore.setLastUpdateCheckAt()
-            cachedUpdateInfo = updateInfo
-            _appUpdateState.update { current ->
-                when (updateInfo) {
-                    null -> current.copy(
-                        latestVersionName = "",
-                        releaseName = "",
-                        notes = "",
-                        publishedAt = "",
-                        releasePageUrl = "",
-                        isChecking = false,
-                        isDownloading = false,
-                        downloadId = 0L,
-                        canInstallDownloadedUpdate = false,
-                        errorMessage = if (silent) null else "Belum ada versi publik yang lebih baru saat ini.",
-                        lastCheckedAt = preferencesDataStore.settingsFlow.first().lastUpdateCheckAt
-                    )
 
-                    else -> current.copy(
-                        latestVersionName = updateInfo.versionName,
-                        releaseName = updateInfo.releaseName,
-                        notes = updateInfo.notes,
-                        publishedAt = updateInfo.publishedAt,
-                        releasePageUrl = updateInfo.releasePageUrl,
-                        isChecking = false,
-                        isDownloading = false,
-                        downloadId = 0L,
-                        canInstallDownloadedUpdate = false,
-                        errorMessage = null,
-                        lastCheckedAt = preferencesDataStore.settingsFlow.first().lastUpdateCheckAt
-                    )
-                }
-            }
-        }
-    }
-
-    fun downloadLatestUpdate() {
-        val updateInfo = cachedUpdateInfo ?: run {
-            _appUpdateState.update {
-                it.copy(errorMessage = "Cek update dulu sebelum mengunduh.")
-            }
-            return
-        }
-        viewModelScope.launch {
-            _appUpdateState.update {
-                it.copy(
-                    isDownloading = true,
-                    canInstallDownloadedUpdate = false,
-                    errorMessage = "Mengunduh update..."
-                )
-            }
-            val downloadId = appUpdateRepository.enqueueUpdateDownload(updateInfo)
-            preferencesDataStore.setLastUpdateDownloadId(downloadId)
-            _appUpdateState.update { it.copy(downloadId = downloadId) }
-            waitForUpdateDownload(downloadId)
-        }
-    }
-
-    fun installDownloadedUpdate() {
-        viewModelScope.launch {
-            val downloadId = _appUpdateState.value.downloadId
-            if (downloadId <= 0L) {
-                _appUpdateState.update { it.copy(errorMessage = "File update belum siap dipasang.") }
-                return@launch
-            }
-
-            val startedInstaller = appUpdateRepository.installDownloadedUpdate(downloadId)
-            if (!startedInstaller) {
-                _appUpdateState.update {
-                    it.copy(errorMessage = "Izinkan pemasangan dari NurApp, lalu tekan Pasang sekarang lagi.")
-                }
-            }
-        }
-    }
-
-    private suspend fun waitForUpdateDownload(downloadId: Long) {
-        repeat(DOWNLOAD_STATUS_POLL_LIMIT) {
-            val record = appUpdateRepository.getDownloadRecord(downloadId)
-            when (record?.status) {
-                DownloadManager.STATUS_SUCCESSFUL -> {
-                    _appUpdateState.update {
-                        it.copy(
-                            isDownloading = false,
-                            canInstallDownloadedUpdate = true,
-                            errorMessage = "Download selesai. Tekan Pasang sekarang."
-                        )
-                    }
-                    return
-                }
-
-                DownloadManager.STATUS_FAILED -> {
-                    _appUpdateState.update {
-                        it.copy(
-                            isDownloading = false,
-                            canInstallDownloadedUpdate = false,
-                            errorMessage = "Download update gagal. Coba unduh ulang."
-                        )
-                    }
-                    return
-                }
-
-                DownloadManager.STATUS_PAUSED -> {
-                    _appUpdateState.update {
-                        it.copy(errorMessage = "Download dijeda oleh sistem.")
-                    }
-                }
-
-                DownloadManager.STATUS_PENDING,
-                DownloadManager.STATUS_RUNNING,
-                null -> {
-                    _appUpdateState.update {
-                        it.copy(errorMessage = "Mengunduh update...")
-                    }
-                }
-            }
-            delay(DOWNLOAD_STATUS_POLL_INTERVAL_MS)
-        }
-
-        _appUpdateState.update {
-            it.copy(
-                isDownloading = false,
-                canInstallDownloadedUpdate = false,
-                errorMessage = "Download terlalu lama. Cek notifikasi download atau coba lagi."
-            )
-        }
-    }
 
     fun exportBackup() {
         viewModelScope.launch {
@@ -449,6 +224,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    private suspend fun reschedulePrayerAlarms() {
+        val latestSettings = preferencesDataStore.settingsFlow.first()
+        val prayerTimes = prayerTimeRepository.refreshPrayerTimes(latestSettings)
+        adzanScheduler.reschedule(prayerTimes, latestSettings)
+    }
+
     fun setQuranReminder(enabled: Boolean, time: String? = null) {
         viewModelScope.launch { preferencesDataStore.setQuranReminder(enabled, time) }
     }
@@ -474,14 +255,20 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    private suspend fun reschedulePrayerAlarms() {
-        val latestSettings = preferencesDataStore.settingsFlow.first()
-        val prayerTimes = prayerTimeRepository.refreshPrayerTimes(latestSettings)
-        adzanScheduler.reschedule(prayerTimes, latestSettings)
+    fun updateLocation(locationName: String, latitude: Double, longitude: Double, automatic: Boolean) {
+        viewModelScope.launch {
+            preferencesDataStore.updateLocation(locationName, latitude, longitude, automatic)
+        }
     }
 
-    companion object {
-        private const val DOWNLOAD_STATUS_POLL_LIMIT = 900
-        private const val DOWNLOAD_STATUS_POLL_INTERVAL_MS = 1_000L
+    fun setAutoLocation(auto: Boolean, refreshSchedule: Boolean = false) {
+        viewModelScope.launch { 
+            preferencesDataStore.setAutoLocation(auto) 
+            if (refreshSchedule) reschedulePrayerAlarms()
+        }
+    }
+
+    fun setLocationPermissionPrompted(prompted: Boolean) {
+        viewModelScope.launch { preferencesDataStore.setLocationPermissionPrompted(prompted) }
     }
 }

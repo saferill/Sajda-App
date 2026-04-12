@@ -42,7 +42,6 @@ import com.sajda.app.ui.component.SajdaTopBar
 import com.sajda.app.ui.component.SanctuaryCard
 import com.sajda.app.util.buildHighlightedText
 import com.sajda.app.util.isEnglish
-import com.sajda.app.util.pick
 
 @Composable
 fun HadithSearchScreen(
@@ -58,6 +57,7 @@ fun HadithSearchScreen(
     var isLoading by remember(selectedBook, query) { mutableStateOf(true) }
     var errorMessage by remember(selectedBook, query) { mutableStateOf<String?>(null) }
 
+    val errorMsg = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.failed_to_load_hadith)
     LaunchedEffect(selectedBook, refreshKey, query) {
         isLoading = true
         errorMessage = null
@@ -70,7 +70,7 @@ fun HadithSearchScreen(
         }.onSuccess {
             items = it
         }.onFailure {
-            errorMessage = it.message ?: settings.pick("Gagal memuat hadist", "Failed to load hadith")
+            errorMessage = it.message ?: errorMsg
             items = emptyList()
         }
         isLoading = false
@@ -83,13 +83,13 @@ fun HadithSearchScreen(
     ) {
         item {
             SajdaTopBar(
-                title = settings.pick("Hadist", "Hadith"),
+                title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.tab_hadith),
                 subtitle = selectedBook.title,
                 leading = onBack?.let { backAction ->
                     {
                         SajdaTopAction(
                             icon = Icons.Rounded.ArrowBack,
-                            label = settings.pick("Kembali", "Back"),
+                            label = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.back),
                             onClick = backAction
                         )
                     }
@@ -97,7 +97,7 @@ fun HadithSearchScreen(
                 trailing = {
                     SajdaTopAction(
                         icon = Icons.Rounded.Refresh,
-                        label = settings.pick("Muat ulang", "Refresh"),
+                        label = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.refresh),
                         onClick = { refreshKey++ }
                     )
                 }
@@ -156,7 +156,7 @@ fun HadithSearchScreen(
             item {
                 SanctuaryCard {
                     Text(
-                        text = settings.pick("Hadist tidak ditemukan", "No hadith found"),
+                        text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.no_hadith_found),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -200,7 +200,7 @@ private fun HadithEntryCard(
         )
         if (hadith.sourceLabel.isNotBlank()) {
             Text(
-                text = settings.pick("Sumber: ${hadith.sourceLabel}", "Source: ${hadith.sourceLabel}"),
+                text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.source_hadith_sourcelabel),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

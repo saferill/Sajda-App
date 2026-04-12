@@ -67,7 +67,7 @@ import com.sajda.app.util.audioBundleSizeBytes
 import com.sajda.app.util.hasAnyDownloadedAudio
 import com.sajda.app.util.hasDownloadedAudioFor
 import com.sajda.app.util.isEnglish
-import com.sajda.app.util.pick
+import com.sajda.app.util.AppTranslations
 
 private enum class QuranFilter { ALL, MAKKIYAH, MADANIYAH }
 
@@ -196,7 +196,7 @@ fun ModernQuranScreen(
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        FilterChip(state.appLanguage.pick("Semua", "All"), filter == QuranFilter.ALL) { filter = QuranFilter.ALL }
+                        FilterChip(androidx.compose.ui.res.stringResource(com.sajda.app.R.string.all), filter == QuranFilter.ALL) { filter = QuranFilter.ALL }
                         FilterChip("Makkiyah", filter == QuranFilter.MAKKIYAH) { filter = QuranFilter.MAKKIYAH }
                         FilterChip("Madaniyah", filter == QuranFilter.MADANIYAH) { filter = QuranFilter.MADANIYAH }
                     }
@@ -276,7 +276,7 @@ fun ModernQuranScreen(
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = "${state.appLanguage.pick(surah.translation, surah.englishTranslation.ifBlank { surah.translation })} | ${surah.totalVerses} ${state.appLanguage.pick("ayat", "verses")}",
+                                    text = "${resolveSurahTranslation(state.appLanguage, surah.translation, surah.englishTranslation)} | ${surah.totalVerses} ${androidx.compose.ui.res.stringResource(com.sajda.app.R.string.verses)}",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -306,36 +306,27 @@ fun ModernQuranScreen(
                     }
 
                     Text(
-                        text = state.appLanguage.pick(
-                            "$downloadedReciters/${QuranReciter.entries.size} qari siap | ${formatStorageSize(estimatedSize)}",
-                            "$downloadedReciters/${QuranReciter.entries.size} reciters ready | ${formatStorageSize(estimatedSize)}"
-                        ),
+                        text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.downloadedreciters_quranreciter_entries),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (hasOfflineBundle) {
                         MetadataChip(
                             text = if (hasSelectedAudio) {
-                                state.appLanguage.pick("Semua qari tersimpan", "All reciters saved")
+                                androidx.compose.ui.res.stringResource(com.sajda.app.R.string.all_reciters_saved)
                             } else {
-                                state.appLanguage.pick("Audio offline siap diputar", "Offline audio is ready")
+                                androidx.compose.ui.res.stringResource(com.sajda.app.R.string.offline_audio_is_ready)
                             },
                             active = true
                         )
                     } else {
+                        val sizeLabel = formatStorageSize(estimatedSize)
                         MetadataChip(
-                            text = state.appLanguage.pick(
-                                if (state.audioDownloadMode == com.sajda.app.domain.model.AudioDownloadMode.SELECTED_RECITER_ONLY) {
-                                    "Unduh qari aktif | ~${formatStorageSize(estimatedSize)}"
-                                } else {
-                                    "Unduh semua qari | ~${formatStorageSize(estimatedSize)}"
-                                },
-                                if (state.audioDownloadMode == com.sajda.app.domain.model.AudioDownloadMode.SELECTED_RECITER_ONLY) {
-                                    "Download active reciter | ~${formatStorageSize(estimatedSize)}"
-                                } else {
-                                    "Download all reciters | ~${formatStorageSize(estimatedSize)}"
-                                }
-                            ),
+                            text = if (state.audioDownloadMode == com.sajda.app.domain.model.AudioDownloadMode.SELECTED_RECITER_ONLY) {
+                                androidx.compose.ui.res.stringResource(com.sajda.app.R.string.download_active_reciter_with_size, sizeLabel)
+                            } else {
+                                androidx.compose.ui.res.stringResource(com.sajda.app.R.string.download_all_reciters_with_size, sizeLabel)
+                            },
                             active = false
                         )
                     }
@@ -346,10 +337,7 @@ fun ModernQuranScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
                         Text(
-                            text = state.appLanguage.pick(
-                                "Mengunduh ${downloadState.progress}%",
-                                "Downloading ${downloadState.progress}%"
-                            ),
+                            text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.downloading_downloadstate_progress),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -393,7 +381,7 @@ fun ModernQuranScreen(
                                     fontWeight = FontWeight.ExtraBold
                                 )
                                 Text(
-                                    text = "${surah.totalVerses} ${state.appLanguage.pick("ayat", "verses")}",
+                                    text = "${surah.totalVerses} ${androidx.compose.ui.res.stringResource(com.sajda.app.R.string.verses)}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -430,23 +418,16 @@ fun ModernQuranScreen(
 
                     Text(
                         text = if (hasOfflineBundle) {
-                            state.appLanguage.pick(
-                                "${surah.downloadedReciterIds.size}/${QuranReciter.entries.size} qari offline | ${formatStorageSize(estimatedSize)}",
-                                "${surah.downloadedReciterIds.size}/${QuranReciter.entries.size} reciters offline | ${formatStorageSize(estimatedSize)}"
-                            )
+                            androidx.compose.ui.res.stringResource(com.sajda.app.R.string.surah_downloadedreciterids_size_quranrec)
                         } else {
-                            state.appLanguage.pick(
+                            run {
+                                val sizeLabel = formatStorageSize(estimatedSize)
                                 if (state.audioDownloadMode == com.sajda.app.domain.model.AudioDownloadMode.SELECTED_RECITER_ONLY) {
-                                    "Sekali unduh qari aktif | ~${formatStorageSize(estimatedSize)}"
+                                    androidx.compose.ui.res.stringResource(com.sajda.app.R.string.one_tap_download_active_reciter_with_size, sizeLabel)
                                 } else {
-                                    "Sekali unduh langsung semua qari | ~${formatStorageSize(estimatedSize)}"
-                                },
-                                if (state.audioDownloadMode == com.sajda.app.domain.model.AudioDownloadMode.SELECTED_RECITER_ONLY) {
-                                    "One tap downloads the active reciter | ~${formatStorageSize(estimatedSize)}"
-                                } else {
-                                    "One tap downloads all reciters | ~${formatStorageSize(estimatedSize)}"
+                                    androidx.compose.ui.res.stringResource(com.sajda.app.R.string.one_tap_download_all_reciters_with_size, sizeLabel)
                                 }
-                            )
+                            }
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -473,10 +454,10 @@ fun ModernQuranScreen(
                             .background(MaterialTheme.colorScheme.background)
                             .padding(4.dp)
                     ) {
-                        FilterChip(state.appLanguage.pick("Mushaf", "Mushaf"), readerMode == ReaderMode.MUSHAF) {
+                        FilterChip(androidx.compose.ui.res.stringResource(com.sajda.app.R.string.mushaf), readerMode == ReaderMode.MUSHAF) {
                             readerMode = ReaderMode.MUSHAF
                         }
-                        FilterChip(state.appLanguage.pick("Terjemahan", "Translation"), readerMode == ReaderMode.TRANSLATION) {
+                        FilterChip(androidx.compose.ui.res.stringResource(com.sajda.app.R.string.translation), readerMode == ReaderMode.TRANSLATION) {
                             readerMode = ReaderMode.TRANSLATION
                         }
                         FilterChip("Tafsir", readerMode == ReaderMode.TAFSIR) {
@@ -491,10 +472,7 @@ fun ModernQuranScreen(
                         )
                     } else if (hasOfflineBundle && !hasSelectedAudio) {
                         Text(
-                            text = state.appLanguage.pick(
-                                "Qari aktif belum dipilih, audio offline tetap bisa diputar dari qari yang tersedia.",
-                                "Your active reciter is different, but offline audio is still ready from the available reciters."
-                            ),
+                            text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.your_active_reciter_is_different_but_off),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -513,10 +491,7 @@ fun ModernQuranScreen(
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = state.appLanguage.pick(
-                            "Dengan nama Allah Yang Maha Pengasih lagi Maha Penyayang",
-                            "In the name of Allah, Most Compassionate, Most Merciful"
-                        ),
+                        text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.in_the_name_of_allah_most_compassionate),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -586,9 +561,10 @@ fun ModernQuranScreen(
 
                     if (readerMode != ReaderMode.MUSHAF && state.quranReadingMode != QuranReadingMode.ARABIC_ONLY) {
                         Text(
-                            text = state.appLanguage.pick(
-                                ayat.translation,
-                                ayat.englishTranslation.ifBlank { ayat.translation }
+                            text = resolveAyatTranslation(
+                                appLanguage = state.appLanguage,
+                                indonesian = ayat.translation,
+                                english = ayat.englishTranslation
                             ),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -597,7 +573,7 @@ fun ModernQuranScreen(
 
                     if (readerMode == ReaderMode.TAFSIR) {
                         Text(
-                            text = state.appLanguage.pick("Buka tafsir lengkap", "Open full tafsir"),
+                            text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.open_full_tafsir),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.clickable { onOpenTafsir(surah, ayat) }
@@ -623,23 +599,20 @@ private fun AudioDownloadOptionsDialog(
     val isEnglish = appLanguage.isEnglish()
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = appLanguage.pick("Unduh audio", "Download audio")) },
+        title = { Text(text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.download_audio)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = appLanguage.pick("Pilih paket unduhan:", "Choose a download package:"),
+                    text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.choose_a_download_package),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 DownloadOptionRow(
-                    label = appLanguage.pick(
-                        "Qari aktif saja (${selectedReciter.title})",
-                        "Active reciter only (${selectedReciter.title})"
-                    ),
+                    label = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.active_reciter_only_selectedreciter_titl),
                     selected = mode == AudioDownloadMode.SELECTED_RECITER_ONLY,
                     onClick = { onModeChange(AudioDownloadMode.SELECTED_RECITER_ONLY) }
                 )
                 DownloadOptionRow(
-                    label = appLanguage.pick("Semua qari", "All reciters"),
+                    label = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.all_reciters),
                     selected = mode == AudioDownloadMode.ALL_RECITERS,
                     onClick = { onModeChange(AudioDownloadMode.ALL_RECITERS) }
                 )
@@ -650,15 +623,12 @@ private fun AudioDownloadOptionsDialog(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = appLanguage.pick("Unduh hanya via Wi-Fi", "Download via Wi-Fi only"),
+                            text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.download_via_wi_fi_only),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = appLanguage.pick(
-                                "Cegah unduhan besar lewat data seluler.",
-                                "Avoid large downloads over mobile data."
-                            ),
+                            text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.avoid_large_downloads_over_mobile_data),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -678,6 +648,32 @@ private fun AudioDownloadOptionsDialog(
             }
         }
     )
+}
+
+private fun resolveAyatTranslation(
+    appLanguage: com.sajda.app.domain.model.AppLanguage,
+    indonesian: String,
+    english: String
+): String {
+    val fallbackEnglish = english.ifBlank { indonesian }
+    return when (appLanguage) {
+        com.sajda.app.domain.model.AppLanguage.INDONESIAN -> indonesian
+        com.sajda.app.domain.model.AppLanguage.ENGLISH -> fallbackEnglish
+        else -> AppTranslations.translate(fallbackEnglish, appLanguage)
+    }
+}
+
+private fun resolveSurahTranslation(
+    appLanguage: com.sajda.app.domain.model.AppLanguage,
+    indonesian: String,
+    english: String
+): String {
+    val fallbackEnglish = english.ifBlank { indonesian }
+    return when (appLanguage) {
+        com.sajda.app.domain.model.AppLanguage.INDONESIAN -> indonesian
+        com.sajda.app.domain.model.AppLanguage.ENGLISH -> fallbackEnglish
+        else -> AppTranslations.translate(fallbackEnglish, appLanguage)
+    }
 }
 
 @Composable

@@ -13,11 +13,13 @@ object Constants {
     const val AUDIO_NOTIFICATION_CHANNEL = "audio_playback_channel"
     const val ADZAN_NOTIFICATION_CHANNEL = "adzan_channel"
     const val ADZAN_ALERT_NOTIFICATION_CHANNEL = "adzan_alert_channel"
+    const val ADZAN_RECOVERY_NOTIFICATION_CHANNEL = "adzan_recovery_channel"
     const val UPDATE_NOTIFICATION_CHANNEL = "app_update_channel"
     const val AUDIO_NOTIFICATION_ID = 1201
     const val ADZAN_NOTIFICATION_ID = 1202
     const val UPDATE_AVAILABLE_NOTIFICATION_ID = 1203
     const val UPDATE_READY_NOTIFICATION_ID = 1204
+    const val ADZAN_RECOVERY_NOTIFICATION_ID = 1205
 
     const val ACTION_PLAY_AUDIO = "com.sajda.app.action.PLAY_AUDIO"
     const val ACTION_PAUSE_AUDIO = "com.sajda.app.action.PAUSE_AUDIO"

@@ -18,3 +18,7 @@ local.properties
 keystore.properties
 .jdks/
 /UI/
+jdk17/
+*.txt
+*.kts
+*.js

@@ -35,8 +35,7 @@ import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.UserSettings
 import com.sajda.app.util.Constants
 import com.sajda.app.util.isEnglish
-import com.sajda.app.util.localizedPrayerName
-import com.sajda.app.util.pick
+import com.sajda.app.util.localizedPrayerNameRes
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -136,10 +135,7 @@ class AdzanService : Service() {
         if (!canPlaySound) {
             preferencesDataStore.updateAdhanLastEvent(
                 prayerName = prayerName,
-                status = settings.pick(
-                    "Notif tampil, volume alarm sedang nol",
-                    "Notification shown, alarm volume is zero"
-                ),
+                status = getString(com.sajda.app.R.string.notification_shown_alarm_volume_is_zero),
                 details = "ringer=${audioManager.ringerMode}, volumeAlarm=${audioManager.getStreamVolume(AudioManager.STREAM_ALARM)}"
             )
             keepNotificationVisibleAndStop(
@@ -186,9 +182,9 @@ class AdzanService : Service() {
             preferencesDataStore.updateAdhanLastEvent(
                 prayerName = prayerName,
                 status = if (audioSource.isFallbackShort) {
-                    settings.pick("Alarm pengganti diputar", "Fallback alert played")
+                    getString(com.sajda.app.R.string.fallback_alert_played)
                 } else {
-                    settings.pick("Adzan diputar", "Adhan played")
+                    getString(com.sajda.app.R.string.adhan_played)
                 },
                 details = adzanUri.toString()
             )
@@ -203,10 +199,7 @@ class AdzanService : Service() {
             serviceScope.launch {
                 preferencesDataStore.updateAdhanLastEvent(
                     prayerName = prayerName,
-                    status = settings.pick(
-                        "Gagal memutar audio, alarm pengganti dipakai",
-                        "Audio playback failed, fallback alert was used"
-                    ),
+                    status = getString(com.sajda.app.R.string.audio_playback_failed_fallback_alert_was),
                     details = it.message.orEmpty()
                 )
             }
@@ -235,7 +228,6 @@ class AdzanService : Service() {
         soundDisabled: Boolean = false
     ): Notification {
         val language = cachedLanguage
-        val displayName = displayPrayerName(prayerName, language)
         val openAppIntent = Intent(this, MainActivity::class.java).apply {
             action = Constants.ACTION_OPEN_PRAYER_TAB
             putExtra(Constants.EXTRA_OPEN_TAB, "prayer")
@@ -283,25 +275,16 @@ class AdzanService : Service() {
         val summaryText = buildSummaryText(prayerName)
         val detailText = when {
             soundDisabled -> {
-                language.pick(
-                    "Notifikasi tetap tampil. Naikkan volume alarm HP bila ingin adzan terdengar.",
-                    "The notification is still shown. Raise the phone alarm volume if you want the adhan to be heard."
-                )
+                getString(com.sajda.app.R.string.the_notification_is_still_shown_raise_th)
             }
             isPlaying -> {
-                language.pick(
-                    "Adzan sedang diputar. Gunakan tombol volume HP untuk mengatur suaranya.",
-                    "The adhan is playing. Use your phone volume buttons to adjust it."
-                )
+                getString(com.sajda.app.R.string.the_adhan_is_playing_use_your_phone_volu)
             }
             else -> {
-                language.pick(
-                    "Buka halaman Sholat untuk melihat jadwal berikutnya.",
-                    "Open the Prayer page to view the next schedule."
-                )
+                getString(com.sajda.app.R.string.open_the_prayer_page_to_view_the_next_sc)
             }
         }
-        val metaLine = buildMetaLine(language)
+        val metaLine = buildMetaLine()
         val expandedText = listOf(summaryText, detailText, metaLine)
             .filter { it.isNotBlank() }
             .joinToString("\n")
@@ -321,7 +304,7 @@ class AdzanService : Service() {
 
         return NotificationCompat.Builder(this, Constants.ADZAN_NOTIFICATION_CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(language.pick("Waktu $displayName telah tiba", "$displayName time has arrived"))
+            .setContentTitle(getString(com.sajda.app.R.string.displayname_time_has_arrived))
             .setContentText(detailText)
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_MAX)
@@ -336,7 +319,7 @@ class AdzanService : Service() {
             .addAction(
                 NotificationCompat.Action(
                     android.R.drawable.ic_menu_directions,
-                    language.pick("Sholat", "Prayer"),
+                    getString(com.sajda.app.R.string.prayer),
                     prayerPendingIntent
                 )
             )
@@ -350,7 +333,7 @@ class AdzanService : Service() {
             .addAction(
                 NotificationCompat.Action(
                     android.R.drawable.ic_media_pause,
-                    language.pick("Stop", "Stop"),
+                    getString(com.sajda.app.R.string.stop),
                     stopPendingIntent
                 )
             )
@@ -392,7 +375,7 @@ class AdzanService : Service() {
         serviceScope.launch {
             preferencesDataStore.updateAdhanLastEvent(
                 prayerName = currentPrayerName,
-                status = cachedLanguage.pick("Dihentikan manual", "Stopped manually")
+                status = getString(com.sajda.app.R.string.stopped_manually)
             )
         }
         releaseFallbackRingtone()
@@ -406,7 +389,7 @@ class AdzanService : Service() {
         serviceScope.launch {
             preferencesDataStore.updateAdhanLastEvent(
                 prayerName = currentPrayerName,
-                status = cachedLanguage.pick("Selesai diputar", "Playback finished")
+                status = getString(com.sajda.app.R.string.playback_finished)
             )
         }
         releaseFallbackRingtone()
@@ -480,7 +463,7 @@ class AdzanService : Service() {
         serviceScope.launch {
             preferencesDataStore.appendAdhanLog(
                 prayerName = prayerName,
-                status = cachedLanguage.pick("Alarm pengganti diputar", "Fallback alert played"),
+                status = getString(com.sajda.app.R.string.fallback_alert_played),
                 details = details
             )
         }
@@ -575,19 +558,16 @@ class AdzanService : Service() {
         }
     }
 
-    private fun currentLanguage(): AppLanguage {
-        return cachedLanguage
-    }
-
-    private fun displayPrayerName(prayerName: String, language: AppLanguage = currentLanguage()): String {
-        return localizedPrayerName(prayerName, language)
+    private fun displayPrayerName(prayerName: String): String {
+        return localizedPrayerNameRes(prayerName)
+            ?.let { getString(it) }
+            ?: prayerName
     }
 
     private fun buildSummaryText(prayerName: String): String {
-        val language = currentLanguage()
-        val displayName = displayPrayerName(prayerName, language)
+        val displayName = displayPrayerName(prayerName)
         return buildString {
-            append(language.pick("Saatnya sholat ", "Time for "))
+            append(getString(com.sajda.app.R.string.time_for))
             append(displayName)
             append('.')
         }
@@ -629,9 +609,9 @@ class AdzanService : Service() {
         }
     }
 
-    private fun buildMetaLine(language: AppLanguage): String {
+    private fun buildMetaLine(): String {
         return listOf(
-            currentPrayerTime.ifBlank { language.pick("Sekarang", "Now") },
+            currentPrayerTime.ifBlank { getString(com.sajda.app.R.string.now) },
             resolveLocationLabel()
         ).filter { it.isNotBlank() }.joinToString(" - ")
     }

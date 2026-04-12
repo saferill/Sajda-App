@@ -45,8 +45,8 @@ import com.sajda.app.util.currentDayName
 import com.sajda.app.util.currentGregorianSummary
 import com.sajda.app.util.currentHijriSummary
 import com.sajda.app.util.displayName
+import com.sajda.app.util.displayNameRes
 import com.sajda.app.util.isEnglish
-import com.sajda.app.util.localizedPrayerName
 import java.time.LocalDate
 
 @Composable
@@ -139,8 +139,9 @@ fun PrayerTimeScreen(
                             color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.80f)
                         )
                         Text(
-                            text = nextPrayer?.first?.displayName(settings.appLanguage)
-                                ?: localizedPrayerName(PrayerName.ASR.label, settings.appLanguage),
+                            text = nextPrayer?.first?.displayNameRes()?.let {
+                                androidx.compose.ui.res.stringResource(it)
+                            } ?: androidx.compose.ui.res.stringResource(PrayerName.ASR.displayNameRes()),
                             style = MaterialTheme.typography.displaySmall,
                             color = MaterialTheme.colorScheme.onPrimary
                         )
@@ -206,7 +207,7 @@ fun PrayerTimeScreen(
                     )
                 }
                 PrayerRow(
-                    localizedPrayerName(PrayerName.FAJR.label, settings.appLanguage),
+                    androidx.compose.ui.res.stringResource(PrayerName.FAJR.displayNameRes()),
                     prayerTime?.fajr ?: "--:--",
                     settings.fajrAdzanEnabled
                 ) { viewModel.togglePrayer(PrayerName.FAJR, it) }
@@ -219,22 +220,22 @@ fun PrayerTimeScreen(
                     )
                 }
                 PrayerRow(
-                    localizedPrayerName(PrayerName.DHUHR.label, settings.appLanguage),
+                    androidx.compose.ui.res.stringResource(PrayerName.DHUHR.displayNameRes()),
                     prayerTime?.dhuhr ?: "--:--",
                     settings.dhuhrAdzanEnabled
                 ) { viewModel.togglePrayer(PrayerName.DHUHR, it) }
                 PrayerRow(
-                    localizedPrayerName(PrayerName.ASR.label, settings.appLanguage),
+                    androidx.compose.ui.res.stringResource(PrayerName.ASR.displayNameRes()),
                     prayerTime?.asr ?: "--:--",
                     settings.asrAdzanEnabled
                 ) { viewModel.togglePrayer(PrayerName.ASR, it) }
                 PrayerRow(
-                    localizedPrayerName(PrayerName.MAGHRIB.label, settings.appLanguage),
+                    androidx.compose.ui.res.stringResource(PrayerName.MAGHRIB.displayNameRes()),
                     prayerTime?.maghrib ?: "--:--",
                     settings.maghribAdzanEnabled
                 ) { viewModel.togglePrayer(PrayerName.MAGHRIB, it) }
                 PrayerRow(
-                    localizedPrayerName(PrayerName.ISHA.label, settings.appLanguage),
+                    androidx.compose.ui.res.stringResource(PrayerName.ISHA.displayNameRes()),
                     prayerTime?.isha ?: "--:--",
                     settings.ishaAdzanEnabled
                 ) { viewModel.togglePrayer(PrayerName.ISHA, it) }

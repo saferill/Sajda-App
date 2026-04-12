@@ -59,7 +59,6 @@ import com.sajda.app.util.audioBundleSizeBytes
 import com.sajda.app.util.buildHighlightedText
 import com.sajda.app.util.hasAnyDownloadedAudio
 import com.sajda.app.util.isEnglish
-import com.sajda.app.util.pick
 
 private data class BookmarkEntryUi(
     val bookmark: Bookmark,
@@ -96,7 +95,7 @@ fun SearchScreen(
 
     OverlayShell(
         title = "Al-Qur'an",
-        subtitle = appLanguage.pick("Cari ayat atau topik", "Search verses or topics"),
+        subtitle = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.search_verses_or_topics),
         onBack = onBack
     ) {
         SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest) {
@@ -105,7 +104,7 @@ fun SearchScreen(
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Rounded.Language, contentDescription = null) },
-                placeholder = { Text(appLanguage.pick("Cari ayat atau nama surah...", "Search verses or surah names...")) },
+                placeholder = { Text(androidx.compose.ui.res.stringResource(com.sajda.app.R.string.search_verses_or_surah_names)) },
                 singleLine = true,
                 shape = RoundedCornerShape(24.dp)
             )
@@ -113,17 +112,17 @@ fun SearchScreen(
 
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             ChoiceChip(
-                label = appLanguage.pick("Semua", "All"),
+                label = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.all),
                 selected = selectedType == null,
                 onClick = { selectedType = null }
             )
             ChoiceChip(
-                label = appLanguage.pick("Surah", "Surah"),
+                label = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.surah),
                 selected = selectedType == SearchResultType.SURAH,
                 onClick = { selectedType = SearchResultType.SURAH }
             )
             ChoiceChip(
-                label = appLanguage.pick("Ayat", "Verse"),
+                label = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.verse),
                 selected = selectedType == SearchResultType.AYAT,
                 onClick = { selectedType = SearchResultType.AYAT }
             )
@@ -131,7 +130,7 @@ fun SearchScreen(
 
         if (query.isBlank()) {
             Text(
-                text = appLanguage.pick("PENCARIAN TERAKHIR", "RECENT SEARCHES"),
+                text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.recent_searches),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -153,11 +152,8 @@ fun SearchScreen(
             }
         } else if (results.isEmpty()) {
             EmptyStateCard(
-                title = appLanguage.pick("Hasil belum ditemukan", "No results found"),
-                message = appLanguage.pick(
-                    "Coba kata yang lebih singkat atau lebih umum.",
-                    "Try a shorter or more common keyword."
-                )
+                title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.no_results_found),
+                message = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.try_a_shorter_or_more_common_keyword)
             )
         } else {
             results.forEach { result ->
@@ -176,9 +172,9 @@ fun SearchScreen(
                         ) {
                             MetadataChip(
                                 text = if (result.type == SearchResultType.SURAH) {
-                                    appLanguage.pick("Surah", "Surah")
+                                    androidx.compose.ui.res.stringResource(com.sajda.app.R.string.surah)
                                 } else {
-                                    appLanguage.pick("Ayat", "Verse")
+                                    androidx.compose.ui.res.stringResource(com.sajda.app.R.string.verse)
                                 },
                                 active = result.type == SearchResultType.SURAH
                             )
@@ -234,11 +230,8 @@ fun BookmarksScreen(
     }
 
     OverlayShell(
-        title = appLanguage.pick("Terakhir Dibaca & Bookmark", "Reading History & Bookmarks"),
-        subtitle = appLanguage.pick(
-            "${bookmarks.size} ayat tersimpan",
-            "${bookmarks.size} saved verses"
-        ),
+        title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.reading_history_bookmarks),
+        subtitle = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.bookmarks_size_saved_verses),
         onBack = onBack
     ) {
         val featured = entries.firstOrNull()
@@ -246,7 +239,7 @@ fun BookmarksScreen(
         if (featured != null) {
             HeroCard {
                 Text(
-                    text = appLanguage.pick("TERAKHIR DISIMPAN", "LAST SAVED"),
+                    text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.last_saved),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.secondaryContainer
                 )
@@ -267,7 +260,7 @@ fun BookmarksScreen(
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.86f)
                 )
                 Text(
-                    text = appLanguage.pick("Lanjutkan Membaca", "Continue Reading"),
+                    text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.continue_reading),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.secondaryContainer,
                     modifier = Modifier.clickable { onOpenAyat(featured.bookmark) }
@@ -277,15 +270,12 @@ fun BookmarksScreen(
 
         if (entries.isEmpty()) {
             EmptyStateCard(
-                title = appLanguage.pick("Belum ada bookmark", "No bookmarks yet"),
-                message = appLanguage.pick(
-                    "Simpan ayat favorit dari layar Qur'an untuk membangun perpustakaan tadabbur pribadi.",
-                    "Save your favorite verses from the Qur'an screen to build a personal reflection library."
-                )
+                title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.no_bookmarks_yet),
+                message = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.save_your_favorite_verses_from_the_qur_a)
             )
         } else {
             Text(
-                text = appLanguage.pick("AYAT TERSIMPAN", "SAVED VERSES"),
+                text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.saved_verses),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -311,7 +301,7 @@ fun BookmarksScreen(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
-                                text = "${entry.bookmark.surahName} - ${appLanguage.pick("Ayat", "Verse")} ${entry.bookmark.ayatNumber}",
+                                text = "${entry.bookmark.surahName} - ${androidx.compose.ui.res.stringResource(com.sajda.app.R.string.verse)} ${entry.bookmark.ayatNumber}",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -351,7 +341,7 @@ fun BookmarksScreen(
 @Composable
 private fun BookmarkMetaRow(bookmark: Bookmark, appLanguage: AppLanguage) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        MetadataChip(text = bookmark.folderName.ifBlank { appLanguage.pick("Favorit", "Favorites") }, active = true)
+        MetadataChip(text = bookmark.folderName.ifBlank { androidx.compose.ui.res.stringResource(com.sajda.app.R.string.favorites) }, active = true)
         if (bookmark.highlightColor.isNotBlank()) {
             MetadataChip(text = bookmark.highlightColor, active = false)
         }
@@ -393,8 +383,8 @@ fun AudioManagementScreen(
     }
 
     OverlayShell(
-        title = appLanguage.pick("Manajemen Audio", "Audio Management"),
-        subtitle = appLanguage.pick("Murattal per surah", "Murattal by surah"),
+        title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.audio_management),
+        subtitle = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.murattal_by_surah),
         onBack = onBack
     ) {
         SanctuaryCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
@@ -404,10 +394,7 @@ fun AudioManagementScreen(
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = appLanguage.pick(
-                    "${downloaded.size} surah tersimpan offline.",
-                    "${downloaded.size} surahs stored offline."
-                ),
+                text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.downloaded_size_surahs_stored_offline),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -418,8 +405,8 @@ fun AudioManagementScreen(
                 AudioDownloadMode.entries.forEach { mode ->
                     ChoiceChip(
                         label = when (mode) {
-                            AudioDownloadMode.SELECTED_RECITER_ONLY -> appLanguage.pick("Qari aktif saja", "Selected reciter only")
-                            AudioDownloadMode.ALL_RECITERS -> appLanguage.pick("Semua qari", "All reciters")
+                            AudioDownloadMode.SELECTED_RECITER_ONLY -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.selected_reciter_only)
+                            AudioDownloadMode.ALL_RECITERS -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.all_reciters)
                         },
                         selected = settings.audioDownloadMode == mode,
                         onClick = { onSetDownloadMode(mode) }
@@ -436,15 +423,12 @@ fun AudioManagementScreen(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = appLanguage.pick("Unduh hanya lewat Wi-Fi", "Download on Wi-Fi only"),
+                        text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.download_on_wi_fi_only),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = appLanguage.pick(
-                            "Cocok untuk paket audio besar.",
-                            "Recommended for large audio packages."
-                        ),
+                        text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.recommended_for_large_audio_packages),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -456,7 +440,7 @@ fun AudioManagementScreen(
             }
             if (downloaded.isNotEmpty()) {
                 Text(
-                    text = appLanguage.pick("Hapus semua audio", "Delete all audio"),
+                    text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.delete_all_audio),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.clickable(onClick = onDeleteAll)
@@ -466,11 +450,8 @@ fun AudioManagementScreen(
 
         if (surahList.isEmpty()) {
             EmptyStateCard(
-                title = appLanguage.pick("Daftar surah belum siap", "Surah list is not ready"),
-                message = appLanguage.pick(
-                    "Coba buka ulang halaman Qur'an setelah data selesai dimuat.",
-                    "Open the Qur'an page again after the data finishes loading."
-                )
+                title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.surah_list_is_not_ready),
+                message = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.open_the_qur_an_page_again_after_the_dat)
             )
         }
 
@@ -496,15 +477,12 @@ fun AudioManagementScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${if (appLanguage.isEnglish()) surah.englishTranslation.ifBlank { surah.translation } else surah.translation} - ${surah.totalVerses} ${appLanguage.pick("ayat", "verses")}",
+                            text = "${if (appLanguage.isEnglish()) surah.englishTranslation.ifBlank { surah.translation } else surah.translation} - ${surah.totalVerses} ${androidx.compose.ui.res.stringResource(com.sajda.app.R.string.verses)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = appLanguage.pick(
-                                "${surah.downloadedReciterIds.size}/${com.sajda.app.domain.model.QuranReciter.entries.size} qari | ${formatStorageSize(estimatedSize)}",
-                                "${surah.downloadedReciterIds.size}/${com.sajda.app.domain.model.QuranReciter.entries.size} reciters | ${formatStorageSize(estimatedSize)}"
-                            ),
+                            text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.surah_downloadedreciterids_size_com_sajd),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -512,14 +490,14 @@ fun AudioManagementScreen(
                     Row {
                         if (surah.hasAnyDownloadedAudio()) {
                             IconButton(onClick = { onPlay(surah) }) {
-                                Icon(Icons.Rounded.Headphones, contentDescription = appLanguage.pick("Putar", "Play"))
+                                Icon(Icons.Rounded.Headphones, contentDescription = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.play))
                             }
                             IconButton(onClick = { onDelete(surah) }) {
-                                Icon(Icons.Rounded.Delete, contentDescription = appLanguage.pick("Hapus", "Delete"))
+                                Icon(Icons.Rounded.Delete, contentDescription = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.delete))
                             }
                         } else {
                             IconButton(onClick = { onDownload(surah) }) {
-                                Icon(Icons.Rounded.Download, contentDescription = appLanguage.pick("Unduh", "Download"))
+                                Icon(Icons.Rounded.Download, contentDescription = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.download))
                             }
                         }
                     }
@@ -532,16 +510,10 @@ fun AudioManagementScreen(
                 }
                 MetadataChip(
                     text = when {
-                        state?.isDownloading == true -> appLanguage.pick("Mengunduh ${state.progress}%", "Downloading ${state.progress}%")
-                        surah.hasAnyDownloadedAudio() -> appLanguage.pick("Audio offline siap", "Offline audio ready")
-                        settings.audioDownloadMode == AudioDownloadMode.SELECTED_RECITER_ONLY -> appLanguage.pick(
-                            "Qari aktif | ~${formatStorageSize(estimatedSize)}",
-                            "Selected reciter | ~${formatStorageSize(estimatedSize)}"
-                        )
-                        else -> appLanguage.pick(
-                            "Semua qari | ~${formatStorageSize(estimatedSize)}",
-                            "All reciters | ~${formatStorageSize(estimatedSize)}"
-                        )
+                        state?.isDownloading == true -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.downloading_state_progress)
+                        surah.hasAnyDownloadedAudio() -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.offline_audio_ready)
+                        settings.audioDownloadMode == AudioDownloadMode.SELECTED_RECITER_ONLY -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.selected_reciter_formatstoragesize_estim)
+                        else -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.all_reciters_formatstoragesize_estimated)
                     },
                     active = surah.hasAnyDownloadedAudio()
                 )
@@ -564,8 +536,8 @@ fun FullAudioPlayerScreen(
     onStop: () -> Unit
 ) {
     OverlayShell(
-        title = appLanguage.pick("Sedang Diputar", "Now Playing"),
-        subtitle = currentSurah?.transliteration ?: appLanguage.pick("Murattal NurApp", "NurApp Murattal"),
+        title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.now_playing),
+        subtitle = currentSurah?.transliteration ?: androidx.compose.ui.res.stringResource(com.sajda.app.R.string.nurapp_murattal),
         onBack = onBack
     ) {
         HeroCard {
@@ -575,7 +547,7 @@ fun FullAudioPlayerScreen(
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
                 Text(
-                    text = playbackState.title.ifBlank { appLanguage.pick("Murattal NurApp", "NurApp Murattal") },
+                    text = playbackState.title.ifBlank { androidx.compose.ui.res.stringResource(com.sajda.app.R.string.nurapp_murattal) },
                     style = MaterialTheme.typography.headlineLarge,
                     color = MaterialTheme.colorScheme.onPrimary,
                     fontWeight = FontWeight.Bold
@@ -596,22 +568,22 @@ fun FullAudioPlayerScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onPrevious, enabled = previousSurah != null) {
-                        Icon(Icons.Rounded.SkipPrevious, contentDescription = appLanguage.pick("Sebelumnya", "Previous"), tint = MaterialTheme.colorScheme.onPrimary)
+                        Icon(Icons.Rounded.SkipPrevious, contentDescription = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.previous), tint = MaterialTheme.colorScheme.onPrimary)
                     }
                     IconButton(onClick = onTogglePlayback) {
                         Icon(
                             imageVector = if (playbackState.isPlaying) Icons.Rounded.PauseCircle else Icons.Rounded.PlayCircle,
-                            contentDescription = appLanguage.pick("Putar atau jeda", "Toggle playback"),
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.toggle_playback),
                             tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(56.dp)
                         )
                     }
                     IconButton(onClick = onNext, enabled = nextSurah != null) {
-                        Icon(Icons.Rounded.SkipNext, contentDescription = appLanguage.pick("Berikutnya", "Next"), tint = MaterialTheme.colorScheme.onPrimary)
+                        Icon(Icons.Rounded.SkipNext, contentDescription = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.next), tint = MaterialTheme.colorScheme.onPrimary)
                     }
                 }
                 Text(
-                    text = appLanguage.pick("Hentikan audio", "Stop playback"),
+                    text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.stop_playback),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.clickable(onClick = onStop)
@@ -621,10 +593,7 @@ fun FullAudioPlayerScreen(
 
         SanctuaryCard {
             Text(
-                text = appLanguage.pick(
-                    "Audio latar tetap aktif saat aplikasi ditutup, dengan kontrol putar/jeda dan pindah surah dari player ini.",
-                    "Background audio stays active when the app is closed, with play/pause and next-surah controls from this player."
-                ),
+                text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.background_audio_stays_active_when_the_a),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

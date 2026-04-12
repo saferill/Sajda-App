@@ -57,8 +57,7 @@ import com.sajda.app.ui.theme.surfaceContainerHigh
 import com.sajda.app.util.DateTimeUtils
 import com.sajda.app.util.PrayerTimeCalculator
 import com.sajda.app.util.displayName
-import com.sajda.app.util.localizedPrayerName
-import com.sajda.app.util.pick
+import com.sajda.app.util.displayNameRes
 import java.time.LocalDate
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -73,11 +72,11 @@ fun WeeklyPrayerScheduleScreen(
     val prayerTimes = if (selectedRangeDays == 30) monthlyPrayerTimes else weeklyPrayerTimes
 
     OverlayShell(
-        title = settings.pick("Jadwal Sholat", "Prayer Schedule"),
+        title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.prayer_schedule),
         subtitle = if (selectedRangeDays == 30) {
-            settings.pick("30 hari ke depan", "Next 30 days")
+            androidx.compose.ui.res.stringResource(com.sajda.app.R.string.next_30_days)
         } else {
-            settings.pick("7 hari ke depan", "Next 7 days")
+            androidx.compose.ui.res.stringResource(com.sajda.app.R.string.next_7_days)
         },
         onBack = onBack
     ) {
@@ -86,12 +85,12 @@ fun WeeklyPrayerScheduleScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             ChoiceChip(
-                label = settings.pick("7 Hari", "7 Days"),
+                label = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.str_7_days),
                 selected = selectedRangeDays == 7,
                 onClick = { selectedRangeDays = 7 }
             )
             ChoiceChip(
-                label = settings.pick("30 Hari", "30 Days"),
+                label = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.str_30_days),
                 selected = selectedRangeDays == 30,
                 onClick = { selectedRangeDays = 30 }
             )
@@ -113,10 +112,7 @@ fun WeeklyPrayerScheduleScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = settings.pick(
-                        "Imsak ${details.imsak} - Terbit ${details.sunrise}",
-                        "Imsak ${details.imsak} - Sunrise ${details.sunrise}"
-                    ),
+                    text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.imsak_details_imsak_sunrise_details_sunr),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -125,11 +121,11 @@ fun WeeklyPrayerScheduleScreen(
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    WeeklyPrayerSlot(PrayerName.FAJR.displayName(settings.appLanguage), prayerTime.fajr)
-                    WeeklyPrayerSlot(PrayerName.DHUHR.displayName(settings.appLanguage), prayerTime.dhuhr)
-                    WeeklyPrayerSlot(PrayerName.ASR.displayName(settings.appLanguage), prayerTime.asr)
-                    WeeklyPrayerSlot(PrayerName.MAGHRIB.displayName(settings.appLanguage), prayerTime.maghrib)
-                    WeeklyPrayerSlot(PrayerName.ISHA.displayName(settings.appLanguage), prayerTime.isha)
+                    WeeklyPrayerSlot(androidx.compose.ui.res.stringResource(PrayerName.FAJR.displayNameRes()), prayerTime.fajr)
+                    WeeklyPrayerSlot(androidx.compose.ui.res.stringResource(PrayerName.DHUHR.displayNameRes()), prayerTime.dhuhr)
+                    WeeklyPrayerSlot(androidx.compose.ui.res.stringResource(PrayerName.ASR.displayNameRes()), prayerTime.asr)
+                    WeeklyPrayerSlot(androidx.compose.ui.res.stringResource(PrayerName.MAGHRIB.displayNameRes()), prayerTime.maghrib)
+                    WeeklyPrayerSlot(androidx.compose.ui.res.stringResource(PrayerName.ISHA.displayNameRes()), prayerTime.isha)
                 }
             }
         }
@@ -152,64 +148,6 @@ private fun WeeklyPrayerSlot(label: String, value: String) {
     }
 }
 
-@Composable
-fun WorshipProgressScreen(
-    settings: UserSettings,
-    onBack: () -> Unit
-) {
-    val progress = (settings.dailyAyatRead / 20f).coerceIn(0f, 1f)
-
-    OverlayShell(
-        title = settings.pick("Progres Ibadah", "Worship Progress"),
-        subtitle = settings.pick("Lacak ibadah harian", "Track daily worship"),
-        onBack = onBack
-    ) {
-        HeroCard {
-            Text(
-                text = settings.pick("${settings.streakCount} Hari Berturut-turut", "${settings.streakCount} Day Streak"),
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onPrimary,
-                fontWeight = FontWeight.Bold
-            )
-            LinearProgressIndicator(
-                progress = progress,
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.onPrimary,
-                trackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.16f)
-            )
-            Text(
-                text = settings.pick("${settings.dailyAyatRead} ayat dibaca hari ini", "${settings.dailyAyatRead} verses read today"),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimary
-            )
-        }
-
-        SanctuaryCard {
-            Text(
-                text = settings.pick("Ringkasan pekanan", "Weekly summary"),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            repeat(7) { index ->
-                val bars = ((settings.dailyAyatRead + index * 2) % 20).coerceAtLeast(3)
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = settings.pick("Hari ${index + 1}", "Day ${index + 1}"),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    LinearProgressIndicator(
-                        progress = bars / 20f,
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                    )
-                }
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun QiblaScreen(
@@ -228,13 +166,13 @@ fun QiblaScreen(
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         SajdaTopBar(
-            title = appLanguage.pick("Kiblat", "Qibla"),
+            title = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.qibla),
             subtitle = prayerTime?.locationName,
             leading = onBack?.let { backAction ->
                 {
                     SajdaTopAction(
                         Icons.Rounded.ArrowBack,
-                        appLanguage.pick("Kembali", "Back"),
+                        androidx.compose.ui.res.stringResource(com.sajda.app.R.string.back),
                         backAction
                     )
                 }
@@ -265,7 +203,7 @@ fun QiblaScreen(
                     )
                     androidx.compose.material3.Icon(
                         imageVector = Icons.Rounded.Navigation,
-                        contentDescription = appLanguage.pick("Kiblat", "Qibla"),
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.qibla),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
                             .size(128.dp)
@@ -274,7 +212,7 @@ fun QiblaScreen(
                 }
 
                 Text(
-                    text = appLanguage.pick("${direction.toInt()} derajat", "${direction.toInt()} degrees"),
+                    text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.direction_toint_degrees),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
@@ -285,24 +223,18 @@ fun QiblaScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     MetadataChip(
-                        text = appLanguage.pick(
-                            "Arah kiblat ${direction.toInt()} derajat",
-                            "Qibla ${direction.toInt()} degrees"
-                        ),
+                        text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.qibla_direction_toint_degrees),
                         active = true
                     )
                     MetadataChip(
-                        text = appLanguage.pick(
-                            "Arah kompas ${compassState.heading.toInt()} derajat",
-                            "Heading ${compassState.heading.toInt()} degrees"
-                        )
+                        text = androidx.compose.ui.res.stringResource(com.sajda.app.R.string.heading_compassstate_heading_toint_degre)
                     )
                     MetadataChip(
                         text = when (compassState.accuracy) {
-                            SensorManager.SENSOR_STATUS_ACCURACY_HIGH -> appLanguage.pick("Akurasi tinggi", "High accuracy")
-                            SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM -> appLanguage.pick("Akurasi sedang", "Medium accuracy")
-                            SensorManager.SENSOR_STATUS_ACCURACY_LOW -> appLanguage.pick("Perlu kalibrasi", "Needs calibration")
-                            else -> appLanguage.pick("Akurasi belum terbaca", "Accuracy unavailable")
+                            SensorManager.SENSOR_STATUS_ACCURACY_HIGH -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.high_accuracy)
+                            SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.medium_accuracy)
+                            SensorManager.SENSOR_STATUS_ACCURACY_LOW -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.needs_calibration)
+                            else -> androidx.compose.ui.res.stringResource(com.sajda.app.R.string.accuracy_unavailable)
                         }
                     )
                 }
@@ -312,21 +244,12 @@ fun QiblaScreen(
         Text(
             text = if (compassState.isAvailable) {
                 if (compassState.accuracy <= SensorManager.SENSOR_STATUS_ACCURACY_LOW) {
-                    appLanguage.pick(
-                        "Kalibrasi kompas dengan gerakan angka delapan dan jauhkan ponsel dari logam.",
-                        "Calibrate the compass with a figure-eight motion and keep the phone away from metal."
-                    )
+                    androidx.compose.ui.res.stringResource(com.sajda.app.R.string.calibrate_the_compass_with_a_figure_eigh)
                 } else {
-                    appLanguage.pick(
-                        "Pegang ponsel datar dan putar perlahan sampai panah mengarah ke kiblat.",
-                        "Hold the phone flat and turn slowly until the arrow points to the qibla."
-                    )
+                    androidx.compose.ui.res.stringResource(com.sajda.app.R.string.hold_the_phone_flat_and_turn_slowly_unti)
                 }
             } else {
-                appLanguage.pick(
-                    "Sensor kompas tidak tersedia, jadi aplikasi hanya menampilkan arah kiblat statis.",
-                    "Compass sensors are unavailable, so the app can only show a static qibla direction."
-                )
+                androidx.compose.ui.res.stringResource(com.sajda.app.R.string.compass_sensors_are_unavailable_so_the_a)
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -431,104 +354,4 @@ private fun rememberCompassState(): CompassState {
         isAvailable = rotationSensor != null,
         accuracy = sensorAccuracy
     )
-}
-
-@Composable
-fun BackgroundAudioInfoScreen(
-    appLanguage: AppLanguage,
-    onBack: () -> Unit
-) {
-    OverlayShell(
-        title = appLanguage.pick("Audio Latar", "Background Audio"),
-        subtitle = appLanguage.pick("Layanan playback", "Playback service"),
-        onBack = onBack
-    ) {
-        SanctuaryCard {
-            Text(
-                text = appLanguage.pick(
-                    "Audio murattal berjalan melalui foreground service, jadi playback tetap hidup saat aplikasi ditutup atau Anda pindah ke aplikasi lain.",
-                    "Murattal audio runs through a foreground service, so playback stays alive when the app is closed or you switch to another app."
-                ),
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Text(
-                text = appLanguage.pick(
-                    "Kontrol utama tersedia dari notifikasi dan mini player Sajda.",
-                    "Main controls remain available from the notification and the NurApp mini player."
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-fun WidgetPreviewScreen(
-    prayerTime: PrayerTime?,
-    appLanguage: AppLanguage,
-    onBack: () -> Unit
-) {
-    OverlayShell(
-        title = appLanguage.pick("Pratinjau Widget", "Widget Preview"),
-        subtitle = appLanguage.pick("Kartu waktu sholat", "Prayer time cards"),
-        onBack = onBack
-    ) {
-        HeroCard {
-            Text(
-                text = prayerTime?.locationName ?: "Jakarta",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onPrimary,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "${localizedPrayerName(PrayerName.FAJR.label, appLanguage)} ${prayerTime?.fajr ?: "--:--"} | ${localizedPrayerName(PrayerName.DHUHR.label, appLanguage)} ${prayerTime?.dhuhr ?: "--:--"} | ${localizedPrayerName(PrayerName.MAGHRIB.label, appLanguage)} ${prayerTime?.maghrib ?: "--:--"}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f)
-            )
-        }
-        SanctuaryCard {
-            Text(
-                text = appLanguage.pick(
-                    "Mini widget ini dirancang untuk tampilan homescreen: ringkas, jelas, dan fokus pada jadwal sholat berikutnya.",
-                    "This mini widget is designed for the home screen: compact, clear, and focused on the next prayer time."
-                ),
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-    }
-}
-
-@Composable
-fun EmptyStateScreen(
-    appLanguage: AppLanguage,
-    onBack: () -> Unit
-) {
-    OverlayShell(
-        title = appLanguage.pick("Keadaan Kosong", "Empty States"),
-        subtitle = appLanguage.pick("Tampilan cadangan yang ramah", "Friendly fallback views"),
-        onBack = onBack
-    ) {
-        EmptyStateCard(
-            title = appLanguage.pick("Belum ada bookmark", "No bookmarks yet"),
-            message = appLanguage.pick(
-                "Simpan ayat yang ingin Anda kunjungi lagi nanti.",
-                "Save the verses you want to revisit later."
-            )
-        )
-        EmptyStateCard(
-            title = appLanguage.pick("Belum ada audio offline", "No offline audio yet"),
-            message = appLanguage.pick(
-                "Unduh murattal per-surah agar penyimpanan tetap ringan.",
-                "Download murattal by surah to keep storage light."
-            )
-        )
-        EmptyStateCard(
-            title = appLanguage.pick("Belum ada hasil pencarian", "No search results yet"),
-            message = appLanguage.pick(
-                "Coba kata yang lebih singkat atau cari dari nama surah.",
-                "Try a shorter keyword or search by surah name."
-            )
-        )
-    }
 }

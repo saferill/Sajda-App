@@ -2,10 +2,9 @@ package com.sajda.app.util
 
 import com.sajda.app.domain.model.AppLanguage
 import com.sajda.app.domain.model.AsrMadhhab
-import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.PrayerCalculationMethod
+import com.sajda.app.domain.model.PrayerName
 import com.sajda.app.domain.model.QuranReadingMode
-import com.sajda.app.domain.model.UserSettings
 
 fun AppLanguage.isEnglish(): Boolean = this != AppLanguage.INDONESIAN
 
@@ -33,76 +32,72 @@ fun AppLanguage.displayName(): String {
     }
 }
 
-fun AppLanguage.pick(indonesian: String, english: String): String {
+fun AppLanguage.displayNameRes(): Int {
     return when (this) {
-        AppLanguage.INDONESIAN -> indonesian
-        AppLanguage.ENGLISH -> english
-        else -> AppTranslations.translate(english, this)
+        AppLanguage.INDONESIAN -> com.sajda.app.R.string.language_indonesian
+        AppLanguage.ENGLISH -> com.sajda.app.R.string.language_english
+        AppLanguage.ARABIC -> com.sajda.app.R.string.language_arabic
+        AppLanguage.SPANISH -> com.sajda.app.R.string.language_spanish
+        AppLanguage.GERMAN -> com.sajda.app.R.string.language_german
+        AppLanguage.PORTUGUESE -> com.sajda.app.R.string.language_portuguese
+        AppLanguage.CHINESE -> com.sajda.app.R.string.language_chinese
+        AppLanguage.JAPANESE -> com.sajda.app.R.string.language_japanese
+        AppLanguage.KOREAN -> com.sajda.app.R.string.language_korean
+        AppLanguage.ITALIAN -> com.sajda.app.R.string.language_italian
+        AppLanguage.POLISH -> com.sajda.app.R.string.language_polish
+        AppLanguage.UKRAINIAN -> com.sajda.app.R.string.language_ukrainian
+        AppLanguage.SWAHILI -> com.sajda.app.R.string.language_swahili
+        AppLanguage.TAGALOG -> com.sajda.app.R.string.language_tagalog
+        AppLanguage.TURKISH -> com.sajda.app.R.string.language_turkish
+        AppLanguage.URDU -> com.sajda.app.R.string.language_urdu
+        AppLanguage.FRENCH -> com.sajda.app.R.string.language_french
+        AppLanguage.MALAY -> com.sajda.app.R.string.language_malay
+        AppLanguage.HINDI -> com.sajda.app.R.string.language_hindi
     }
 }
 
-fun UserSettings.pick(indonesian: String, english: String): String = appLanguage.pick(indonesian, english)
-
-fun PrayerName.displayName(language: AppLanguage): String {
+fun PrayerName.displayNameRes(): Int {
     return when (this) {
-        PrayerName.FAJR -> language.pick("Subuh", "Fajr")
-        PrayerName.DHUHR -> language.pick("Dzuhur", "Dhuhr")
-        PrayerName.ASR -> language.pick("Ashar", "Asr")
-        PrayerName.MAGHRIB -> language.pick("Maghrib", "Maghrib")
-        PrayerName.ISHA -> language.pick("Isya", "Isha")
+        PrayerName.FAJR -> com.sajda.app.R.string.fajr
+        PrayerName.DHUHR -> com.sajda.app.R.string.dhuhr
+        PrayerName.ASR -> com.sajda.app.R.string.asr_2
+        PrayerName.MAGHRIB -> com.sajda.app.R.string.maghrib
+        PrayerName.ISHA -> com.sajda.app.R.string.isha
     }
 }
 
-fun localizedPrayerName(label: String, language: AppLanguage): String {
+fun localizedPrayerNameRes(label: String): Int? {
     return when (label.trim().lowercase()) {
-        "subuh", "fajr" -> PrayerName.FAJR.displayName(language)
-        "dzuhur", "dhuhr" -> PrayerName.DHUHR.displayName(language)
-        "ashar", "asr" -> PrayerName.ASR.displayName(language)
-        "maghrib" -> PrayerName.MAGHRIB.displayName(language)
-        "isya", "isha" -> PrayerName.ISHA.displayName(language)
-        else -> label
+        "subuh", "fajr" -> PrayerName.FAJR.displayNameRes()
+        "dzuhur", "dhuhr" -> PrayerName.DHUHR.displayNameRes()
+        "ashar", "asr" -> PrayerName.ASR.displayNameRes()
+        "maghrib" -> PrayerName.MAGHRIB.displayNameRes()
+        "isya", "isha" -> PrayerName.ISHA.displayNameRes()
+        else -> null
     }
 }
 
-fun QuranReadingMode.displayLabel(language: AppLanguage): String {
+fun QuranReadingMode.displayLabelRes(): Int {
     return when (this) {
-        QuranReadingMode.ARABIC_ONLY -> language.pick("Arab saja", "Arabic only")
-        QuranReadingMode.ARABIC_INDONESIAN -> language.pick("Arab + Indonesia", "Arabic + Indonesian")
-        QuranReadingMode.ARABIC_ENGLISH -> language.pick("Arab + English", "Arabic + English")
-        QuranReadingMode.ALL -> language.pick("Semua", "All")
+        QuranReadingMode.ARABIC_ONLY -> com.sajda.app.R.string.arabic_only
+        QuranReadingMode.ARABIC_INDONESIAN -> com.sajda.app.R.string.arabic_indonesian
+        QuranReadingMode.ARABIC_ENGLISH -> com.sajda.app.R.string.arabic_english
+        QuranReadingMode.ALL -> com.sajda.app.R.string.all
     }
 }
 
-fun PrayerCalculationMethod.localizedDescription(language: AppLanguage): String {
+fun PrayerCalculationMethod.localizedDescriptionRes(): Int {
     return when (this) {
-        PrayerCalculationMethod.KEMENAG -> language.pick(
-            "Profil Indonesia dengan Subuh lebih awal dan Isya yang cenderung konservatif.",
-            "Indonesian profile with an earlier Fajr and a more conservative Isha setting."
-        )
-        PrayerCalculationMethod.MUSLIM_WORLD_LEAGUE -> language.pick(
-            "Metode global yang umum dipakai banyak aplikasi Muslim modern.",
-            "A global method commonly used by modern Muslim apps."
-        )
-        PrayerCalculationMethod.UMM_AL_QURA -> language.pick(
-            "Fajar berbasis sudut, sedangkan Isya dihitung dengan interval tetap setelah Maghrib.",
-            "Fajr uses an angle while Isha is calculated using a fixed interval after Maghrib."
-        )
-        PrayerCalculationMethod.ISNA -> language.pick(
-            "Metode ringan dengan sudut 15 derajat untuk Fajar dan Isya.",
-            "A lighter method using 15-degree angles for Fajr and Isha."
-        )
+        PrayerCalculationMethod.KEMENAG -> com.sajda.app.R.string.indonesian_profile_with_an_earlier_fajr
+        PrayerCalculationMethod.MUSLIM_WORLD_LEAGUE -> com.sajda.app.R.string.a_global_method_commonly_used_by_modern
+        PrayerCalculationMethod.UMM_AL_QURA -> com.sajda.app.R.string.fajr_uses_an_angle_while_isha_is_calcula
+        PrayerCalculationMethod.ISNA -> com.sajda.app.R.string.a_lighter_method_using_15_degree_angles
     }
 }
 
-fun AsrMadhhab.localizedDescription(language: AppLanguage): String {
+fun AsrMadhhab.localizedDescriptionRes(): Int {
     return when (this) {
-        AsrMadhhab.SHAFII -> language.pick(
-            "Bayangan 1x tinggi benda. Ini yang paling umum dipakai di Indonesia.",
-            "Shadow length equals 1x the object's height. This is the most common method in Indonesia."
-        )
-        AsrMadhhab.HANAFI -> language.pick(
-            "Bayangan 2x tinggi benda.",
-            "Shadow length equals 2x the object's height."
-        )
+        AsrMadhhab.SHAFII -> com.sajda.app.R.string.shadow_length_equals_1x_the_object_s_hei
+        AsrMadhhab.HANAFI -> com.sajda.app.R.string.shadow_length_equals_2x_the_object_s_hei
     }
 }

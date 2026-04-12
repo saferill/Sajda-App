@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/nurapp_logo_mark">
+    <target
+        android:name="logo"
+        android:animation="@animator/nurapp_logo_pop" />
+</animated-vector>

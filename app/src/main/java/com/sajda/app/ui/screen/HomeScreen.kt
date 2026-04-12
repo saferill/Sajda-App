@@ -46,12 +46,12 @@ import com.sajda.app.ui.component.SajdaTopAction
 import com.sajda.app.ui.component.SanctuaryCard
 import com.sajda.app.ui.theme.surfaceContainerLow
 import com.sajda.app.ui.viewmodel.HomeViewModel
+import com.sajda.app.util.AppTranslations
 import com.sajda.app.util.DateTimeUtils
 import com.sajda.app.util.currentGregorianSummary
 import com.sajda.app.util.currentHijriSummary
 import com.sajda.app.util.isEnglish
-import com.sajda.app.util.localizedPrayerName
-import com.sajda.app.util.pick
+import com.sajda.app.util.localizedPrayerNameRes
 import java.time.LocalDate
 
 private const val HOME_SCREEN_TAG = "HomeScreen"
@@ -90,7 +90,9 @@ fun HomeScreen(
         Log.e(HOME_SCREEN_TAG, "Failed to render date summary", error)
         if (isEnglish) "Today" else "Hari ini"
     }
-    val nextPrayerLabel = localizedPrayerName(state.nextPrayerLabel, state.appLanguage)
+    val nextPrayerLabel = localizedPrayerNameRes(state.nextPrayerLabel)
+        ?.let { androidx.compose.ui.res.stringResource(it) }
+        ?: state.nextPrayerLabel
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -234,7 +236,7 @@ fun HomeScreen(
             ) {
                 prayerEntries.forEach { entry ->
                     MetadataChip(
-                        text = "${localizedPrayerName(entry.first.label, state.appLanguage)} ${entry.second}",
+                        text = "${localizedPrayerNameRes(entry.first.label)?.let { androidx.compose.ui.res.stringResource(it) } ?: entry.first.label} ${entry.second}",
                         active = entry.first.label == state.nextPrayerLabel
                     )
                 }
@@ -295,7 +297,11 @@ fun HomeScreen(
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = state.appLanguage.pick(ayat.translation, ayat.englishTranslation.ifBlank { ayat.translation }),
+                        text = resolveAyatTranslation(
+                            appLanguage = state.appLanguage,
+                            indonesian = ayat.translation,
+                            english = ayat.englishTranslation
+                        ),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.88f),
                         textAlign = TextAlign.Center
@@ -345,6 +351,19 @@ fun HomeScreen(
                 }
             }
         }
+    }
+}
+
+private fun resolveAyatTranslation(
+    appLanguage: com.sajda.app.domain.model.AppLanguage,
+    indonesian: String,
+    english: String
+): String {
+    val fallbackEnglish = english.ifBlank { indonesian }
+    return when (appLanguage) {
+        com.sajda.app.domain.model.AppLanguage.INDONESIAN -> indonesian
+        com.sajda.app.domain.model.AppLanguage.ENGLISH -> fallbackEnglish
+        else -> AppTranslations.translate(fallbackEnglish, appLanguage)
     }
 }
 

@@ -13,12 +13,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.sajda.app.MainActivity
 import com.sajda.app.R
-import com.sajda.app.data.local.PreferencesDataStore
 import com.sajda.app.util.Constants
-import com.sajda.app.util.localizedPrayerName
-import com.sajda.app.util.pick
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import com.sajda.app.util.localizedPrayerNameRes
 
 object AdzanAlertNotifier {
 
@@ -31,8 +27,9 @@ object AdzanAlertNotifier {
     ) {
         val appContext = context.applicationContext
         ensurePrimaryChannel(appContext)
-        val language = runBlocking { PreferencesDataStore(appContext).settingsFlow.first().appLanguage }
-        val displayName = localizedPrayerName(prayerName, language)
+        val displayName = localizedPrayerNameRes(prayerName)
+            ?.let { appContext.getString(it) }
+            ?: prayerName
 
         val openPrayerIntent = Intent(appContext, MainActivity::class.java).apply {
             action = Constants.ACTION_OPEN_PRAYER_TAB
@@ -70,7 +67,7 @@ object AdzanAlertNotifier {
         )
 
         val summaryText = buildString {
-            append(language.pick("Saatnya sholat ", "Time for "))
+            append(context.getString(com.sajda.app.R.string.time_for))
             append(displayName)
             if (prayerTime.isNotBlank()) {
                 append(" | ")
@@ -80,7 +77,7 @@ object AdzanAlertNotifier {
 
         val notification = NotificationCompat.Builder(appContext, Constants.ADZAN_NOTIFICATION_CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(language.pick("Waktu $displayName telah tiba", "$displayName time has arrived"))
+            .setContentTitle(context.getString(com.sajda.app.R.string.displayname_time_has_arrived))
             .setContentText(summaryText)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -105,8 +102,9 @@ object AdzanAlertNotifier {
         reason: String = ""
     ) {
         val appContext = context.applicationContext
-        val language = runBlocking { PreferencesDataStore(appContext).settingsFlow.first().appLanguage }
-        val displayName = localizedPrayerName(prayerName, language)
+        val displayName = localizedPrayerNameRes(prayerName)
+            ?.let { appContext.getString(it) }
+            ?: prayerName
         val alertTone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
@@ -154,20 +152,17 @@ object AdzanAlertNotifier {
 
         val details = buildString {
             append(
-                language.pick(
-                    "Service adzan utama gagal dibuka. Notifikasi cadangan dipakai supaya pengingat tetap muncul.",
-                    "The main adhan service could not start. A backup alert is shown so the reminder is still delivered."
-                )
+                context.getString(com.sajda.app.R.string.the_main_adhan_service_could_not_start_a)
             )
             if (reason.isNotBlank()) {
                 append(' ')
-                append(language.pick("Penyebab: ", "Reason: "))
+                append(context.getString(com.sajda.app.R.string.reason))
                 append(reason)
             }
         }
 
         val summaryText = buildString {
-            append(language.pick("Saatnya sholat ", "Time for "))
+            append(context.getString(com.sajda.app.R.string.time_for))
             append(displayName)
             if (metaLine.isNotBlank()) {
                 append(" - ")
@@ -177,7 +172,7 @@ object AdzanAlertNotifier {
 
         val notification = NotificationCompat.Builder(appContext, Constants.ADZAN_ALERT_NOTIFICATION_CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(language.pick("Waktu $displayName telah tiba", "$displayName time has arrived"))
+            .setContentTitle(context.getString(com.sajda.app.R.string.displayname_time_has_arrived))
             .setContentText(summaryText)
             .setStyle(NotificationCompat.BigTextStyle().bigText(details))
             .setContentIntent(contentIntent)
@@ -202,10 +197,10 @@ object AdzanAlertNotifier {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         val channel = NotificationChannel(
             Constants.ADZAN_ALERT_NOTIFICATION_CHANNEL,
-            "NurApp Adhan Alert",
+            context.getString(R.string.nurapp_adhan_alert_channel_name),
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Backup alert used when the main adhan service cannot start"
+            description = context.getString(R.string.nurapp_adhan_alert_channel_description)
             enableVibration(true)
             vibrationPattern = VIBRATION_PATTERN
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
@@ -227,10 +222,10 @@ object AdzanAlertNotifier {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         val channel = NotificationChannel(
             Constants.ADZAN_NOTIFICATION_CHANNEL,
-            "NurApp Adhan",
+            context.getString(R.string.nurapp_adhan_channel_name),
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "NurApp adhan alerts and controls"
+            description = context.getString(R.string.nurapp_adhan_channel_description)
             enableVibration(true)
             vibrationPattern = VIBRATION_PATTERN
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
