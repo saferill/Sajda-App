@@ -12,17 +12,24 @@
   <img src="https://img.shields.io/badge/Platform-Android-0F5238?style=for-the-badge&logo=android&logoColor=white" alt="Android" />
   <img src="https://img.shields.io/badge/Kotlin-Jetpack%20Compose-16423C?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin Jetpack Compose" />
   <img src="https://img.shields.io/badge/Architecture-MVVM%20%7C%20Repository-D6B66A?style=for-the-badge&logo=android&logoColor=1A1A1A" alt="Architecture" />
-  <img src="https://img.shields.io/badge/Release-v1.4.2-0F5238?style=for-the-badge&logo=github&logoColor=white" alt="Release v1.4.2" />
+  <img src="https://img.shields.io/badge/Release-v1.4.3-0F5238?style=for-the-badge&logo=github&logoColor=white" alt="Release v1.4.3" />
 </p>
 
 <p align="center">
-  <a href="https://github.com/saferill/Nur-App/releases/tag/v1.4.2">Release Notes</a>
-  |
-  <a href="https://github.com/saferill/Nur-App/releases/download/v1.4.2/NurApp-v1.4.2.apk">Download APK</a>
+  <a href="https://github.com/saferill/Nur-App/releases/tag/v1.4.3">Release Notes</a>
   |
   <a href="ROADMAP.md">Roadmap</a>
   |
   <a href="LICENSE">License</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/saferill/Nur-App/releases/download/v1.4.3/NurApp-v1.4.3.apk">
+    <img src="https://img.shields.io/badge/Download-APK%20v1.4.3-2E7D32?style=for-the-badge&logo=android&logoColor=white" alt="Download APK v1.4.3" />
+  </a>
+  <a href="https://github.com/saferill/Nur-App/releases/tag/v1.4.3">
+    <img src="https://img.shields.io/badge/Release%20Notes-v1.4.3-1B5E20?style=for-the-badge&logo=github&logoColor=white" alt="Release notes v1.4.3" />
+  </a>
 </p>
 
 ## Ringkasan
@@ -166,16 +173,15 @@ Catatan: untuk bahasa selain Indonesia dan English, aplikasi memakai jalur terje
 
 ## Rilis Saat Ini
 
-Versi terbaru yang sudah dipublikasikan adalah `v1.4.2`.
+Versi terbaru yang sudah dipublikasikan adalah `v1.4.3`.
 
 Perubahan penting di rilis ini:
 
-- branding README dan release diselaraskan dengan logo aplikasi terbaru
-- splash, onboarding, permission setup, dan pengaturan dirapikan dengan desain baru
-- bahasa aplikasi diperluas dan tidak lagi berhenti di fallback English saja
-- flow permission dipindah ke tahap setelah onboarding sebelum dashboard
-- opsi unduhan audio qari dibuat lebih jelas
-- update center tetap manual, bukan auto-check saat app dibuka
+- splash screen menjadi satu dengan animasi icon
+- onboarding dan permission flow dipusatkan, lebih rapi, dan konsisten
+- preview Arab di pengaturan sudah bersih dan tidak ada karakter rusak
+- pilihan bahasa disatukan ke resource string agar tidak campur bahasa
+- opsi unduhan audio qari dan update center tetap manual lewat pengaturan
 
 ## Tech Stack
 
@@ -275,7 +281,7 @@ Release build wajib memakai keystore lama dari `keystore.properties`.
 Output:
 
 ```text
-app/build/outputs/apk/release/NurApp-v1.4.2.apk
+app/build/outputs/apk/release/NurApp-v1.4.3.apk
 ```
 
 ## Install ke Device
@@ -283,7 +289,7 @@ app/build/outputs/apk/release/NurApp-v1.4.2.apk
 Install lewat ADB:
 
 ```bash
-adb install app/build/outputs/apk/release/NurApp-v1.4.2.apk
+adb install app/build/outputs/apk/release/NurApp-v1.4.3.apk
 ```
 
 Kalau muncul error `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, berarti di device masih ada `com.sajda.app` dengan signature berbeda. Solusinya:
